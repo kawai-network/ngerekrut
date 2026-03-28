@@ -71,12 +71,9 @@ class UserRepository {
       [id],
     );
 
-    if (result.rowCount == 0) return null;
+    if (result.isEmpty) return null;
 
-    final rows = result.fetchAll();
-    final columnNames = result.columnNames;
-    final rowMap = ChatDatabaseService.rowToMap(rows.first, columnNames);
-    return _mapper.fromRow(rowMap);
+    return _mapper.fromRow(result.first);
   }
 
   /// Gets all users.
@@ -89,9 +86,7 @@ class UserRepository {
       LIMIT ?
     ''', [limit]);
 
-    final rows = result.fetchAll();
-    final columnNames = result.columnNames;
-    return _mapper.fromRows(ChatDatabaseService.rowsToMaps(rows, columnNames));
+    return _mapper.fromRows(result);
   }
 
   /// Gets users by IDs.
@@ -103,9 +98,7 @@ class UserRepository {
       WHERE id IN (${List.filled(ids.length, '?').join(',')})
     ''', ids);
 
-    final rows = result.fetchAll();
-    final columnNames = result.columnNames;
-    return _mapper.fromRows(ChatDatabaseService.rowsToMaps(rows, columnNames));
+    return _mapper.fromRows(result);
   }
 
   /// Searches users by name.
@@ -120,15 +113,13 @@ class UserRepository {
       LIMIT ?
     ''', ['%$query%', limit]);
 
-    final rows = result.fetchAll();
-    final columnNames = result.columnNames;
-    return _mapper.fromRows(ChatDatabaseService.rowsToMaps(rows, columnNames));
+    return _mapper.fromRows(result);
   }
 
   /// Gets user count.
   Future<int> getUserCount() async {
-    final result = await _database.execute('SELECT COUNT(*) FROM users');
-    return result.fetchAll().first[0] as int;
+    final result = await _database.execute('SELECT COUNT(*) as count FROM users');
+    return result.first['count'] as int;
   }
 
   /// Inserts or updates multiple users in a transaction.

@@ -140,21 +140,35 @@ class ChatDatabaseService {
   }
 
   /// Executes a SQL query and returns the result.
-  Future<ResultSet> execute(String sql, [List<dynamic>? params]) async {
+  Future<List<Map<String, dynamic>>> execute(String sql, [List<dynamic>? params]) async {
     if (!_isOpen) {
       throw StateError('Database is not open. Call initialize() first.');
     }
     
     if (params == null || params.isEmpty) {
-      return await _connection.query(sql);
+      final resultSet = await _connection.query(sql);
+      try {
+        final rows = resultSet.fetchAll();
+        final columnNames = resultSet.columnNames;
+        return rowsToMaps(rows, columnNames);
+      } finally {
+        await resultSet.dispose();
+      }
     }
     
     // Use prepared statement for parameterized queries
     final stmt = await _connection.prepare(sql);
+    ResultSet? resultSet;
     try {
       stmt.bindParams(params);
-      return await stmt.execute();
+      resultSet = await stmt.execute();
+      final rows = resultSet.fetchAll();
+      final columnNames = resultSet.columnNames;
+      return rowsToMaps(rows, columnNames);
     } finally {
+      if (resultSet != null) {
+        await resultSet.dispose();
+      }
       await stmt.dispose();
     }
   }
@@ -165,10 +179,14 @@ class ChatDatabaseService {
       await _connection.execute(sql);
     } else {
       final stmt = await _connection.prepare(sql);
+      ResultSet? resultSet;
       try {
         stmt.bindParams(params);
-        await stmt.execute();
+        resultSet = await stmt.execute();
       } finally {
+        if (resultSet != null) {
+          await resultSet.dispose();
+        }
         await stmt.dispose();
       }
     }

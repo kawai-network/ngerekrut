@@ -6,7 +6,7 @@ import '../../flutter_chat_core/src/utils/typedefs.dart';
 import '../database/chat_database_service.dart';
 
 /// Mapper class for converting between [Message] objects and database rows.
-/// 
+///
 /// Uses the hybrid approach:
 /// - Common fields are stored in normalized columns
 /// - Type-specific data is stored in JSON columns
@@ -98,7 +98,9 @@ class MessageMapper {
       row['text_content'] = message.text;
       row['media_source'] = null;
       row['media_metadata'] = null;
-      row['custom_metadata'] = null;
+      row['custom_metadata'] = message.metadata != null
+          ? jsonEncode(message.metadata)
+          : null;
     } else if (message is CustomMessage) {
       row['text_content'] = null;
       row['media_source'] = null;
@@ -145,15 +147,11 @@ class MessageMapper {
           failedAt: ChatDatabaseService.epochToDateTime(
             row['failed_at'] as int?,
           ),
-          sentAt: ChatDatabaseService.epochToDateTime(
-            row['sent_at'] as int?,
-          ),
+          sentAt: ChatDatabaseService.epochToDateTime(row['sent_at'] as int?),
           deliveredAt: ChatDatabaseService.epochToDateTime(
             row['delivered_at'] as int?,
           ),
-          seenAt: ChatDatabaseService.epochToDateTime(
-            row['seen_at'] as int?,
-          ),
+          seenAt: ChatDatabaseService.epochToDateTime(row['seen_at'] as int?),
           updatedAt: ChatDatabaseService.epochToDateTime(
             row['updated_at'] as int?,
           ),
@@ -183,15 +181,11 @@ class MessageMapper {
           failedAt: ChatDatabaseService.epochToDateTime(
             row['failed_at'] as int?,
           ),
-          sentAt: ChatDatabaseService.epochToDateTime(
-            row['sent_at'] as int?,
-          ),
+          sentAt: ChatDatabaseService.epochToDateTime(row['sent_at'] as int?),
           deliveredAt: ChatDatabaseService.epochToDateTime(
             row['delivered_at'] as int?,
           ),
-          seenAt: ChatDatabaseService.epochToDateTime(
-            row['seen_at'] as int?,
-          ),
+          seenAt: ChatDatabaseService.epochToDateTime(row['seen_at'] as int?),
           updatedAt: ChatDatabaseService.epochToDateTime(
             row['updated_at'] as int?,
           ),
@@ -216,15 +210,11 @@ class MessageMapper {
           failedAt: ChatDatabaseService.epochToDateTime(
             row['failed_at'] as int?,
           ),
-          sentAt: ChatDatabaseService.epochToDateTime(
-            row['sent_at'] as int?,
-          ),
+          sentAt: ChatDatabaseService.epochToDateTime(row['sent_at'] as int?),
           deliveredAt: ChatDatabaseService.epochToDateTime(
             row['delivered_at'] as int?,
           ),
-          seenAt: ChatDatabaseService.epochToDateTime(
-            row['seen_at'] as int?,
-          ),
+          seenAt: ChatDatabaseService.epochToDateTime(row['seen_at'] as int?),
           updatedAt: ChatDatabaseService.epochToDateTime(
             row['updated_at'] as int?,
           ),
@@ -256,15 +246,11 @@ class MessageMapper {
           failedAt: ChatDatabaseService.epochToDateTime(
             row['failed_at'] as int?,
           ),
-          sentAt: ChatDatabaseService.epochToDateTime(
-            row['sent_at'] as int?,
-          ),
+          sentAt: ChatDatabaseService.epochToDateTime(row['sent_at'] as int?),
           deliveredAt: ChatDatabaseService.epochToDateTime(
             row['delivered_at'] as int?,
           ),
-          seenAt: ChatDatabaseService.epochToDateTime(
-            row['seen_at'] as int?,
-          ),
+          seenAt: ChatDatabaseService.epochToDateTime(row['seen_at'] as int?),
           updatedAt: ChatDatabaseService.epochToDateTime(
             row['updated_at'] as int?,
           ),
@@ -292,15 +278,11 @@ class MessageMapper {
           failedAt: ChatDatabaseService.epochToDateTime(
             row['failed_at'] as int?,
           ),
-          sentAt: ChatDatabaseService.epochToDateTime(
-            row['sent_at'] as int?,
-          ),
+          sentAt: ChatDatabaseService.epochToDateTime(row['sent_at'] as int?),
           deliveredAt: ChatDatabaseService.epochToDateTime(
             row['delivered_at'] as int?,
           ),
-          seenAt: ChatDatabaseService.epochToDateTime(
-            row['seen_at'] as int?,
-          ),
+          seenAt: ChatDatabaseService.epochToDateTime(row['seen_at'] as int?),
           updatedAt: ChatDatabaseService.epochToDateTime(
             row['updated_at'] as int?,
           ),
@@ -330,15 +312,11 @@ class MessageMapper {
           failedAt: ChatDatabaseService.epochToDateTime(
             row['failed_at'] as int?,
           ),
-          sentAt: ChatDatabaseService.epochToDateTime(
-            row['sent_at'] as int?,
-          ),
+          sentAt: ChatDatabaseService.epochToDateTime(row['sent_at'] as int?),
           deliveredAt: ChatDatabaseService.epochToDateTime(
             row['delivered_at'] as int?,
           ),
-          seenAt: ChatDatabaseService.epochToDateTime(
-            row['seen_at'] as int?,
-          ),
+          seenAt: ChatDatabaseService.epochToDateTime(row['seen_at'] as int?),
           updatedAt: ChatDatabaseService.epochToDateTime(
             row['updated_at'] as int?,
           ),
@@ -371,15 +349,11 @@ class MessageMapper {
           failedAt: ChatDatabaseService.epochToDateTime(
             row['failed_at'] as int?,
           ),
-          sentAt: ChatDatabaseService.epochToDateTime(
-            row['sent_at'] as int?,
-          ),
+          sentAt: ChatDatabaseService.epochToDateTime(row['sent_at'] as int?),
           deliveredAt: ChatDatabaseService.epochToDateTime(
             row['delivered_at'] as int?,
           ),
-          seenAt: ChatDatabaseService.epochToDateTime(
-            row['seen_at'] as int?,
-          ),
+          seenAt: ChatDatabaseService.epochToDateTime(row['seen_at'] as int?),
           updatedAt: ChatDatabaseService.epochToDateTime(
             row['updated_at'] as int?,
           ),
@@ -404,15 +378,11 @@ class MessageMapper {
           failedAt: ChatDatabaseService.epochToDateTime(
             row['failed_at'] as int?,
           ),
-          sentAt: ChatDatabaseService.epochToDateTime(
-            row['sent_at'] as int?,
-          ),
+          sentAt: ChatDatabaseService.epochToDateTime(row['sent_at'] as int?),
           deliveredAt: ChatDatabaseService.epochToDateTime(
             row['delivered_at'] as int?,
           ),
-          seenAt: ChatDatabaseService.epochToDateTime(
-            row['seen_at'] as int?,
-          ),
+          seenAt: ChatDatabaseService.epochToDateTime(row['seen_at'] as int?),
           updatedAt: ChatDatabaseService.epochToDateTime(
             row['updated_at'] as int?,
           ),
@@ -436,15 +406,11 @@ class MessageMapper {
           failedAt: ChatDatabaseService.epochToDateTime(
             row['failed_at'] as int?,
           ),
-          sentAt: ChatDatabaseService.epochToDateTime(
-            row['sent_at'] as int?,
-          ),
+          sentAt: ChatDatabaseService.epochToDateTime(row['sent_at'] as int?),
           deliveredAt: ChatDatabaseService.epochToDateTime(
             row['delivered_at'] as int?,
           ),
-          seenAt: ChatDatabaseService.epochToDateTime(
-            row['seen_at'] as int?,
-          ),
+          seenAt: ChatDatabaseService.epochToDateTime(row['seen_at'] as int?),
           updatedAt: ChatDatabaseService.epochToDateTime(
             row['updated_at'] as int?,
           ),

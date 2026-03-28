@@ -1,5 +1,3 @@
-import 'package:dart_duckdb/dart_duckdb.dart';
-
 import '../../flutter_chat_core/src/models/message.dart';
 import '../../flutter_chat_core/src/utils/typedefs.dart';
 import '../database/chat_database_service.dart';
@@ -129,12 +127,9 @@ class MessageRepository {
       SELECT * FROM messages WHERE id = ?
     ''', [id]);
 
-    if (result.rowCount == 0) return null;
+    if (result.isEmpty) return null;
 
-    final rows = result.fetchAll();
-    final columnNames = result.columnNames;
-    final rowMap = ChatDatabaseService.rowToMap(rows.first, columnNames);
-    final message = _mapper.fromRow(rowMap);
+    final message = _mapper.fromRow(result.first);
     final reactions = await _getReactions(id);
     
     return _withReactions(message, reactions);
@@ -343,7 +338,7 @@ class MessageRepository {
     ''', params);
 
     return {
-      for (final row in result.fetchAll()) row[0] as String: row[1] as int,
+      for (final row in result) row['type'] as String: row['count'] as int,
     };
   }
 
@@ -359,10 +354,10 @@ class MessageRepository {
     final whereClause = conditions.isNotEmpty ? 'WHERE ${conditions.join(' AND ')}' : '';
 
     final result = await _database.execute('''
-      SELECT COUNT(*) FROM messages $whereClause
+      SELECT COUNT(*) as count FROM messages $whereClause
     ''');
 
-    return result.fetchAll().first[0] as int;
+    return result.first['count'] as int;
   }
 
   /// Inserts reactions for a message.
@@ -406,9 +401,9 @@ class MessageRepository {
     ''', [messageId]);
 
     final reactions = <String, List<UserID>>{};
-    for (final row in result.fetchAll()) {
-      final key = row[0] as String;
-      final userId = row[1] as String;
+    for (final row in result) {
+      final key = row['reaction_key'] as String;
+      final userId = row['user_id'] as String;
 
       reactions.putIfAbsent(key, () => []).add(userId);
     }
@@ -418,15 +413,11 @@ class MessageRepository {
 
   /// Loads messages with their reactions.
   Future<List<Message>> _loadMessagesWithReactions(
-    ResultSet result,
+    List<Map<String, dynamic>> result,
   ) async {
-    if (result.rowCount == 0) return [];
-
-    final rows = result.fetchAll();
-    final columnNames = result.columnNames;
-    final rowMaps = ChatDatabaseService.rowsToMaps(rows, columnNames);
+    if (result.isEmpty) return [];
     
-    final messages = rowMaps.map(_mapper.fromRow).toList();
+    final messages = result.map(_mapper.fromRow).toList();
     final messageIds = messages.map((m) => m.id).toList();
 
     // Load all reactions for these messages
@@ -438,10 +429,10 @@ class MessageRepository {
 
     // Group reactions by message
     final reactionsByMessage = <String, Map<String, List<UserID>>>{};
-    for (final row in reactionsResult.fetchAll()) {
-      final messageId = row[0] as String;
-      final reactionKey = row[1] as String;
-      final userId = row[2] as String;
+    for (final row in reactionsResult) {
+      final messageId = row['message_id'] as String;
+      final reactionKey = row['reaction_key'] as String;
+      final userId = row['user_id'] as String;
 
       reactionsByMessage.putIfAbsent(messageId, () => {});
       reactionsByMessage[messageId]!
