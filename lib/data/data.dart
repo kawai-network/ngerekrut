@@ -15,3 +15,6 @@ export 'mappers/user_mapper.dart';
 // Repositories
 export 'repositories/message_repository.dart';
 export 'repositories/user_repository.dart';
+
+// Controllers
+export 'controllers/duckdb_chat_controller.dart';
