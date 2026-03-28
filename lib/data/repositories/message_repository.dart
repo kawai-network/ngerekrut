@@ -112,6 +112,7 @@ class MessageRepository {
 
   /// Deletes a message by ID.
   Future<void> deleteMessage(MessageID id) async {
+    await _database.executeVoid('DELETE FROM reactions WHERE message_id = ?', [id]);
     await _database.executeVoid('DELETE FROM messages WHERE id = ?', [id]);
   }
 
@@ -297,6 +298,7 @@ class MessageRepository {
     await _database.executeVoid('''
       INSERT INTO reactions (message_id, reaction_key, user_id)
       VALUES (?, ?, ?)
+      ON CONFLICT DO NOTHING
     ''', [messageId, reactionKey, userId]);
   }
 

@@ -10,6 +10,7 @@ export 'src/composer.dart';
 export 'src/empty_chat_list.dart';
 export 'src/is_typing.dart';
 export 'src/load_more.dart';
+export 'src/persistent_chat.dart';
 export 'src/scroll_to_bottom.dart';
 export 'src/simple_text_message.dart';
 export 'src/username.dart';
