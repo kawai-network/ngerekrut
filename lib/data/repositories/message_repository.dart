@@ -165,8 +165,13 @@ class MessageRepository {
 
   /// Deletes a message by ID.
   Future<void> deleteMessage(MessageID id) async {
-    await _database.executeVoid('DELETE FROM reactions WHERE message_id = ?', [id]);
-    await _database.executeVoid('DELETE FROM messages WHERE id = ?', [id]);
+    await _database.runTransaction(() async {
+      await _database.executeVoid(
+        'DELETE FROM reactions WHERE message_id = ?',
+        [id],
+      );
+      await _database.executeVoid('DELETE FROM messages WHERE id = ?', [id]);
+    });
   }
 
   /// Soft deletes a message by setting deleted_at timestamp.
