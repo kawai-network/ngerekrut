@@ -132,8 +132,17 @@ class _ChatMessageInternalState extends State<ChatMessageInternal> {
     try {
       final chatController = context.read<ChatController>();
       final messages = chatController.messages;
-      final index = widget.index;
       final currentMessage = _updatedMessage;
+      var index = widget.index;
+
+      if (index < 0 ||
+          index >= messages.length ||
+          messages[index].id != currentMessage.id) {
+        index = messages.indexWhere((m) => m.id == currentMessage.id);
+        if (index == -1) {
+          return null;
+        }
+      }
 
       // Get adjacent messages if they exist
       final nextMessage = index < messages.length - 1

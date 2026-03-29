@@ -104,6 +104,7 @@ class PersistentChat extends StatefulWidget {
 
 class _PersistentChatState extends State<PersistentChat> {
   DuckDBChatController? _controller;
+  ChatDatabaseService? _database;
   Object? _error;
   double _loadingProgress = 0.0;
 
@@ -115,6 +116,7 @@ class _PersistentChatState extends State<PersistentChat> {
 
   Future<void> _initializeDatabase() async {
     try {
+      if (!mounted) return;
       setState(() {
         _loadingProgress = 0.2;
       });
@@ -123,22 +125,25 @@ class _PersistentChatState extends State<PersistentChat> {
       final dbPath = widget.databasePath ??
           await DatabasePathProvider.getDatabasePath();
 
+      if (!mounted) return;
       setState(() {
         _loadingProgress = 0.4;
       });
 
       // Step 2: Initialize database
-      final database = ChatDatabaseService(dbPath: dbPath);
-      await database.initialize();
+      _database = ChatDatabaseService(dbPath: dbPath);
+      await _database!.initialize();
 
+      if (!mounted) return;
       setState(() {
         _loadingProgress = 0.6;
       });
 
       // Step 3: Create repositories
-      final messageRepository = MessageRepository(database);
-      final userRepository = UserRepository(database);
+      final messageRepository = MessageRepository(_database!);
+      final userRepository = UserRepository(_database!);
 
+      if (!mounted) return;
       setState(() {
         _loadingProgress = 0.8;
       });
@@ -152,11 +157,13 @@ class _PersistentChatState extends State<PersistentChat> {
       // Step 5: Load messages
       await _controller!.loadMessages(limit: widget.initialMessageLimit);
 
+      if (!mounted) return;
       setState(() {
         _loadingProgress = 1.0;
         _error = null;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e;
       });
@@ -259,6 +266,7 @@ class _PersistentChatState extends State<PersistentChat> {
   @override
   void dispose() {
     _controller?.dispose();
+    _database?.close();
     super.dispose();
   }
 }
@@ -271,6 +279,7 @@ class _PersistentChatState extends State<PersistentChat> {
 mixin DuckDBPersistenceMixin<T extends StatefulWidget> on State<T> {
   /// The DuckDB chat controller. Null until initialized.
   DuckDBChatController? _persistenceController;
+  ChatDatabaseService? _chatDatabase;
   bool _isInitialized = false;
 
   /// Initializes the DuckDB persistence layer.
@@ -286,12 +295,12 @@ mixin DuckDBPersistenceMixin<T extends StatefulWidget> on State<T> {
     final dbPath = databasePath ??
         await DatabasePathProvider.getDatabasePath();
 
-    final database = ChatDatabaseService(dbPath: dbPath);
-    await database.initialize();
+    _chatDatabase = ChatDatabaseService(dbPath: dbPath);
+    await _chatDatabase!.initialize();
 
     _persistenceController = DuckDBChatController(
-      messageRepository: MessageRepository(database),
-      userRepository: UserRepository(database),
+      messageRepository: MessageRepository(_chatDatabase!),
+      userRepository: UserRepository(_chatDatabase!),
     );
 
     await _persistenceController!.loadMessages(limit: messageLimit);
@@ -320,17 +329,18 @@ mixin DuckDBPersistenceMixin<T extends StatefulWidget> on State<T> {
   @mustCallSuper
   void dispose() {
     _persistenceController?.dispose();
+    _chatDatabase?.close();
     super.dispose();
   }
 }
 
 /// Extension to easily wrap any chat widget with DuckDB persistence.
 extension PersistentChatExtension on Widget {
-  /// Wraps this widget with [PersistentChat] functionality.
+  /// Creates a [PersistentChat] with DuckDB persistence.
   ///
-  /// This is useful when you have a custom chat widget that you want
-  /// to make persistent without modifying its internals.
-  Widget withDuckDBPersistence({
+  /// This does not wrap the original widget; it constructs a new
+  /// [PersistentChat] instance configured with the provided callbacks.
+  Widget createPersistentChat({
     required UserID currentUserId,
     required ResolveUserCallback resolveUser,
     OnMessageSendCallback? onMessageSend,
@@ -361,7 +371,6 @@ extension PersistentChatExtension on Widget {
       timeFormat: timeFormat,
       databasePath: databasePath,
       initialMessageLimit: initialMessageLimit,
-      // Note: The original widget is replaced by PersistentChat
     );
   }
 }

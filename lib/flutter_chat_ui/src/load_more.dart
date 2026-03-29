@@ -11,28 +11,32 @@ class LoadMore extends StatelessWidget {
   final Color? color;
 
   /// Vertical padding around the indicator.
-  final double? padding;
+  final double padding;
 
   /// Size (diameter) of the progress indicator.
-  final double? size;
+  final double size;
 
   /// Creates a load more indicator widget.
-  const LoadMore({super.key, this.color, this.padding = 20, this.size = 20});
+  const LoadMore({
+    super.key,
+    this.color,
+    this.padding = 20,
+    this.size = 20,
+  }) : assert(padding >= 0),
+       assert(size >= 0);
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.select(
-      (ChatTheme t) => (onSurface: t.colors.onSurface),
-    );
+    final onSurface = context.select((ChatTheme t) => t.colors.onSurface);
 
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: padding ?? 0),
+      padding: EdgeInsets.symmetric(vertical: padding),
       child: Center(
         child: SizedBox(
           height: size,
           width: size,
           child: CircularProgressIndicator(
-            color: color ?? theme.onSurface,
+            color: color ?? onSurface,
             strokeCap: StrokeCap.round,
           ),
         ),

@@ -8,7 +8,7 @@ Saya telah membuat **`PersistentChat`** widget yang mengintegrasikan DuckDB lang
 
 ## 📁 File Baru
 
-```
+```text
 lib/flutter_chat_ui/
 └── src/
     └── persistent_chat.dart    # ⭐ Widget PersistentChat
@@ -192,7 +192,7 @@ PersistentChat(
 
 ## 📊 Lifecycle
 
-```
+```text
 PersistentChat Created
         ↓
 Initialize DuckDB (loading: 20%)

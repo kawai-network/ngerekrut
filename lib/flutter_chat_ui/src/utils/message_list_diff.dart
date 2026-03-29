@@ -10,10 +10,10 @@ class MessageListDiff extends diffutil.ListDiffDelegate<Message> {
   MessageListDiff(super.oldList, super.newList);
 
   /// Checks if the content of two messages at the given positions is the same.
-  /// Uses [equalityChecker] from `freezed_annotation` for deep comparison.
+  /// Uses the Freezed-generated `==` operator for deep comparison.
   @override
   bool areContentsTheSame(int oldItemPosition, int newItemPosition) =>
-      equalityChecker(oldList[oldItemPosition], newList[newItemPosition]);
+      oldList[oldItemPosition] == newList[newItemPosition];
 
   /// Checks if two messages at the given positions represent the same item.
   /// Compares messages based on their unique [id].

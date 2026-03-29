@@ -200,15 +200,19 @@ class Composer extends StatefulWidget {
 
 class _ComposerState extends State<Composer> {
   final _key = GlobalKey();
-  late final TextEditingController _textController;
-  late final FocusNode _focusNode;
+  late TextEditingController _textController;
+  late FocusNode _focusNode;
+  late bool _ownsTextController;
+  late bool _ownsFocusNode;
   late final ValueNotifier<bool> _hasTextNotifier;
 
   @override
   void initState() {
     super.initState();
     _textController = widget.textEditingController ?? TextEditingController();
+    _ownsTextController = widget.textEditingController == null;
     _focusNode = widget.focusNode ?? FocusNode();
+    _ownsFocusNode = widget.focusNode == null;
     _hasTextNotifier = ValueNotifier(_textController.text.trim().isNotEmpty);
     _focusNode.onKeyEvent = _handleKeyEvent;
     _textController.addListener(_handleTextControllerChange);
@@ -231,8 +235,21 @@ class _ComposerState extends State<Composer> {
     super.didUpdateWidget(oldWidget);
     if (widget.textEditingController != oldWidget.textEditingController) {
       _textController.removeListener(_handleTextControllerChange);
+      if (_ownsTextController) {
+        _textController.dispose();
+      }
       _textController = widget.textEditingController ?? TextEditingController();
+      _ownsTextController = widget.textEditingController == null;
       _textController.addListener(_handleTextControllerChange);
+    }
+    if (widget.focusNode != oldWidget.focusNode) {
+      _focusNode.onKeyEvent = null;
+      if (_ownsFocusNode) {
+        _focusNode.dispose();
+      }
+      _focusNode = widget.focusNode ?? FocusNode();
+      _ownsFocusNode = widget.focusNode == null;
+      _focusNode.onKeyEvent = _handleKeyEvent;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
   }
@@ -243,10 +260,11 @@ class _ComposerState extends State<Composer> {
     _textController.removeListener(_handleTextControllerChange);
     // Only try to dispose text controller if it's not provided, let
     // user handle disposing it how they want.
-    if (widget.textEditingController == null) {
+    if (_ownsTextController) {
       _textController.dispose();
     }
-    if (widget.focusNode == null) {
+    _focusNode.onKeyEvent = null;
+    if (_ownsFocusNode) {
       _focusNode.dispose();
     }
     super.dispose();

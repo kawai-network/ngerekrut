@@ -420,15 +420,21 @@ class MessageRepository {
     MessageID messageId,
     Map<String, List<UserID>> reactions,
   ) async {
+    if (reactions.isEmpty) return;
+    final values = <String>[];
+    final params = <dynamic>[];
     for (final entry in reactions.entries) {
       for (final userId in entry.value) {
-        await _database.executeVoid('''
-          INSERT INTO reactions (message_id, reaction_key, user_id)
-          VALUES (?, ?, ?)
-          ON CONFLICT DO NOTHING
-        ''', [messageId, entry.key, userId]);
+        values.add('(?, ?, ?)');
+        params.addAll([messageId, entry.key, userId]);
       }
     }
+    if (values.isEmpty) return;
+    await _database.executeVoid('''
+      INSERT INTO reactions (message_id, reaction_key, user_id)
+      VALUES ${values.join(',')}
+      ON CONFLICT DO NOTHING
+    ''', params);
   }
 
   /// Inserts multiple messages atomically in a single transaction.
@@ -545,43 +551,6 @@ class MessageRepository {
 
   /// Creates a copy of a message with updated reactions.
   Message _withReactions(Message message, Map<String, List<UserID>> reactions) {
-    if (message is TextMessage) {
-      return message.copyWith(
-        reactions: reactions.isEmpty ? null : reactions,
-      ) as Message;
-    } else if (message is TextStreamMessage) {
-      return message.copyWith(
-        reactions: reactions.isEmpty ? null : reactions,
-      ) as Message;
-    } else if (message is ImageMessage) {
-      return message.copyWith(
-        reactions: reactions.isEmpty ? null : reactions,
-      ) as Message;
-    } else if (message is FileMessage) {
-      return message.copyWith(
-        reactions: reactions.isEmpty ? null : reactions,
-      ) as Message;
-    } else if (message is VideoMessage) {
-      return message.copyWith(
-        reactions: reactions.isEmpty ? null : reactions,
-      ) as Message;
-    } else if (message is AudioMessage) {
-      return message.copyWith(
-        reactions: reactions.isEmpty ? null : reactions,
-      ) as Message;
-    } else if (message is SystemMessage) {
-      return message.copyWith(
-        reactions: reactions.isEmpty ? null : reactions,
-      ) as Message;
-    } else if (message is CustomMessage) {
-      return message.copyWith(
-        reactions: reactions.isEmpty ? null : reactions,
-      ) as Message;
-    } else if (message is UnsupportedMessage) {
-      return message.copyWith(
-        reactions: reactions.isEmpty ? null : reactions,
-      ) as Message;
-    }
-    return message;
+    return message.copyWith(reactions: reactions.isEmpty ? null : reactions);
   }
 }

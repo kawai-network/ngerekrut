@@ -12,7 +12,7 @@ class IsTypingIndicator extends StatefulWidget {
   final Color? color;
 
   /// Duration of a single bounce animation cycle for a dot.
-  final Duration? duration;
+  final Duration duration;
 
   /// Horizontal spacing between the dots.
   final double spacing;
@@ -70,6 +70,16 @@ class _IsTypingIndicatorState extends State<IsTypingIndicator>
   }
 
   @override
+  void didUpdateWidget(covariant IsTypingIndicator oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.duration != widget.duration) {
+      for (final controller in _controllers) {
+        controller.duration = widget.duration;
+      }
+    }
+  }
+
+  @override
   void dispose() {
     for (final controller in _controllers) {
       controller.dispose();
@@ -81,31 +91,38 @@ class _IsTypingIndicatorState extends State<IsTypingIndicator>
   Widget build(BuildContext context) {
     final dotColor = _resolveDotColor(context);
 
+    final children = <Widget>[];
+    for (var index = 0; index < 3; index++) {
+      children.add(
+        SlideTransition(
+          position: Tween<Offset>(begin: Offset(0, 0), end: Offset(0, -0.5))
+              .animate(
+                CurvedAnimation(
+                  parent: _controllers[index],
+                  curve: Curves.easeOut,
+                ),
+              ),
+          child: Container(
+            width: widget.size,
+            height: widget.size,
+            decoration: BoxDecoration(
+              color: dotColor,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+      );
+      if (index < 2) {
+        children.add(SizedBox(width: widget.spacing));
+      }
+    }
+
     return Padding(
       padding: EdgeInsets.symmetric(vertical: widget.size / 2),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
-        spacing: widget.spacing,
-        children: List.generate(3, (index) {
-          return SlideTransition(
-            position: Tween<Offset>(begin: Offset(0, 0), end: Offset(0, -0.5))
-                .animate(
-                  CurvedAnimation(
-                    parent: _controllers[index],
-                    curve: Curves.easeOut,
-                  ),
-                ),
-            child: Container(
-              width: widget.size,
-              height: widget.size,
-              decoration: BoxDecoration(
-                color: dotColor,
-                shape: BoxShape.circle,
-              ),
-            ),
-          );
-        }),
+        children: children,
       ),
     );
   }

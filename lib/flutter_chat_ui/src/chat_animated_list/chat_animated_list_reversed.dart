@@ -134,7 +134,6 @@ class ChatAnimatedListReversed extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChatAnimatedList(
-      key: key,
       itemBuilder: itemBuilder,
       scrollController: scrollController,
       reversed: true,
@@ -157,6 +156,7 @@ class ChatAnimatedListReversed extends StatelessWidget {
       onStartReached: onStartReached,
       paginationThreshold: paginationThreshold,
       startPaginationThreshold: startPaginationThreshold,
+      messagesGroupingMode: messagesGroupingMode,
       messageGroupingTimeoutInSeconds: messageGroupingTimeoutInSeconds,
       physics: physics,
     );

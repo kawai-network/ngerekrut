@@ -348,6 +348,18 @@ class _ChatAnimatedListState extends State<ChatAnimatedList>
     return widget.reversed ? 0 : _scrollController.position.maxScrollExtent;
   }
 
+  double _safeScrollAnimationValue() {
+    final maxScrollExtent = _scrollController.position.maxScrollExtent;
+    if (maxScrollExtent <= 0) {
+      return 0.0;
+    }
+    final ratio = _scrollController.offset / maxScrollExtent;
+    if (!ratio.isFinite) {
+      return 0.0;
+    }
+    return ratio.clamp(0.0, 1.0) as double;
+  }
+
   /// If the scroll-to-bottom button should be shown.
   bool get _shouldShowScrollToBottomButton {
     final scrollOffsetFromBottom = widget.reversed
@@ -636,9 +648,7 @@ class _ChatAnimatedListState extends State<ChatAnimatedList>
       // to the very end of the list.
       // See https://stackoverflow.com/a/77175903 for more details.
       if (!widget.reversed && _userHasScrolled) {
-        _scrollAnimationController.value =
-            _scrollController.offset /
-            _scrollController.position.maxScrollExtent;
+        _scrollAnimationController.value = _safeScrollAnimationValue();
         await _scrollAnimationController.fling();
       } else {
         if (widget.scrollToEndAnimationDuration == Duration.zero) {
@@ -731,9 +741,7 @@ class _ChatAnimatedListState extends State<ChatAnimatedList>
         // See https://stackoverflow.com/a/77175903 for more details.
         // N/A for reversed list above as position 0 is stable, while
         // maxScrollExtent is not.
-        _scrollAnimationController.value =
-            _scrollController.offset /
-            _scrollController.position.maxScrollExtent;
+        _scrollAnimationController.value = _safeScrollAnimationValue();
         _scrollAnimationController.fling();
       }
 
@@ -1019,26 +1027,22 @@ class _ChatAnimatedListState extends State<ChatAnimatedList>
 
     final visualIndex = visualPosition(index);
 
-    try {
-      if (duration == Duration.zero) {
-        await _observerController.jumpTo(
-          index: visualIndex,
-          alignment: alignment,
-          offset: (targetOffset) => offset,
-          renderSliverType: ObserverRenderSliverType.list,
-        );
-      } else {
-        await _observerController.animateTo(
-          index: visualIndex,
-          duration: duration,
-          curve: curve,
-          alignment: alignment,
-          offset: (targetOffset) => offset,
-          renderSliverType: ObserverRenderSliverType.list,
-        );
-      }
-    } catch (e) {
-      rethrow;
+    if (duration == Duration.zero) {
+      await _observerController.jumpTo(
+        index: visualIndex,
+        alignment: alignment,
+        offset: (targetOffset) => offset,
+        renderSliverType: ObserverRenderSliverType.list,
+      );
+    } else {
+      await _observerController.animateTo(
+        index: visualIndex,
+        duration: duration,
+        curve: curve,
+        alignment: alignment,
+        offset: (targetOffset) => offset,
+        renderSliverType: ObserverRenderSliverType.list,
+      );
     }
   }
 

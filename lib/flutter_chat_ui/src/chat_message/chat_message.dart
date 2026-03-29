@@ -129,10 +129,8 @@ class ChatMessage extends StatelessWidget {
         .read<OnMessageSecondaryTapCallback?>();
     final isSentByMe = context.read<UserID>() == message.authorId;
 
-    final curvedAnimation = CurvedAnimation(
-      parent: animation,
-      curve: Curves.linearToEaseOut,
-    );
+    final curvedAnimation =
+        animation.drive(CurveTween(curve: Curves.linearToEaseOut));
 
     final resolvedPadding = padding ?? _resolveDefaultPadding(context);
 
@@ -206,19 +204,19 @@ class ChatMessage extends StatelessWidget {
     // With headerWidget: split padding so header spans full width
     // (not affected by horizontal padding) but respects vertical spacing.
     final resolved = resolvedPadding.resolve(Directionality.of(context));
-    final verticalPadding = EdgeInsets.only(
+    final resolvedVerticalPadding = EdgeInsets.only(
       top: resolved.top,
       bottom: resolved.bottom,
     );
-    final horizontalPadding = EdgeInsets.only(
+    final resolvedHorizontalPadding = EdgeInsets.only(
       left: resolved.left,
       right: resolved.right,
     );
 
     // Apply horizontal padding only to message content
-    if (horizontalPadding != EdgeInsetsGeometry.zero) {
+    if (resolvedHorizontalPadding != EdgeInsetsGeometry.zero) {
       messageContent = Padding(
-        padding: horizontalPadding,
+        padding: resolvedHorizontalPadding,
         child: messageContent,
       );
     }
@@ -239,15 +237,15 @@ class ChatMessage extends StatelessWidget {
     );
 
     // Apply vertical padding to the entire widget for spacing
-    if (verticalPadding != EdgeInsetsGeometry.zero) {
+    if (resolvedVerticalPadding != EdgeInsetsGeometry.zero) {
       return paddingChangeAnimationDuration != null
           ? AnimatedPadding(
-              padding: verticalPadding,
+              padding: resolvedVerticalPadding,
               duration: paddingChangeAnimationDuration!,
               curve: Curves.linearToEaseOut,
               child: messageWidget,
             )
-          : Padding(padding: verticalPadding, child: messageWidget);
+          : Padding(padding: resolvedVerticalPadding, child: messageWidget);
     }
 
     return messageWidget;

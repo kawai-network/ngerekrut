@@ -122,6 +122,10 @@ class _ChatState extends State<Chat> with WidgetsBindingObserver {
     if (oldWidget.builders != widget.builders) {
       _updateBuilders();
     }
+
+    if (oldWidget.timeFormat != widget.timeFormat) {
+      _timeFormat = widget.timeFormat ?? DateFormat('HH:mm');
+    }
   }
 
   @override

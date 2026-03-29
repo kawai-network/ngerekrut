@@ -1,4 +1,5 @@
 import 'package:cross_cache/cross_cache.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ngerekrut/flutter_chat_core/flutter_chat_core.dart';
 import 'package:provider/provider.dart';
@@ -8,7 +9,7 @@ import 'package:provider/provider.dart';
 /// Fetches user data using the provided [userId] and [ResolveUserCallback].
 /// Uses [UserCache] for efficient user data retrieval.
 /// Displays the user's image if available, otherwise shows initials or a default icon.
-class Avatar extends StatelessWidget {
+class Avatar extends StatefulWidget {
   /// The ID of the user whose avatar is to be displayed.
   final UserID userId;
 
@@ -40,12 +41,53 @@ class Avatar extends StatelessWidget {
   });
 
   @override
+  State<Avatar> createState() => _AvatarState();
+}
+
+class _AvatarState extends State<Avatar> {
+  Future<User?>? _userFuture;
+  UserID? _lastUserId;
+  ResolveUserCallback? _lastResolveUser;
+
+  void _updateUserFuture(
+    UserCache userCache,
+    ResolveUserCallback resolveUser,
+  ) {
+    if (_userFuture == null ||
+        _lastUserId != widget.userId ||
+        _lastResolveUser != resolveUser) {
+      _lastUserId = widget.userId;
+      _lastResolveUser = resolveUser;
+      _userFuture = userCache.getOrResolve(widget.userId, resolveUser);
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final resolveUser = context.read<ResolveUserCallback>();
+    final userCache = context.read<UserCache>();
+    _updateUserFuture(userCache, resolveUser);
+  }
+
+  @override
+  void didUpdateWidget(covariant Avatar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.userId != widget.userId) {
+      final resolveUser = context.read<ResolveUserCallback>();
+      final userCache = context.read<UserCache>();
+      _updateUserFuture(userCache, resolveUser);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final resolveUser = context.read<ResolveUserCallback>();
     final userCache = context.watch<UserCache>();
+    _updateUserFuture(userCache, resolveUser);
 
     // Try to get from cache synchronously first
-    final cachedUser = userCache.getSync(userId);
+    final cachedUser = userCache.getSync(widget.userId);
 
     if (cachedUser != null) {
       // Sync path - no FutureBuilder needed
@@ -55,7 +97,7 @@ class Avatar extends StatelessWidget {
     // Async path - use FutureBuilder with cache
     return FutureBuilder<User?>(
       // This will update the cache when resolved
-      future: userCache.getOrResolve(userId, resolveUser),
+      future: _userFuture,
       builder: (context, snapshot) {
         return _buildAvatar(context, snapshot.data);
       },
@@ -72,26 +114,26 @@ class Avatar extends StatelessWidget {
     );
 
     Widget avatar = Container(
-      width: size,
-      height: size,
+      width: widget.size,
+      height: widget.size,
       decoration: BoxDecoration(
-        color: backgroundColor ?? theme.surfaceContainer,
+        color: widget.backgroundColor ?? theme.surfaceContainer,
         shape: BoxShape.circle,
       ),
       child: AvatarContent(
         user: user,
-        size: size,
-        foregroundColor: foregroundColor ?? theme.onSurface,
-        headers: headers,
+        size: widget.size,
+        foregroundColor: widget.foregroundColor ?? theme.onSurface,
+        headers: widget.headers,
         textStyle: theme.labelLarge.copyWith(
-          color: foregroundColor ?? theme.onSurface,
+          color: widget.foregroundColor ?? theme.onSurface,
           fontWeight: FontWeight.bold,
         ),
       ),
     );
 
-    if (onTap != null) {
-      avatar = GestureDetector(onTap: onTap, child: avatar);
+    if (widget.onTap != null) {
+      avatar = GestureDetector(onTap: widget.onTap, child: avatar);
     }
 
     return avatar;
@@ -153,7 +195,7 @@ class _AvatarContentState extends State<AvatarContent> {
   void didUpdateWidget(covariant AvatarContent oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.user?.imageSource != widget.user?.imageSource ||
-        oldWidget.headers != widget.headers) {
+        !mapEquals(oldWidget.headers, widget.headers)) {
       if (widget.user?.imageSource != null) {
         final crossCache = context.read<CrossCache>();
         final newImage = CachedNetworkImage(
@@ -162,13 +204,17 @@ class _AvatarContentState extends State<AvatarContent> {
           headers: widget.headers,
         );
 
-        precacheImage(newImage, context).then((_) {
-          if (mounted) {
-            setState(() {
-              _cachedNetworkImage = newImage;
+        precacheImage(newImage, context)
+            .then((_) {
+              if (!mounted) return;
+              setState(() {
+                _cachedNetworkImage = newImage;
+              });
+            })
+            .catchError((error, stackTrace) {
+              if (!mounted) return;
+              debugPrint('Avatar precacheImage failed: $error');
             });
-          }
-        });
       } else {
         setState(() {
           _cachedNetworkImage = null;
@@ -196,15 +242,29 @@ class _AvatarContentState extends State<AvatarContent> {
       return Center(child: Text(initials, style: widget.textStyle));
     }
 
-    return Icon(Icons.person, color: widget.foregroundColor, size: 24);
+    final avatarSize = widget.size ?? 0;
+    final iconSize = avatarSize > 0
+        ? (avatarSize * 0.5).clamp(12.0, avatarSize)
+        : 24.0;
+    return Icon(Icons.person, color: widget.foregroundColor, size: iconSize);
   }
 
   String _getInitials(User? user) {
     if (user?.name == null || user!.name!.trim().isEmpty) return '';
 
-    final nameParts = user.name!.trim().split(' ');
-    final firstInitial = nameParts.isNotEmpty ? nameParts.first[0] : '';
-    final lastInitial = nameParts.length > 1 ? nameParts.last[0] : '';
+    final nameParts = user.name!
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+    final firstInitial =
+        nameParts.isNotEmpty && nameParts.first.isNotEmpty
+            ? nameParts.first[0]
+            : '';
+    final lastInitial =
+        nameParts.length > 1 && nameParts.last.isNotEmpty
+            ? nameParts.last[0]
+            : '';
 
     return '$firstInitial$lastInitial'.toUpperCase();
   }

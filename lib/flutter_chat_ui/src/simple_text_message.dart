@@ -206,7 +206,7 @@ class SimpleTextMessage extends StatelessWidget {
               linkPreviewWidget!,
             if (timeAndStatusPosition != TimeAndStatusPosition.inline)
               // Ensure the  width is not smaller than the timeAndStatus widget
-              // Ensure the height accounts for it's height
+              // Ensure the height accounts for its height
               Opacity(opacity: 0, child: timeAndStatus),
           ],
         ),
