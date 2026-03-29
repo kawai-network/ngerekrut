@@ -14,19 +14,20 @@ echo ""
 echo "============================================"
 echo "1. FIREBASE_JSON"
 echo "============================================"
-base64 -i firebase.json | tr -d '\n'
+base64 < firebase.json | tr -d '\n'
 echo ""
 echo ""
 echo "============================================"
 echo "2. GOOGLE_SERVICES_JSON"
 echo "============================================"
-base64 -i android/app/google-services.json | tr -d '\n'
+base64 < android/app/google-services.json | tr -d '\n'
 echo ""
 echo ""
 echo "============================================"
 echo "3. GOOGLE_SERVICE_INFO_PLIST"
 echo "============================================"
-base64 -i ios/Runner/GoogleService-Info.plist | tr -d '\n'
+# Note: This single secret is used for both iOS and macOS in CI
+base64 < ios/Runner/GoogleService-Info.plist | tr -d '\n'
 echo ""
 echo ""
 echo "============================================"

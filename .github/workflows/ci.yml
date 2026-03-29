@@ -89,7 +89,9 @@ jobs:
 
   release:
     runs-on: ubuntu-latest
-    if: ${{ needs.android.result == 'success' }}
+    if: |
+      ${{ needs.android.result == 'success' }} &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     permissions:
       contents: write
     needs: [android]
@@ -109,7 +111,7 @@ jobs:
 
       - name: Archive artifacts
         run: |
-          apk_path=$(ls -1 android-apk/*.apk 2>/dev/null | head -n 1 || true)
+          apk_path=$(find android-apk -maxdepth 1 -type f -name '*.apk' -print -quit 2>/dev/null || true)
           if [ -z "$apk_path" ]; then
             echo "No APK found in android-apk/"
             exit 1
