@@ -423,12 +423,17 @@ class MessageMapper {
   }
 
   /// Parses a [MessageStatus] from a string.
+  /// Returns null for unrecognized values.
   MessageStatus? _parseStatus(String? status) {
     if (status == null) return null;
-    return MessageStatus.values.firstWhere(
-      (e) => e.name == status,
-      orElse: () => MessageStatus.delivered,
-    );
+    try {
+      return MessageStatus.values.firstWhere(
+        (e) => e.name == status,
+      );
+    } on StateError {
+      // Unknown status value, return null
+      return null;
+    }
   }
 
   /// Gets the type name for a message.

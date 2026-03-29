@@ -30,33 +30,34 @@ class UserRepository {
   }
 
   /// Updates an existing user in the database.
+  /// Note: Does not update created_at to preserve the original creation timestamp.
   Future<void> updateUser(User user) async {
     final row = _mapper.toRow(user);
-    
+
     await _database.executeVoid('''
       UPDATE users SET
         name = ?,
         image_source = ?,
-        created_at = ?,
         metadata = ?
       WHERE id = ?
     ''', [
       row['name'],
       row['image_source'],
-      row['created_at'],
       row['metadata'],
       row['id'],
     ]);
   }
 
-  /// Upserts a user (insert or update).
+  /// Upserts a user (insert or update) atomically.
   Future<void> upsertUser(User user) async {
-    final existing = await getUserById(user.id);
-    if (existing != null) {
-      await updateUser(user);
-    } else {
-      await insertUser(user);
-    }
+    await _database.runTransaction(() async {
+      final existing = await getUserById(user.id);
+      if (existing != null) {
+        await updateUser(user);
+      } else {
+        await insertUser(user);
+      }
+    });
   }
 
   /// Deletes a user by ID.

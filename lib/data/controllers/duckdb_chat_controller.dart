@@ -59,12 +59,10 @@ class DuckDBChatController implements ChatController {
 
   @override
   Future<void> insertAllMessages(List<Message> messages, {int? index}) async {
-    // Persist to DuckDB
-    for (final message in messages) {
-      await _messageRepository.insertMessage(message);
-    }
+    // Persist to DuckDB atomically
+    await _messageRepository.insertMessages(messages);
 
-    // Update in-memory cache
+    // Update in-memory cache only after DB succeeds
     final insertIndex = index ?? _messages.length;
     _messages.insertAll(insertIndex, messages);
 
@@ -77,11 +75,13 @@ class DuckDBChatController implements ChatController {
     // Persist to DuckDB
     await _messageRepository.updateMessage(newMessage);
 
-    // Find and update in-memory cache
+    // Find the actual cached message to use as oldMessage
     final index = _messages.indexWhere((m) => m.id == oldMessage.id);
     if (index != -1) {
+      final cachedOld = _messages[index];
       _messages[index] = newMessage;
-      _operationsController.add(ChatOperation.update(oldMessage, newMessage, index));
+      // Use the actual cached message, not the potentially stale oldMessage
+      _operationsController.add(ChatOperation.update(cachedOld, newMessage, index));
     }
   }
 
@@ -100,17 +100,8 @@ class DuckDBChatController implements ChatController {
 
   @override
   Future<void> setMessages(List<Message> messages) async {
-    // Clear existing messages from DuckDB
-    for (final message in _messages) {
-      await _messageRepository.softDeleteMessage(message.id);
-    }
-
-    // Insert new messages to DuckDB
-    for (final message in messages) {
-      await _messageRepository.insertMessage(message);
-    }
-
-    // Update in-memory cache
+    // Only update in-memory cache and notify UI
+    // Note: This method is for UI state management, not persistence
     _messages.clear();
     _messages.addAll(messages);
 
@@ -147,6 +138,12 @@ class DuckDBChatController implements ChatController {
         authorId,
         limit: limit,
         before: before,
+      );
+    } else if (before != null) {
+      // Use range query when before is specified
+      loadedMessages = await _messageRepository.getMessagesInRange(
+        before: before,
+        limit: limit,
       );
     } else {
       loadedMessages = await _messageRepository.getAllMessages(
@@ -268,9 +265,12 @@ class DuckDBChatController implements ChatController {
     String reactionKey, {
     required bool add,
   }) {
-    final reactions = Map<String, List<String>>.from(
-      message.reactions ?? {},
-    );
+    // Deep copy the reactions map to avoid mutating the original
+    final reactions = <String, List<String>>{};
+    final originalReactions = message.reactions ?? {};
+    for (final entry in originalReactions.entries) {
+      reactions[entry.key] = List<String>.from(entry.value);
+    }
 
     if (add) {
       reactions.putIfAbsent(reactionKey, () => []).add(userId);

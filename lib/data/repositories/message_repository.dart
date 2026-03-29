@@ -425,9 +425,51 @@ class MessageRepository {
         await _database.executeVoid('''
           INSERT INTO reactions (message_id, reaction_key, user_id)
           VALUES (?, ?, ?)
+          ON CONFLICT DO NOTHING
         ''', [messageId, entry.key, userId]);
       }
     }
+  }
+
+  /// Inserts multiple messages atomically in a single transaction.
+  Future<void> insertMessages(List<Message> messages) async {
+    await _database.runTransaction(() async {
+      for (final message in messages) {
+        final row = _mapper.toRow(message);
+        await _database.executeVoid('''
+          INSERT INTO messages (
+            id, type, author_id, reply_to_message_id,
+            created_at, deleted_at, failed_at, sent_at,
+            delivered_at, seen_at, updated_at,
+            pinned, status, text_content, media_source,
+            media_metadata, custom_metadata
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', [
+          row['id'],
+          row['type'],
+          row['author_id'],
+          row['reply_to_message_id'],
+          row['created_at'],
+          row['deleted_at'],
+          row['failed_at'],
+          row['sent_at'],
+          row['delivered_at'],
+          row['seen_at'],
+          row['updated_at'],
+          row['pinned'],
+          row['status'],
+          row['text_content'],
+          row['media_source'],
+          row['media_metadata'],
+          row['custom_metadata'],
+        ]);
+
+        // Insert reactions if present
+        if (message.reactions != null && message.reactions!.isNotEmpty) {
+          await _insertReactions(message.id, message.reactions!);
+        }
+      }
+    });
   }
 
   /// Updates reactions for a message.

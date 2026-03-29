@@ -48,27 +48,27 @@ final controller = DuckDBChatController(
 ```dart
 import 'package:ngerekrut/data/data.dart';
 
-Future<void> initializeApp() async {
+Future<DuckDBChatController> initializeApp() async {
   // 1. Dapatkan path database
   final dbPath = await DatabasePathProvider.getDatabasePath();
-  
+
   // 2. Buat dan initialize database
   final database = ChatDatabaseService(dbPath: dbPath);
   await database.initialize();
-  
+
   // 3. Buat repositories
   final messageRepo = MessageRepository(database);
   final userRepo = UserRepository(database);
-  
+
   // 4. Buat controller dengan DuckDB
   final chatController = DuckDBChatController(
     messageRepository: messageRepo,
     userRepository: userRepo,
   );
-  
+
   // 5. Load messages dari database
   await chatController.loadMessages(limit: 50);
-  
+
   return chatController;
 }
 ```
