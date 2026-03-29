@@ -4,22 +4,25 @@ import 'dart:convert';
 import 'package:dart_duckdb/dart_duckdb.dart';
 
 class _InitLock {
-  final _completer = Completer<void>();
+  Completer<void>? _completer;
   bool _acquired = false;
 
   bool tryAcquire() {
     if (_acquired) return false;
     _acquired = true;
+    _completer = Completer<void>();
     return true;
   }
 
-  Future<void> wait() => _completer.future;
+  Future<void> wait() => _completer?.future ?? Future.value();
 
   void release() {
     _acquired = false;
-    if (!_completer.isCompleted) {
-      _completer.complete();
+    final completer = _completer;
+    if (completer != null && !completer.isCompleted) {
+      completer.complete();
     }
+    _completer = null;
   }
 }
 
