@@ -28,20 +28,22 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  cross_cache: ^1.1.0
   dart_duckdb:
     git:
       url: https://github.com/yharby/duckdb-dart.git
       ref: main
+  diffutil_dart: ^4.0.1
   dio: ^5.9.0
+  firebase_core: ^3.13.0
   flutter:
     sdk: flutter
   freezed_annotation: ^3.1.0
+  gpt_markdown: ^1.1.4
   intl: ">=0.19.0 <1.0.0"
   json_annotation: ^4.9.0
   path: ^1.9.1
   path_provider: ^2.1.5
-  cross_cache: ^1.1.0
-  diffutil_dart: ^4.0.1
   provider: ^6.1.5+1
   scrollview_observer: ^1.26.2
 
