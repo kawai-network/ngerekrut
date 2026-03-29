@@ -201,14 +201,35 @@ abstract class ChatTypography with _$ChatTypography {
   );
 
   /// Creates [ChatTypography] from a Material [ThemeData].
-  factory ChatTypography.fromThemeData(ThemeData themeData) => ChatTypography(
-    bodyLarge: themeData.textTheme.bodyLarge!,
-    bodyMedium: themeData.textTheme.bodyMedium!,
-    bodySmall: themeData.textTheme.bodySmall!,
-    labelLarge: themeData.textTheme.labelLarge!,
-    labelMedium: themeData.textTheme.labelMedium!,
-    labelSmall: themeData.textTheme.labelSmall!,
-  );
+  factory ChatTypography.fromThemeData(ThemeData themeData) {
+    final fallback = ThemeData().textTheme;
+    return ChatTypography(
+      bodyLarge:
+          themeData.textTheme.bodyLarge ??
+          fallback.bodyLarge ??
+          const TextStyle(),
+      bodyMedium:
+          themeData.textTheme.bodyMedium ??
+          fallback.bodyMedium ??
+          const TextStyle(),
+      bodySmall:
+          themeData.textTheme.bodySmall ??
+          fallback.bodySmall ??
+          const TextStyle(),
+      labelLarge:
+          themeData.textTheme.labelLarge ??
+          fallback.labelLarge ??
+          const TextStyle(),
+      labelMedium:
+          themeData.textTheme.labelMedium ??
+          fallback.labelMedium ??
+          const TextStyle(),
+      labelSmall:
+          themeData.textTheme.labelSmall ??
+          fallback.labelSmall ??
+          const TextStyle(),
+    );
+  }
 
   /// Merges this typography scheme with another [ChatTypography].
   ///

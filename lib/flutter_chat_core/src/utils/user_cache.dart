@@ -50,9 +50,8 @@ class UserCache extends ChangeNotifier {
     ResolveUserCallback resolveUser,
   ) async {
     // If in cache, return immediately
-    final cachedUser = getSync(userId);
-    if (cachedUser != null) {
-      return cachedUser;
+    if (_cache.containsKey(userId)) {
+      return getSync(userId);
     }
 
     // Resolve and update cache

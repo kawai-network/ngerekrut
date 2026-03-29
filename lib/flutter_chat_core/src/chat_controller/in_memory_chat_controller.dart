@@ -54,18 +54,11 @@ class InMemoryChatController
     int? index,
     bool animated = true,
   }) async {
-    if (_messages.contains(message)) return;
-
-    // Check if this message ID already exists in the list
-    assert(() {
-      if (_messages.any((m) => m.id == message.id)) {
-        throw ArgumentError(
-          'InMemoryChatController: Cannot insert message with duplicate ID: ${message.id}. '
-          'Each message must have a unique ID to ensure proper rendering and animations.',
-        );
-      }
-      return true;
-    }(), 'Message ID must be unique');
+    if (_messages.any((m) => m.id == message.id)) {
+      throw ArgumentError(
+        'Duplicate message ID: ${message.id}',
+      );
+    }
 
     if (index == null) {
       _messages.add(message);
@@ -170,7 +163,7 @@ class InMemoryChatController
   }
 
   @override
-  List<Message> get messages => _messages;
+  List<Message> get messages => List.unmodifiable(_messages);
 
   @override
   Stream<ChatOperation> get operationsStream => _operationsController.stream;

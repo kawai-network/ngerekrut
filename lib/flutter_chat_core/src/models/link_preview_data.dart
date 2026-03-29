@@ -37,9 +37,11 @@ abstract class ImagePreviewData with _$ImagePreviewData {
     required String url,
 
     /// The image width.
+    @JsonKey(defaultValue: 0)
     required double width,
 
     /// The image height.
+    @JsonKey(defaultValue: 0)
     required double height,
   }) = _ImagePreviewData;
 

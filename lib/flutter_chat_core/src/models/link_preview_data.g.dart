@@ -27,8 +27,8 @@ Map<String, dynamic> _$LinkPreviewDataToJson(_LinkPreviewData instance) =>
 _ImagePreviewData _$ImagePreviewDataFromJson(Map<String, dynamic> json) =>
     _ImagePreviewData(
       url: json['url'] as String,
-      width: (json['width'] as num).toDouble(),
-      height: (json['height'] as num).toDouble(),
+      width: (json['width'] as num?)?.toDouble() ?? 0.0,
+      height: (json['height'] as num?)?.toDouble() ?? 0.0,
     );
 
 Map<String, dynamic> _$ImagePreviewDataToJson(_ImagePreviewData instance) =>

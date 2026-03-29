@@ -36,7 +36,7 @@ mixin UploadProgressMixin {
     if (validProgress < 0.01) {
       final roundedProgress = (validProgress * 100).ceil() / 100;
       controller.add(roundedProgress);
-    } else if (progress > 0.99) {
+    } else if (validProgress > 0.99) {
       controller.add(1);
       clearUploadProgress(id);
     } else {

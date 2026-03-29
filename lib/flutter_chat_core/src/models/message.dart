@@ -73,10 +73,10 @@ sealed class Message with _$Message {
   /// Used while the text content is being streamed.
   const factory Message.textStream({
     /// Unique identifier for the message.
-    required String id,
+    required MessageID id,
 
     /// ID of the user (typically the AI) sending the message.
-    required String authorId,
+    required UserID authorId,
 
     /// ID of the message this one is replying to.
     String? replyToMessageId,
@@ -103,7 +103,7 @@ sealed class Message with _$Message {
     @EpochDateTimeConverter() DateTime? updatedAt,
 
     /// Map of reaction keys to lists of user IDs who reacted.
-    Map<String, List<String>>? reactions,
+    Map<String, List<UserID>>? reactions,
 
     /// Indicates if the message is pinned.
     bool? pinned,
