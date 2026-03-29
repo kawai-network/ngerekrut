@@ -81,6 +81,14 @@ class ChatDatabaseExample {
 
   /// Example: Add reaction to a message.
   Future<void> addReactionExample() async {
+    final reactingUser = User(
+      id: 'user_789',
+      name: 'Jane Smith',
+      imageSource: 'https://example.com/avatar2.jpg',
+      createdAt: DateTime.now(),
+    );
+    await _userRepository.upsertUser(reactingUser);
+
     await _messageRepository.addReaction(
       'msg_456',
       'user_789',
@@ -213,6 +221,9 @@ class FlutterInitializationExample {
   static Future<ChatDatabaseService> initializeDatabase() async {
     // Get platform-specific database path
     final dbPath = await DatabasePathProvider.getDatabasePath();
+    if (dbPath == null || dbPath.isEmpty) {
+      throw StateError('Database path unavailable from DatabasePathProvider.getDatabasePath().');
+    }
     
     // Create and initialize database
     final database = ChatDatabaseService(dbPath: dbPath);

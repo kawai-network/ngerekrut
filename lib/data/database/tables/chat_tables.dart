@@ -42,7 +42,6 @@ class TableDefinitions {
       delivered_at BIGINT,
       seen_at BIGINT,
       updated_at BIGINT,
-      edited_at BIGINT,
       
       -- Status fields
       pinned BOOLEAN DEFAULT FALSE,

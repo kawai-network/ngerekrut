@@ -74,7 +74,6 @@ CREATE TABLE messages (
     delivered_at BIGINT,
     seen_at BIGINT,
     updated_at BIGINT,
-    edited_at BIGINT,
     pinned BOOLEAN DEFAULT FALSE,
     status VARCHAR, -- 'delivered', 'error', 'seen', 'sending', 'sent'
     FOREIGN KEY (author_id) REFERENCES users(id)
