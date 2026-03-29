@@ -16,96 +16,151 @@ class MessageRepository {
   /// Inserts a new message into the database.
   Future<void> insertMessage(Message message) async {
     final row = _mapper.toRow(message);
-    
-    await _database.executeVoid('''
-      INSERT INTO messages (
-        id, type, author_id, reply_to_message_id,
-        created_at, deleted_at, failed_at, sent_at,
-        delivered_at, seen_at, updated_at,
-        pinned, status, text_content, media_source,
-        media_metadata, custom_metadata
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', [
-      row['id'],
-      row['type'],
-      row['author_id'],
-      row['reply_to_message_id'],
-      row['created_at'],
-      row['deleted_at'],
-      row['failed_at'],
-      row['sent_at'],
-      row['delivered_at'],
-      row['seen_at'],
-      row['updated_at'],
-      row['pinned'],
-      row['status'],
-      row['text_content'],
-      row['media_source'],
-      row['media_metadata'],
-      row['custom_metadata'],
-    ]);
 
-    // Insert reactions if present
-    if (message.reactions != null && message.reactions!.isNotEmpty) {
-      await _insertReactions(message.id, message.reactions!);
-    }
+    await _database.runTransaction(() async {
+      // Insert message row
+      await _database.executeVoid('''
+        INSERT INTO messages (
+          id, type, author_id, reply_to_message_id,
+          created_at, deleted_at, failed_at, sent_at,
+          delivered_at, seen_at, updated_at,
+          pinned, status, text_content, media_source,
+          media_metadata, custom_metadata
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ''', [
+        row['id'],
+        row['type'],
+        row['author_id'],
+        row['reply_to_message_id'],
+        row['created_at'],
+        row['deleted_at'],
+        row['failed_at'],
+        row['sent_at'],
+        row['delivered_at'],
+        row['seen_at'],
+        row['updated_at'],
+        row['pinned'],
+        row['status'],
+        row['text_content'],
+        row['media_source'],
+        row['media_metadata'],
+        row['custom_metadata'],
+      ]);
+
+      // Insert reactions if present
+      if (message.reactions != null && message.reactions!.isNotEmpty) {
+        await _insertReactions(message.id, message.reactions!);
+      }
+    });
   }
 
   /// Updates an existing message in the database.
   Future<void> updateMessage(Message message) async {
     final row = _mapper.toRow(message);
-    
-    await _database.executeVoid('''
-      UPDATE messages SET
-        type = ?,
-        author_id = ?,
-        reply_to_message_id = ?,
-        created_at = ?,
-        deleted_at = ?,
-        failed_at = ?,
-        sent_at = ?,
-        delivered_at = ?,
-        seen_at = ?,
-        updated_at = ?,
-        pinned = ?,
-        status = ?,
-        text_content = ?,
-        media_source = ?,
-        media_metadata = ?,
-        custom_metadata = ?
-      WHERE id = ?
-    ''', [
-      row['type'],
-      row['author_id'],
-      row['reply_to_message_id'],
-      row['created_at'],
-      row['deleted_at'],
-      row['failed_at'],
-      row['sent_at'],
-      row['delivered_at'],
-      row['seen_at'],
-      row['updated_at'],
-      row['pinned'],
-      row['status'],
-      row['text_content'],
-      row['media_source'],
-      row['media_metadata'],
-      row['custom_metadata'],
-      row['id'],
-    ]);
 
-    // Update reactions
-    await _updateReactions(message.id, message.reactions);
+    await _database.runTransaction(() async {
+      // Update message row
+      await _database.executeVoid('''
+        UPDATE messages SET
+          type = ?,
+          author_id = ?,
+          reply_to_message_id = ?,
+          created_at = ?,
+          deleted_at = ?,
+          failed_at = ?,
+          sent_at = ?,
+          delivered_at = ?,
+          seen_at = ?,
+          updated_at = ?,
+          pinned = ?,
+          status = ?,
+          text_content = ?,
+          media_source = ?,
+          media_metadata = ?,
+          custom_metadata = ?
+        WHERE id = ?
+      ''', [
+        row['type'],
+        row['author_id'],
+        row['reply_to_message_id'],
+        row['created_at'],
+        row['deleted_at'],
+        row['failed_at'],
+        row['sent_at'],
+        row['delivered_at'],
+        row['seen_at'],
+        row['updated_at'],
+        row['pinned'],
+        row['status'],
+        row['text_content'],
+        row['media_source'],
+        row['media_metadata'],
+        row['custom_metadata'],
+        row['id'],
+      ]);
+
+      // Update reactions
+      await _updateReactions(message.id, message.reactions);
+    });
   }
 
-  /// Upserts a message (insert or update).
+  /// Upserts a message (insert or update) atomically.
+  ///
+  /// Uses INSERT ... ON CONFLICT to avoid race conditions with concurrent writers.
+  /// Both the message and its reactions are updated in a single transaction.
   Future<void> upsertMessage(Message message) async {
-    final existing = await getMessageById(message.id);
-    if (existing != null) {
-      await updateMessage(message);
-    } else {
-      await insertMessage(message);
-    }
+    final row = _mapper.toRow(message);
+
+    await _database.runTransaction(() async {
+      // Atomic upsert: INSERT or UPDATE on conflict
+      await _database.executeVoid('''
+        INSERT INTO messages (
+          id, type, author_id, reply_to_message_id,
+          created_at, deleted_at, failed_at, sent_at,
+          delivered_at, seen_at, updated_at,
+          pinned, status, text_content, media_source,
+          media_metadata, custom_metadata
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT (id) DO UPDATE SET
+          type = excluded.type,
+          author_id = excluded.author_id,
+          reply_to_message_id = excluded.reply_to_message_id,
+          created_at = excluded.created_at,
+          deleted_at = excluded.deleted_at,
+          failed_at = excluded.failed_at,
+          sent_at = excluded.sent_at,
+          delivered_at = excluded.delivered_at,
+          seen_at = excluded.seen_at,
+          updated_at = excluded.updated_at,
+          pinned = excluded.pinned,
+          status = excluded.status,
+          text_content = excluded.text_content,
+          media_source = excluded.media_source,
+          media_metadata = excluded.media_metadata,
+          custom_metadata = excluded.custom_metadata
+      ''', [
+        row['id'],
+        row['type'],
+        row['author_id'],
+        row['reply_to_message_id'],
+        row['created_at'],
+        row['deleted_at'],
+        row['failed_at'],
+        row['sent_at'],
+        row['delivered_at'],
+        row['seen_at'],
+        row['updated_at'],
+        row['pinned'],
+        row['status'],
+        row['text_content'],
+        row['media_source'],
+        row['media_metadata'],
+        row['custom_metadata'],
+      ]);
+
+      // Update reactions in the same transaction
+      await _updateReactions(message.id, message.reactions);
+    });
   }
 
   /// Deletes a message by ID.
