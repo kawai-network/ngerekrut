@@ -5,7 +5,8 @@
       "Bash(gh pr:*)",
       "Bash(gh repo:*)",
       "Bash(gh api:*)",
-      "Bash(gh run:*)"
+      "Bash(gh run:*)",
+      "Bash(bash /Users/yuda/github.com/yudaprama/ngerekrut/scripts/setup-firebase-secrets.sh)"
     ]
   }
 }

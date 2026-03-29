@@ -64,18 +64,10 @@ jobs:
         run: |
           # Decode and write firebase.json
           echo '${{ secrets.FIREBASE_JSON }}' | base64 -d > firebase.json
-          
+
           # Decode and write google-services.json
           mkdir -p android/app
           echo '${{ secrets.GOOGLE_SERVICES_JSON }}' | base64 -d > android/app/google-services.json
-          
-          # Decode and write GoogleService-Info.plist for iOS
-          mkdir -p ios/Runner
-          echo '${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}' | base64 -d > ios/Runner/GoogleService-Info.plist
-          
-          # Decode and write GoogleService-Info.plist for macOS
-          mkdir -p macos/Runner
-          echo '${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}' | base64 -d > macos/Runner/GoogleService-Info.plist
 
       - name: Build Android APK
         run: flutter build apk --release
@@ -89,9 +81,7 @@ jobs:
 
   release:
     runs-on: ubuntu-latest
-    if: |
-      ${{ needs.android.result == 'success' }} &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    if: ${{ needs.android.result == 'success' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') }}
     permissions:
       contents: write
     needs: [android]

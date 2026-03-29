@@ -5,6 +5,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 concurrency:
   group: release-apk-${{ github.ref }}
@@ -25,9 +26,9 @@ jobs:
       - name: Resolve latest successful CI run
         id: resolve_run
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          RUN_ID=$(gh api "repos/${{ github.repository }}/actions/workflows/ci.yml/runs" \
+          RUN_ID=$(gh api "repos/${{ github.repository }}/actions/workflows/ci.yml/runs?head_sha=${{ github.sha }}" \
             --jq '.workflow_runs
               | map(select(.conclusion=="success"))
               | first
@@ -43,7 +44,7 @@ jobs:
       - name: Download Android APK (latest CI)
         uses: dawidd6/action-download-artifact@v6
         with:
-          github_token: ${{ secrets.GH_TOKEN }}
+          github_token: ${{ github.token }}
           run_id: ${{ steps.resolve_run.outputs.run_id }}
           name: android-apk
           path: android-apk
