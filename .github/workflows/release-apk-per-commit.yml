@@ -1,0 +1,75 @@
+name: Release APK Per Commit
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: release-apk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build_release:
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_SDK_ROOT: ${{ github.workspace }}/.android-sdk
+      ANDROID_HOME: ${{ github.workspace }}/.android-sdk
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve latest successful CI run
+        id: resolve_run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RUN_ID=$(gh api "repos/${{ github.repository }}/actions/workflows/ci.yml/runs?head_sha=${{ github.sha }}" \
+            --jq '.workflow_runs
+              | map(select(.conclusion=="success"))
+              | first
+              | .id')
+
+          if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ]; then
+            echo "No successful CI run found on main/master"
+            exit 1
+          fi
+
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Download Android APK (latest CI)
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          github_token: ${{ github.token }}
+          run_id: ${{ steps.resolve_run.outputs.run_id }}
+          name: android-apk
+          path: android-apk
+
+      - name: Compute release metadata
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_name=$(git log -1 --pretty=%s)
+          short_sha=$(git rev-parse --short=12 HEAD)
+          apk_path=$(find android-apk -maxdepth 1 -type f -name '*.apk' -print -quit 2>/dev/null || true)
+          if [ -z "$apk_path" ]; then
+            echo "No APK found in android-apk/"
+            exit 1
+          fi
+          echo "release_name=${release_name}" >> "$GITHUB_OUTPUT"
+          echo "tag_name=commit-${short_sha}" >> "$GITHUB_OUTPUT"
+          echo "apk_path=${apk_path}" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ steps.meta.outputs.release_name }}
+          tag_name: ${{ steps.meta.outputs.tag_name }}
+          target_commitish: ${{ github.sha }}
+          files: |
+            ${{ steps.meta.outputs.apk_path }}

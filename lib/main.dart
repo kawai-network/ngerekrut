@@ -1,6 +1,24 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Only initialize Firebase on supported platforms
+  final bool isSupportedPlatform = kIsWeb ||
+      (Platform.isAndroid || Platform.isIOS || Platform.isMacOS);
+  if (isSupportedPlatform) {
+    try {
+      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    } on UnsupportedError catch (e) {
+      // Platform not configured in firebase_options.dart
+      debugPrint('Firebase not configured for this platform: $e');
+    } on Exception catch (e) {
+      debugPrint('Firebase initialization failed: $e');
+    }
+  }
   runApp(const MyApp());
 }
 
