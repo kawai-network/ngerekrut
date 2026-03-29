@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_SDK_ROOT: ${{ github.workspace }}/.android-sdk
+      ANDROID_HOME: ${{ github.workspace }}/.android-sdk
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Cache Android SDK components
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ANDROID_SDK_ROOT }}
+          key: ${{ runner.os }}-androidsdk-v4
+          restore-keys: |
+            ${{ runner.os }}-androidsdk-v4-
+
+      - name: Cache Android SDK licenses
+        uses: actions/cache@v4
+        with:
+          path: ~/.android
+          key: ${{ runner.os }}-androidsdk-licenses-v1
+          restore-keys: |
+            ${{ runner.os }}-androidsdk-licenses-
+
+      - name: Cache Flutter pub deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool
+          key: ${{ runner.os }}-flutter-pub-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-pub-
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install NDK + CMake
+        shell: bash
+        run: |
+          sdkmanager "ndk;28.2.13676358" "cmake;3.22.1" "build-tools;35.0.0" "platforms;android-34" "platforms;android-35" "platforms;android-36" > /dev/null
+          set +o pipefail
+          yes | sdkmanager --licenses > /dev/null
+          echo "ANDROID_NDK_HOME=${ANDROID_SDK_ROOT}/ndk/28.2.13676358" >> $GITHUB_ENV
+
+      - name: Setup Firebase config
+        shell: bash
+        run: |
+          # Decode and write firebase.json
+          echo '${{ secrets.FIREBASE_JSON }}' | base64 -d > firebase.json
+          
+          # Decode and write google-services.json
+          mkdir -p android/app
+          echo '${{ secrets.GOOGLE_SERVICES_JSON }}' | base64 -d > android/app/google-services.json
+          
+          # Decode and write GoogleService-Info.plist for iOS
+          mkdir -p ios/Runner
+          echo '${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}' | base64 -d > ios/Runner/GoogleService-Info.plist
+          
+          # Decode and write GoogleService-Info.plist for macOS
+          mkdir -p macos/Runner
+          echo '${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}' | base64 -d > macos/Runner/GoogleService-Info.plist
+
+      - name: Build Android APK
+        run: flutter build apk --release
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          retention-days: 30
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+  release:
+    runs-on: ubuntu-latest
+    if: ${{ needs.android.result == 'success' }}
+    permissions:
+      contents: write
+    needs: [android]
+    steps:
+      - name: Compute tag name
+        id: tag
+        shell: bash
+        run: |
+          short_sha="${GITHUB_SHA:0:12}"
+          echo "tag_name=commit-${short_sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Download Android APK
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk
+          path: android-apk
+
+      - name: Archive artifacts
+        run: |
+          apk_path=$(ls -1 android-apk/*.apk 2>/dev/null | head -n 1 || true)
+          if [ -z "$apk_path" ]; then
+            echo "No APK found in android-apk/"
+            exit 1
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag_name }}
+          files: |
+            android-apk/*.apk

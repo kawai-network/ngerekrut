@@ -43,3 +43,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Firebase config (sensitive - store in GitHub Secrets)
+firebase.json
+**/google-services.json
+**/GoogleService-Info.plist
