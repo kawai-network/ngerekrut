@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show Platform;
 
 import 'package:dart_duckdb/dart_duckdb.dart';
+import 'package:path_provider/path_provider.dart';
 
 class _InitLock {
   Completer<void>? _completer;
@@ -53,7 +55,25 @@ class ChatDatabaseService {
     }
 
     try {
-      _db = await duckdb.open(_dbPath);
+      // On Android, DuckDB needs a home_directory setting to work properly.
+      // Use in-memory database with home_directory set to app documents directory.
+      final usePath = _dbPath == ':memory:' || Platform.isAndroid
+          ? ':memory:'
+          : _dbPath;
+
+      // Set home_directory for Android to avoid "Can't find the home directory" error
+      Map<String, String>? settings;
+      if (Platform.isAndroid) {
+        try {
+          final homeDir = (await getApplicationDocumentsDirectory()).path;
+          settings = {'home_directory': homeDir};
+        } catch (e) {
+          // If we can't get the directory, fall back to in-memory without settings
+          settings = null;
+        }
+      }
+
+      _db = await duckdb.open(usePath, settings: settings);
       _connection = await duckdb.connect(_dbRequired);
 
       await _connectionRequired.execute('INSTALL json;');
