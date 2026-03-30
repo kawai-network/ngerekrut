@@ -321,8 +321,8 @@ mixin _$ImagePreviewData {
 
 /// The URL of an image associated with the link.
  String get url;/// The image width.
- double get width;/// The image height.
- double get height;
+@JsonKey(defaultValue: 0) double get width;/// The image height.
+@JsonKey(defaultValue: 0) double get height;
 /// Create a copy of ImagePreviewData
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -355,7 +355,7 @@ abstract mixin class $ImagePreviewDataCopyWith<$Res>  {
   factory $ImagePreviewDataCopyWith(ImagePreviewData value, $Res Function(ImagePreviewData) _then) = _$ImagePreviewDataCopyWithImpl;
 @useResult
 $Res call({
- String url, double width, double height
+ String url,@JsonKey(defaultValue: 0) double width,@JsonKey(defaultValue: 0) double height
 });
 
 
@@ -462,7 +462,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String url,  double width,  double height)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String url, @JsonKey(defaultValue: 0)  double width, @JsonKey(defaultValue: 0)  double height)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ImagePreviewData() when $default != null:
 return $default(_that.url,_that.width,_that.height);case _:
@@ -483,7 +483,7 @@ return $default(_that.url,_that.width,_that.height);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String url,  double width,  double height)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String url, @JsonKey(defaultValue: 0)  double width, @JsonKey(defaultValue: 0)  double height)  $default,) {final _that = this;
 switch (_that) {
 case _ImagePreviewData():
 return $default(_that.url,_that.width,_that.height);case _:
@@ -503,7 +503,7 @@ return $default(_that.url,_that.width,_that.height);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String url,  double width,  double height)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String url, @JsonKey(defaultValue: 0)  double width, @JsonKey(defaultValue: 0)  double height)?  $default,) {final _that = this;
 switch (_that) {
 case _ImagePreviewData() when $default != null:
 return $default(_that.url,_that.width,_that.height);case _:
@@ -518,15 +518,15 @@ return $default(_that.url,_that.width,_that.height);case _:
 @JsonSerializable()
 
 class _ImagePreviewData extends ImagePreviewData {
-  const _ImagePreviewData({required this.url, required this.width, required this.height}): super._();
+  const _ImagePreviewData({required this.url, @JsonKey(defaultValue: 0) required this.width, @JsonKey(defaultValue: 0) required this.height}): super._();
   factory _ImagePreviewData.fromJson(Map<String, dynamic> json) => _$ImagePreviewDataFromJson(json);
 
 /// The URL of an image associated with the link.
 @override final  String url;
 /// The image width.
-@override final  double width;
+@override@JsonKey(defaultValue: 0) final  double width;
 /// The image height.
-@override final  double height;
+@override@JsonKey(defaultValue: 0) final  double height;
 
 /// Create a copy of ImagePreviewData
 /// with the given fields replaced by the non-null parameter values.
@@ -561,7 +561,7 @@ abstract mixin class _$ImagePreviewDataCopyWith<$Res> implements $ImagePreviewDa
   factory _$ImagePreviewDataCopyWith(_ImagePreviewData value, $Res Function(_ImagePreviewData) _then) = __$ImagePreviewDataCopyWithImpl;
 @override @useResult
 $Res call({
- String url, double width, double height
+ String url,@JsonKey(defaultValue: 0) double width,@JsonKey(defaultValue: 0) double height
 });
 
 

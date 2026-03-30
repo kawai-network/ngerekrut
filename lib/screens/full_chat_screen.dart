@@ -1,13 +1,15 @@
 /// Chat screen implementation with full integration of all chat libraries.
-/// 
+///
 /// This screen demonstrates:
-/// - DuckDB persistence via [DuckDBChatController]
+/// - ObjectBox persistence via [ObjectBoxChatController]
 /// - Text messages with markdown support
 /// - System messages
 /// - Text stream messages (for AI responses)
+/// - Vector search for semantic message search
 library;
 
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 import '../data/data.dart';
 import '../flutter_chat_core/flutter_chat_core.dart';
 import '../flutter_chat_ui/flutter_chat_ui.dart';
@@ -36,8 +38,7 @@ class FullChatScreen extends StatefulWidget {
 }
 
 class _FullChatScreenState extends State<FullChatScreen> {
-  late ChatDatabaseService _database;
-  late DuckDBChatController _chatController;
+  ObjectBoxChatController? _chatController;
   bool _isInitializing = true;
   String? _error;
 
@@ -48,24 +49,23 @@ class _FullChatScreenState extends State<FullChatScreen> {
   }
 
   Future<void> _initializeChat() async {
+    ObjectBoxChatController? controller;
     try {
-      // Initialize database
-      final dbPath = await DatabasePathProvider.getDatabasePath();
-      _database = ChatDatabaseService(dbPath: dbPath);
-      await _database.initialize();
+      // Initialize ObjectBox
+      await ObjectBoxStoreProvider.initialize();
 
       // Create repositories
-      final messageRepository = MessageRepository(_database);
-      final userRepository = UserRepository(_database);
+      final messageRepository = ObjectBoxMessageRepository();
+      final userRepository = ObjectBoxUserRepository();
 
-      // Create controller with DuckDB persistence
-      _chatController = DuckDBChatController(
+      // Create controller with ObjectBox persistence
+      controller = ObjectBoxChatController(
         messageRepository: messageRepository,
         userRepository: userRepository,
       );
 
       // Save current user
-      await _chatController.saveUser(
+      await controller.saveUser(
         User(
           id: widget.currentUserId,
           name: widget.currentUserName ?? 'User',
@@ -73,12 +73,19 @@ class _FullChatScreenState extends State<FullChatScreen> {
       );
 
       // Load existing messages
-      await _chatController.loadMessages(limit: 50);
+      await controller.loadMessages(limit: 50);
 
+      if (!mounted) {
+        controller.dispose();
+        return;
+      }
       setState(() {
+        _chatController = controller;
         _isInitializing = false;
       });
     } catch (e) {
+      controller?.dispose();
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _isInitializing = false;
@@ -88,21 +95,20 @@ class _FullChatScreenState extends State<FullChatScreen> {
 
   @override
   void dispose() {
-    _chatController.dispose();
-    _database.close();
+    _chatController?.dispose();
     super.dispose();
   }
 
   Future<void> _sendMessage(String text) async {
     final message = Message.text(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: const Uuid().v4(),
       authorId: widget.currentUserId,
       text: text,
       createdAt: DateTime.now(),
       status: MessageStatus.sent,
     );
 
-    await _chatController.insertMessage(message);
+    await _chatController?.insertMessage(message);
   }
 
   Future<void> _sendSystemMessage() async {
@@ -113,7 +119,7 @@ class _FullChatScreenState extends State<FullChatScreen> {
       createdAt: DateTime.now(),
     );
 
-    await _chatController.insertMessage(message);
+    await _chatController?.insertMessage(message);
   }
 
   Future<void> _simulateStreamingResponse() async {
@@ -127,7 +133,7 @@ class _FullChatScreenState extends State<FullChatScreen> {
       status: MessageStatus.sending,
     );
 
-    await _chatController.insertMessage(streamMessage);
+    await _chatController?.insertMessage(streamMessage);
 
     // Simulate streaming text
     final fullText = "This is a simulated AI response with **markdown** support:\n\n- Item 1\n- Item 2\n- Item 3\n\n```dart\nprint('Hello World');\n```";
@@ -135,7 +141,7 @@ class _FullChatScreenState extends State<FullChatScreen> {
 
     for (var i = 0; i < words.length; i++) {
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       final partialText = words.sublist(0, i + 1).join(' ');
       final updatedMessage = Message.text(
         id: streamId,
@@ -145,7 +151,7 @@ class _FullChatScreenState extends State<FullChatScreen> {
         status: MessageStatus.sending,
       );
 
-      await _chatController.updateMessage(streamMessage, updatedMessage);
+      await _chatController?.updateMessage(streamMessage, updatedMessage);
     }
 
     // Mark as complete
@@ -157,7 +163,7 @@ class _FullChatScreenState extends State<FullChatScreen> {
       status: MessageStatus.seen,
     );
 
-    await _chatController.updateMessage(streamMessage, finalMessage);
+    await _chatController?.updateMessage(streamMessage, finalMessage);
   }
 
   void _showMessageOptions() {
@@ -258,9 +264,7 @@ class _FullChatScreenState extends State<FullChatScreen> {
               );
 
               if (confirm == true) {
-                // Clear all messages by setting empty list
-                // Note: This only clears UI, not database
-                await _chatController.setMessages([]);
+                await _chatController?.deleteAllPersistedMessages();
               }
             },
             tooltip: 'Clear Chat',
@@ -270,7 +274,7 @@ class _FullChatScreenState extends State<FullChatScreen> {
       body: Chat(
         currentUserId: widget.currentUserId,
         resolveUser: _resolveUser,
-        chatController: _chatController,
+        chatController: _chatController!,
         builders: _buildBuilders(),
         onMessageSend: _sendMessage,
         onMessageTap: (context, message, {required index, required details}) {
@@ -328,7 +332,7 @@ class _FullChatScreenState extends State<FullChatScreen> {
   Future<User?> _resolveUser(UserID userId) async {
     // Try to get from controller cache first
     try {
-      return await _chatController.getUser(userId);
+      return await _chatController?.getUser(userId);
     } catch (e) {
       // Return default user if not found
       return User(
@@ -359,7 +363,7 @@ class _FullChatScreenState extends State<FullChatScreen> {
                 onTap: () async {
                   Navigator.pop(context);
                   final updatedMessage = message.copyWith(pinned: true);
-                  await _chatController.updateMessage(message, updatedMessage);
+                  await _chatController?.updateMessage(message, updatedMessage);
                 },
               ),
             if (message.pinned == true)
@@ -369,7 +373,7 @@ class _FullChatScreenState extends State<FullChatScreen> {
                 onTap: () async {
                   Navigator.pop(context);
                   final updatedMessage = message.copyWith(pinned: false);
-                  await _chatController.updateMessage(message, updatedMessage);
+                  await _chatController?.updateMessage(message, updatedMessage);
                 },
               ),
             ListTile(
@@ -377,7 +381,7 @@ class _FullChatScreenState extends State<FullChatScreen> {
               title: const Text('Delete', style: TextStyle(color: Colors.red)),
               onTap: () async {
                 Navigator.pop(context);
-                await _chatController.removeMessage(message);
+                await _chatController?.removeMessage(message);
               },
             ),
           ],

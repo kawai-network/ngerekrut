@@ -1,20 +1,21 @@
-/// Data layer exports for chat database functionality.
+/// Data layer for chat database functionality using ObjectBox.
+///
+/// ObjectBox provides:
+/// - Fast object-oriented database storage
+/// - Vector search capabilities via HNSW index
+/// - ACID transactions
+/// - Cross-platform support
 library;
 
-// Database service
-export 'database/chat_database_service.dart';
-export 'database/database_path_provider.dart';
+// ObjectBox store provider
+export 'database/objectbox/objectbox_store_provider.dart';
 
-// Tables
-export 'database/tables/chat_tables.dart';
+// ObjectBox entities
+export 'database/objectbox/entities.dart';
 
-// Mappers
-export 'mappers/message_mapper.dart';
-export 'mappers/user_mapper.dart';
+// ObjectBox repositories
+export 'repositories/objectbox_message_repository.dart';
+export 'repositories/objectbox_user_repository.dart';
 
-// Repositories
-export 'repositories/message_repository.dart';
-export 'repositories/user_repository.dart';
-
-// Controllers
-export 'controllers/duckdb_chat_controller.dart';
+// ObjectBox controller
+export 'controllers/objectbox_chat_controller.dart';

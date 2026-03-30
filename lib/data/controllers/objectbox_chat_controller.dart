@@ -1,35 +1,40 @@
 import 'dart:async';
 
-import '../../flutter_chat_core/src/chat_controller/chat_controller.dart';
-import '../../flutter_chat_core/src/chat_controller/chat_operation.dart';
-import '../../flutter_chat_core/src/models/message.dart';
-import '../../flutter_chat_core/src/models/user.dart';
-import '../data.dart';
+import '../../../flutter_chat_core/src/chat_controller/chat_controller.dart';
+import '../../../flutter_chat_core/src/chat_controller/chat_operation.dart';
+import '../../../flutter_chat_core/src/models/message.dart';
+import '../../../flutter_chat_core/src/models/user.dart';
+import '../repositories/objectbox_message_repository.dart';
+import '../repositories/objectbox_user_repository.dart';
 
-/// A [ChatController] implementation that persists messages and users to DuckDB.
+/// A [ChatController] implementation that persists messages and users to ObjectBox.
 ///
 /// This controller implements [ChatController] to maintain UI state in memory
-/// for fast access, while syncing all changes to DuckDB for persistence.
+/// for fast access, while syncing all changes to ObjectBox for persistence.
+///
+/// ObjectBox provides:
+/// - Fast object-oriented database storage
+/// - Vector search capabilities via HNSW index
+/// - ACID transactions
+/// - Cross-platform support (iOS, Android, Desktop)
 ///
 /// Example usage:
 /// ```dart
-/// // Initialize database
-/// final dbPath = await DatabasePathProvider.getDatabasePath();
-/// final database = ChatDatabaseService(dbPath: dbPath);
-/// await database.initialize();
+/// // Initialize ObjectBox
+/// await ObjectBoxStoreProvider.initialize();
 ///
-/// // Create controller with DuckDB persistence
-/// final controller = DuckDBChatController(
-///   messageRepository: MessageRepository(database),
-///   userRepository: UserRepository(database),
+/// // Create controller with ObjectBox persistence
+/// final controller = ObjectBoxChatController(
+///   messageRepository: ObjectBoxMessageRepository(),
+///   userRepository: ObjectBoxUserRepository(),
 /// );
 ///
 /// // Load messages from database
 /// await controller.loadMessages();
 /// ```
-class DuckDBChatController implements ChatController {
-  final MessageRepository _messageRepository;
-  final UserRepository _userRepository;
+class ObjectBoxChatController implements ChatController {
+  final ObjectBoxMessageRepository _messageRepository;
+  final ObjectBoxUserRepository _userRepository;
 
   /// In-memory cache of messages for fast UI access
   List<Message> _messages = [];
@@ -37,20 +42,25 @@ class DuckDBChatController implements ChatController {
   /// Stream controller for operations
   final _operationsController = StreamController<ChatOperation>.broadcast();
 
-  /// Creates a [DuckDBChatController] instance.
-  DuckDBChatController({
-    required MessageRepository messageRepository,
-    required UserRepository userRepository,
+  /// Creates a [ObjectBoxChatController] instance.
+  ObjectBoxChatController({
+    required ObjectBoxMessageRepository messageRepository,
+    required ObjectBoxUserRepository userRepository,
   })  : _messageRepository = messageRepository,
         _userRepository = userRepository;
 
   @override
   Future<void> insertMessage(Message message, {int? index}) async {
-    // Persist to DuckDB first
+    // Validate index
+    final insertIndex = index ?? _messages.length;
+    if (insertIndex < 0 || insertIndex > _messages.length) {
+      throw ArgumentError('Index $insertIndex is out of range (0..${_messages.length})');
+    }
+
+    // Persist to ObjectBox first
     await _messageRepository.insertMessage(message);
 
     // Update in-memory cache
-    final insertIndex = index ?? _messages.length;
     _messages.insert(insertIndex, message);
 
     // Notify UI
@@ -59,11 +69,18 @@ class DuckDBChatController implements ChatController {
 
   @override
   Future<void> insertAllMessages(List<Message> messages, {int? index}) async {
-    // Persist to DuckDB atomically
+    // Validate input
+    if (messages.isEmpty) return; // Nothing to insert
+    
+    final insertIndex = index ?? _messages.length;
+    if (insertIndex < 0 || insertIndex > _messages.length) {
+      throw ArgumentError('Index $insertIndex is out of range (0..${_messages.length})');
+    }
+
+    // Persist to ObjectBox atomically
     await _messageRepository.insertMessages(messages);
 
     // Update in-memory cache only after DB succeeds
-    final insertIndex = index ?? _messages.length;
     _messages.insertAll(insertIndex, messages);
 
     // Notify UI
@@ -72,7 +89,7 @@ class DuckDBChatController implements ChatController {
 
   @override
   Future<void> updateMessage(Message oldMessage, Message newMessage) async {
-    // Persist to DuckDB
+    // Persist to ObjectBox
     await _messageRepository.updateMessage(newMessage);
 
     // Find the actual cached message to use as oldMessage
@@ -87,7 +104,7 @@ class DuckDBChatController implements ChatController {
 
   @override
   Future<void> removeMessage(Message message) async {
-    // Remove from DuckDB (soft delete)
+    // Remove from ObjectBox (soft delete)
     await _messageRepository.softDeleteMessage(message.id);
 
     // Find and remove from in-memory cache
@@ -109,13 +126,19 @@ class DuckDBChatController implements ChatController {
     _operationsController.add(ChatOperation.set(messages));
   }
 
+  /// Deletes all persisted messages and clears the in-memory cache.
+  Future<void> deleteAllPersistedMessages() async {
+    await _messageRepository.deleteAllMessages();
+    await setMessages([]);
+  }
+
   @override
   List<Message> get messages => List.unmodifiable(_messages);
 
   @override
   Stream<ChatOperation> get operationsStream => _operationsController.stream;
 
-  /// Loads messages from DuckDB into the in-memory cache.
+  /// Loads messages from ObjectBox into the in-memory cache.
   ///
   /// Call this method when initializing the chat to populate the UI with
   /// previously persisted messages.
@@ -197,17 +220,17 @@ class DuckDBChatController implements ChatController {
     return reversedMessages;
   }
 
-  /// Saves or updates a user in DuckDB.
+  /// Saves or updates a user in ObjectBox.
   Future<void> saveUser(User user) async {
     await _userRepository.upsertUser(user);
   }
 
-  /// Gets a user by ID from DuckDB.
+  /// Gets a user by ID from ObjectBox.
   Future<User?> getUser(String userId) async {
     return await _userRepository.getUserById(userId);
   }
 
-  /// Loads all users from DuckDB.
+  /// Loads all users from ObjectBox.
   Future<List<User>> loadUsers({int limit = 100}) async {
     return await _userRepository.getAllUsers(limit: limit);
   }
@@ -273,7 +296,11 @@ class DuckDBChatController implements ChatController {
     }
 
     if (add) {
-      reactions.putIfAbsent(reactionKey, () => []).add(userId);
+      // Only add userId if not already present (prevent duplicates)
+      final users = reactions.putIfAbsent(reactionKey, () => []);
+      if (!users.contains(userId)) {
+        users.add(userId);
+      }
     } else {
       final users = reactions[reactionKey];
       if (users != null) {
@@ -300,6 +327,50 @@ class DuckDBChatController implements ChatController {
   /// Gets message statistics.
   Future<Map<String, int>> getMessageStats() async {
     return await _messageRepository.getMessageStats();
+  }
+
+  /// Searches messages by vector embedding (semantic search).
+  ///
+  /// This requires messages to have embeddings computed and stored.
+  /// Use [updateMessageEmbedding] to store embeddings.
+  ///
+  /// Returns messages with their similarity scores (higher = more similar).
+  Future<List<(Message, double)>> searchByVector(
+    List<double> queryVector, {
+    int limit = 20,
+    double? minSimilarity,
+  }) async {
+    return await _messageRepository.searchByVector(
+      queryVector,
+      limit: limit,
+      minSimilarity: minSimilarity,
+    );
+  }
+
+  /// Gets messages similar to a given message.
+  Future<List<Message>> getSimilarMessages(
+    String messageId, {
+    int limit = 10,
+  }) async {
+    return await _messageRepository.getSimilarMessages(
+      messageId,
+      limit: limit,
+    );
+  }
+
+  /// Updates the embedding for a message.
+  ///
+  /// Call this after computing embeddings using your preferred embedding model.
+  Future<void> updateMessageEmbedding(
+    String messageId,
+    List<double> embedding,
+  ) async {
+    await _messageRepository.updateEmbedding(messageId, embedding);
+  }
+
+  /// Gets messages without embeddings (for batch embedding computation).
+  Future<List<Message>> getMessagesWithoutEmbedding({int limit = 100}) async {
+    return await _messageRepository.getMessagesWithoutEmbedding(limit: limit);
   }
 
   @override

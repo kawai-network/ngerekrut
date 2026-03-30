@@ -29,10 +29,6 @@ environment:
 # versions available, run `flutter pub outdated`.
 dependencies:
   cross_cache: ^1.1.0
-  dart_duckdb:
-    git:
-      url: https://github.com/yharby/duckdb-dart.git
-      ref: main
   diffutil_dart: ^4.0.1
   dio: ^5.9.0
   firebase_core: ^4.6.0
@@ -43,11 +39,14 @@ dependencies:
   gpt_markdown: ^1.1.4
   intl: ">=0.19.0 <1.0.0"
   json_annotation: ^4.9.0
+  objectbox: ^5.3.1
+  objectbox_flutter_libs: ^5.3.1
   path: ^1.9.1
   path_provider: ^2.1.5
   provider: ^6.1.5+1
   scrollview_observer: ^1.26.2
   shimmer: ^3.0.0
+  uuid: ^4.5.2
 
 dev_dependencies:
   build_runner: ^2.10.4
@@ -56,6 +55,7 @@ dev_dependencies:
     sdk: flutter
   freezed: ^3.2.3
   json_serializable: ^6.11.2
+  objectbox_generator: ^5.3.1
 
 
 # For information on the generic Dart part of this file, see the
