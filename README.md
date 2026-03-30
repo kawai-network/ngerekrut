@@ -1,17 +1,53 @@
 # ngerekrut
 
-A new Flutter project.
+Flutter chat app with ObjectBox persistence and optional vector search.
 
-## Getting Started
+## Quickstart
 
-This project is a starting point for a Flutter application.
+1. Install dependencies
+```bash
+flutter pub get
+```
 
-A few resources to get you started if this is your first Flutter project:
+2. Generate ObjectBox code
+```bash
+dart run build_runner build --delete-conflicting-outputs
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+This generates `lib/objectbox.g.dart`.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+3. Run the app
+```bash
+flutter run
+```
+
+## ObjectBox Setup
+
+Initialize ObjectBox once at app startup:
+
+```dart
+import 'package:ngerekrut/data/objectbox/objectbox.dart';
+
+await ObjectBoxStoreProvider.initialize();
+
+final controller = ObjectBoxChatController(
+  messageRepository: ObjectBoxMessageRepository(),
+  userRepository: ObjectBoxUserRepository(),
+);
+
+await controller.loadMessages(limit: 50);
+```
+
+## Features
+
+- Persistent chat storage via ObjectBox
+- In-memory cache for UI speed
+- Reactions and pagination
+- Optional vector search with HNSW index (see `lib/data/database/objectbox/message_entity.dart`)
+
+## Useful Files
+
+- `lib/data/objectbox/objectbox.dart` – entrypoint for ObjectBox exports
+- `lib/data/controllers/objectbox_chat_controller.dart` – persistence-backed controller
+- `lib/data/repositories/objectbox_message_repository.dart` – message queries, vector search helpers
+- `lib/data/example_objectbox_usage.dart` – end-to-end usage examples
