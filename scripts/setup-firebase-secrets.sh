@@ -1,35 +1,109 @@
 #!/bin/bash
-# Script to generate base64-encoded Firebase config for GitHub Secrets
-# Run this and copy the output to set up your secrets
+# Script to generate and optionally set Firebase config as GitHub Secrets
+# Requires 'gh' CLI to be installed and authenticated for auto-set mode
 
 set -e
+
+# Check if gh CLI is available
+USE_GH=false
+if command -v gh &> /dev/null; then
+  USE_GH=true
+fi
+
+# Parse arguments
+AUTO_SET=false
+for arg in "$@"; do
+  if [ "$arg" = "--auto" ] || [ "$arg" = "-a" ]; then
+    AUTO_SET=true
+    if [ "$USE_GH" = false ]; then
+      echo "❌ Error: 'gh' CLI is not installed or not in PATH"
+      echo "   Install: https://cli.github.com/"
+      echo "   Or run without --auto to get base64 values manually"
+      exit 1
+    fi
+    break
+  fi
+done
 
 echo "============================================"
 echo "Firebase Config for GitHub Secrets"
 echo "============================================"
 echo ""
-echo "Run these commands in your GitHub repo settings:"
-echo "Settings > Secrets and variables > Actions > New repository secret"
-echo ""
+
+if [ "$AUTO_SET" = true ]; then
+  echo "🚀 Auto-set mode: Using 'gh' CLI to update secrets"
+  echo ""
+else
+  echo "Manual mode: Copy the base64 values below to GitHub Secrets"
+  echo "Settings > Secrets and variables > Actions > New repository secret"
+  echo ""
+fi
+
+# 1. FIREBASE_JSON (optional)
+if [ -f "firebase.json" ]; then
+  FIREBASE_JSON=$(base64 < firebase.json | tr -d '\n')
+  if [ "$AUTO_SET" = true ]; then
+    echo "📝 Setting FIREBASE_JSON secret..."
+    gh secret set FIREBASE_JSON --body "$FIREBASE_JSON"
+    echo "✅ FIREBASE_JSON set successfully"
+  else
+    echo "============================================"
+    echo "1. FIREBASE_JSON"
+    echo "============================================"
+    echo "$FIREBASE_JSON"
+    echo ""
+  fi
+  echo ""
+else
+  echo "⚠️  Skipping FIREBASE_JSON (firebase.json not found)"
+  echo ""
+fi
+
+# 2. GOOGLE_SERVICES_JSON (required for Android)
+if [ -f "android/app/google-services.json" ]; then
+  GOOGLE_SERVICES_JSON=$(base64 < android/app/google-services.json | tr -d '\n')
+  if [ "$AUTO_SET" = true ]; then
+    echo "📝 Setting GOOGLE_SERVICES_JSON secret..."
+    gh secret set GOOGLE_SERVICES_JSON --body "$GOOGLE_SERVICES_JSON"
+    echo "✅ GOOGLE_SERVICES_JSON set successfully"
+  else
+    echo "============================================"
+    echo "1. GOOGLE_SERVICES_JSON"
+    echo "============================================"
+    echo "$GOOGLE_SERVICES_JSON"
+    echo ""
+  fi
+  echo ""
+else
+  echo "❌ ERROR: android/app/google-services.json not found!"
+  echo "   This is required for Android builds."
+  exit 1
+fi
+
+# 3. GOOGLE_SERVICE_INFO_PLIST (optional - for iOS/macOS)
+if [ -f "ios/Runner/GoogleService-Info.plist" ]; then
+  GOOGLE_SERVICE_INFO_PLIST=$(base64 < ios/Runner/GoogleService-Info.plist | tr -d '\n')
+  if [ "$AUTO_SET" = true ]; then
+    echo "📝 Setting GOOGLE_SERVICE_INFO_PLIST secret..."
+    gh secret set GOOGLE_SERVICE_INFO_PLIST --body "$GOOGLE_SERVICE_INFO_PLIST"
+    echo "✅ GOOGLE_SERVICE_INFO_PLIST set successfully"
+  else
+    echo "============================================"
+    echo "2. GOOGLE_SERVICE_INFO_PLIST"
+    echo "============================================"
+    echo "$GOOGLE_SERVICE_INFO_PLIST"
+    echo ""
+  fi
+  echo ""
+else
+  echo "⚠️  Skipping GOOGLE_SERVICE_INFO_PLIST (GoogleService-Info.plist not found)"
+  echo ""
+fi
+
 echo "============================================"
-echo "1. FIREBASE_JSON"
-echo "============================================"
-base64 < firebase.json | tr -d '\n'
-echo ""
-echo ""
-echo "============================================"
-echo "2. GOOGLE_SERVICES_JSON"
-echo "============================================"
-base64 < android/app/google-services.json | tr -d '\n'
-echo ""
-echo ""
-echo "============================================"
-echo "3. GOOGLE_SERVICE_INFO_PLIST"
-echo "============================================"
-# Note: This single secret is used for both iOS and macOS in CI
-base64 < ios/Runner/GoogleService-Info.plist | tr -d '\n'
-echo ""
-echo ""
-echo "============================================"
-echo "Done! Copy each value above to corresponding GitHub Secret"
+if [ "$AUTO_SET" = true ]; then
+  echo "✅ Done! All secrets have been set via 'gh' CLI"
+else
+  echo "Done! Copy each value above to corresponding GitHub Secret"
+fi
 echo "============================================"
