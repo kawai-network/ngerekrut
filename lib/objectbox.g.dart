@@ -14,9 +14,9 @@ import 'package:objectbox/internal.dart'
 import 'package:objectbox/objectbox.dart' as obx;
 import 'package:objectbox_flutter_libs/objectbox_flutter_libs.dart';
 
-import 'data/database/objectbox/message_entity.dart';
-import 'data/database/objectbox/reaction_entity.dart';
-import 'data/database/objectbox/user_entity.dart';
+import 'objectbox/entities/message_entity.dart';
+import 'objectbox/entities/reaction_entity.dart';
+import 'objectbox/entities/user_entity.dart';
 
 export 'package:objectbox/objectbox.dart'; // so that callers only have to import this file
 
@@ -79,7 +79,7 @@ final _entities = <obx_int.ModelEntity>[
         id: const obx_int.IdUid(2, 3989367533359699525),
         name: 'userId',
         type: 9,
-        flags: 2080,
+        flags: 34848,
         indexId: const obx_int.IdUid(3, 639518591358201255),
       ),
       obx_int.ModelProperty(

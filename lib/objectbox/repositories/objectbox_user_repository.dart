@@ -4,8 +4,8 @@ import 'package:objectbox/objectbox.dart';
 
 import '../../../flutter_chat_core/src/models/user.dart';
 import '../../../flutter_chat_core/src/utils/typedefs.dart';
-import '../database/objectbox/objectbox_store_provider.dart';
-import '../database/objectbox/user_entity.dart';
+import '../entities/objectbox_store_provider.dart';
+import '../entities/user_entity.dart';
 import '../../objectbox.g.dart';
 
 /// Repository for managing [User] persistence operations using ObjectBox.

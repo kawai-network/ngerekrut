@@ -7,9 +7,9 @@ import '../../../flutter_chat_core/src/models/message.dart';
 import '../../../flutter_chat_core/src/models/link_preview_data.dart';
 import '../../../flutter_chat_core/src/utils/typedefs.dart';
 import '../../../objectbox.g.dart';
-import '../database/objectbox/message_entity.dart';
-import '../database/objectbox/reaction_entity.dart';
-import '../database/objectbox/objectbox_store_provider.dart';
+import '../entities/message_entity.dart';
+import '../entities/reaction_entity.dart';
+import '../entities/objectbox_store_provider.dart';
 
 /// Repository for managing [Message] persistence operations using ObjectBox.
 class ObjectBoxMessageRepository {

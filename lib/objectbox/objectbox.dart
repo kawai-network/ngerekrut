@@ -8,10 +8,10 @@
 library;
 
 // ObjectBox store provider
-export 'database/objectbox/objectbox_store_provider.dart';
+export 'entities/objectbox_store_provider.dart';
 
 // ObjectBox entities
-export 'database/objectbox/entities.dart';
+export 'entities/entities.dart';
 
 // ObjectBox repositories
 export 'repositories/objectbox_message_repository.dart';

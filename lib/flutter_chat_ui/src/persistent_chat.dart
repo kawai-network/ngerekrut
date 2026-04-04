@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:ngerekrut/data/data.dart';
+import 'package:ngerekrut/objectbox/objectbox.dart';
 import 'package:ngerekrut/flutter_chat_core/flutter_chat_core.dart';
 
 import 'chat.dart';
