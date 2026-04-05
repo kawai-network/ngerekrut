@@ -1,8 +1,8 @@
-import 'package:langchain_core/chains.dart';
-import 'package:langchain_core/documents.dart';
-import 'package:langchain_core/language_models.dart';
-import 'package:langchain_core/prompts.dart';
-import 'package:langchain_core/retrievers.dart';
+import 'package:ngerekrut/langchain/src/chains/chains.dart';
+import 'package:ngerekrut/langchain/src/documents/documents.dart';
+import 'package:ngerekrut/langchain/src/language_models/language_models.dart';
+import 'package:ngerekrut/langchain/src/prompts/prompts.dart';
+import 'package:ngerekrut/langchain/src/retrievers/retrievers.dart';
 
 import 'combine_documents/combine_documents.dart';
 import 'question_answering/question_answering.dart';

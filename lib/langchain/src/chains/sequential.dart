@@ -1,5 +1,5 @@
-import 'package:langchain_core/chains.dart';
-import 'package:langchain_core/memory.dart';
+import 'package:ngerekrut/langchain/src/chains/chains.dart';
+import 'package:ngerekrut/langchain/src/memory/memory.dart';
 
 /// {@template sequential_chain}
 /// Chain that combines multiple chains where the output of the one

@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:langchain_core/tools.dart';
+import 'package:ngerekrut/langchain/src/tools/tools.dart';
 
 /// {@template exception_tool}
 /// A tool used when the agent throws an [OutputParserException].

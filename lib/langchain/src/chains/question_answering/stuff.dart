@@ -1,6 +1,6 @@
-import 'package:langchain_core/chains.dart';
-import 'package:langchain_core/language_models.dart';
-import 'package:langchain_core/prompts.dart';
+import 'package:ngerekrut/langchain/src/chains/chains.dart';
+import 'package:ngerekrut/langchain/src/language_models/language_models.dart';
+import 'package:ngerekrut/langchain/src/prompts/prompts.dart';
 
 import '../combine_documents/stuff.dart';
 

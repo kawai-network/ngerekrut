@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:langchain_core/stores.dart';
+import 'package:ngerekrut/langchain/src/stores/stores.dart';
 
 /// {@template local_file_store_io}
 /// A simple file system implementation of a [BaseStore].

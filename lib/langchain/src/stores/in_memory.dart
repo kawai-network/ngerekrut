@@ -1,4 +1,4 @@
-import 'package:langchain_core/stores.dart';
+import 'package:ngerekrut/langchain/src/stores/stores.dart';
 
 /// {@template in_memory_store}
 /// In-memory implementation of the BaseStore using a dictionary.

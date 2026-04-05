@@ -1,7 +1,7 @@
 // ignore_for_file: avoid_redundant_argument_values
-import 'package:langchain_core/chains.dart';
-import 'package:langchain_core/memory.dart';
-import 'package:langchain_core/prompts.dart';
+import 'package:ngerekrut/langchain/src/chains/chains.dart';
+import 'package:ngerekrut/langchain/src/memory/memory.dart';
+import 'package:ngerekrut/langchain/src/prompts/prompts.dart';
 
 import '../memory/buffer.dart';
 

@@ -1,8 +1,8 @@
-import 'package:langchain_core/chat_history.dart';
-import 'package:langchain_core/chat_models.dart';
-import 'package:langchain_core/language_models.dart';
-import 'package:langchain_core/memory.dart';
-import 'package:langchain_core/prompts.dart';
+import 'package:ngerekrut/langchain/src/chat_history/chat_history.dart';
+import 'package:ngerekrut/langchain/src/chat_models/chat_models.dart';
+import 'package:ngerekrut/langchain/src/language_models/language_models.dart';
+import 'package:ngerekrut/langchain/src/memory/memory.dart';
+import 'package:ngerekrut/langchain/src/prompts/prompts.dart';
 
 import '../chat_history/in_memory.dart';
 

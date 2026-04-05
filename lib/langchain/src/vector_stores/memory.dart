@@ -1,8 +1,8 @@
 import 'package:collection/collection.dart';
-import 'package:langchain_core/documents.dart';
-import 'package:langchain_core/embeddings.dart';
-import 'package:langchain_core/utils.dart';
-import 'package:langchain_core/vector_stores.dart';
+import 'package:ngerekrut/langchain/src/documents/documents.dart';
+import 'package:ngerekrut/langchain/src/embeddings/embeddings.dart';
+import 'package:ngerekrut/langchain/src/utils/utils.dart';
+import 'package:ngerekrut/langchain/src/vector_stores/vector_stores.dart';
 import 'package:meta/meta.dart';
 import 'package:uuid/uuid.dart';
 

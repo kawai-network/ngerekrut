@@ -448,14 +448,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.13.1"
-  langchain_core:
-    dependency: "direct main"
-    description:
-      name: langchain_core
-      sha256: fce3cd0e31dcbac80d209f6361207936a58b05506b800f13227cbe83f6e3e721
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.4.1"
   leak_tracker:
     dependency: transitive
     description:
@@ -713,7 +705,7 @@ packages:
     source: hosted
     version: "1.5.0"
   rxdart:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: rxdart
       sha256: "5c3004a4a8dbb94bd4bf5412a4def4acdaa12e12f269737a5751369e12d1a962"

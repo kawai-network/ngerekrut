@@ -1,5 +1,5 @@
 import 'package:characters/characters.dart';
-import 'package:langchain_core/documents.dart';
+import 'package:ngerekrut/langchain/src/documents/documents.dart';
 import 'package:meta/meta.dart';
 
 /// {@template text_splitter}

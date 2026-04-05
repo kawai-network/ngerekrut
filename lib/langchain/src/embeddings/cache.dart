@@ -2,12 +2,10 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
-import 'package:langchain_core/documents.dart';
-import 'package:langchain_core/embeddings.dart';
-import 'package:langchain_core/stores.dart';
+import 'package:ngerekrut/langchain/src/documents/documents.dart';
+import 'package:ngerekrut/langchain/src/embeddings/embeddings.dart';
+import 'package:ngerekrut/langchain/src/stores/stores.dart';
 import 'package:uuid/uuid.dart';
-
-import '../stores/encoder_backed.dart';
 
 /// {@template cache_backed_embeddings}
 /// Wrapper around an embedder that caches embeddings in a key-value store to

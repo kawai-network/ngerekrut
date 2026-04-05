@@ -1,11 +1,11 @@
-import 'package:langchain_core/agents.dart';
-import 'package:langchain_core/chains.dart';
-import 'package:langchain_core/chat_models.dart';
-import 'package:langchain_core/exceptions.dart';
-import 'package:langchain_core/memory.dart';
-import 'package:langchain_core/output_parsers.dart';
-import 'package:langchain_core/prompts.dart';
-import 'package:langchain_core/tools.dart';
+import 'package:ngerekrut/langchain/src/agents/agents.dart';
+import 'package:ngerekrut/langchain/src/chains/chains.dart';
+import 'package:ngerekrut/langchain/src/chat_models/chat_models.dart';
+import 'package:ngerekrut/langchain/src/exceptions/exceptions.dart';
+import 'package:ngerekrut/langchain/src/memory/memory.dart';
+import 'package:ngerekrut/langchain/src/output_parsers/output_parsers.dart';
+import 'package:ngerekrut/langchain/src/prompts/prompts.dart';
+import 'package:ngerekrut/langchain/src/tools/tools.dart';
 
 const _systemChatMessagePromptTemplate = SystemChatMessagePromptTemplate(
   prompt: PromptTemplate(

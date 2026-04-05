@@ -1,9 +1,9 @@
 import 'dart:convert';
 
-import 'package:langchain_core/agents.dart';
-import 'package:langchain_core/chains.dart';
-import 'package:langchain_core/output_parsers.dart';
-import 'package:langchain_core/tools.dart';
+import 'package:ngerekrut/langchain/src/agents/agents.dart';
+import 'package:ngerekrut/langchain/src/chains/chains.dart';
+import 'package:ngerekrut/langchain/src/output_parsers/output_parsers.dart';
+import 'package:ngerekrut/langchain/src/tools/tools.dart';
 import 'package:meta/meta.dart';
 
 import '../tools/exception.dart';

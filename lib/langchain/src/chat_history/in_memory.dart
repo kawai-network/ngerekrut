@@ -1,7 +1,7 @@
 import 'dart:collection';
 
-import 'package:langchain_core/chat_history.dart';
-import 'package:langchain_core/chat_models.dart';
+import 'package:ngerekrut/langchain/src/chat_history/chat_history.dart';
+import 'package:ngerekrut/langchain/src/chat_models/chat_models.dart';
 
 /// {@template chat_message_history}
 /// A simple in-memory implementation of a chat message history.

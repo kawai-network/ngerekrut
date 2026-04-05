@@ -1,4 +1,4 @@
-import 'package:langchain_core/memory.dart';
+import 'package:ngerekrut/langchain/src/memory/memory.dart';
 
 /// {@template simple_memory}
 /// Simple memory for storing context or other bits of information that

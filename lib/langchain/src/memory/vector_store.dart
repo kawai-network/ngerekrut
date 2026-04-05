@@ -1,6 +1,6 @@
-import 'package:langchain_core/documents.dart';
-import 'package:langchain_core/memory.dart';
-import 'package:langchain_core/vector_stores.dart';
+import 'package:ngerekrut/langchain/src/documents/documents.dart';
+import 'package:ngerekrut/langchain/src/memory/memory.dart';
+import 'package:ngerekrut/langchain/src/vector_stores/vector_stores.dart';
 
 /// {@template vector_store_retriever_memory}
 /// Memory backed by a vector store.
