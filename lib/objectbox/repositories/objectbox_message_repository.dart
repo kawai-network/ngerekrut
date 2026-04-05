@@ -1,8 +1,6 @@
 import 'dart:convert';
 import 'dart:math' as math;
 
-import 'package:objectbox/objectbox.dart';
-
 import '../../../flutter_chat_core/src/models/message.dart';
 import '../../../flutter_chat_core/src/models/link_preview_data.dart';
 import '../../../flutter_chat_core/src/utils/typedefs.dart';
@@ -723,7 +721,7 @@ class ObjectBoxMessageRepository {
       if (message.size != null) metadata['size'] = message.size;
       if (message.hasOverlay != null) metadata['hasOverlay'] = message.hasOverlay;
     } else if (message is FileMessage) {
-      if (message.name != null) metadata['name'] = message.name;
+      metadata['name'] = message.name;
       if (message.mimeType != null) metadata['mimeType'] = message.mimeType;
       if (message.size != null) metadata['size'] = message.size;
     } else if (message is VideoMessage) {
@@ -734,7 +732,7 @@ class ObjectBoxMessageRepository {
       if (message.height != null) metadata['height'] = message.height;
     } else if (message is AudioMessage) {
       if (message.text != null) metadata['text'] = message.text;
-      if (message.duration != null) metadata['duration'] = message.duration.inMilliseconds;
+      metadata['duration'] = message.duration.inMilliseconds;
       if (message.size != null) metadata['size'] = message.size;
       if (message.waveform != null) metadata['waveform'] = message.waveform;
     }

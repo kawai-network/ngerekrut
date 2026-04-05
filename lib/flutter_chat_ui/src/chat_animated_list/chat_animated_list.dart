@@ -357,7 +357,7 @@ class _ChatAnimatedListState extends State<ChatAnimatedList>
     if (!ratio.isFinite) {
       return 0.0;
     }
-    return ratio.clamp(0.0, 1.0) as double;
+    return ratio.clamp(0.0, 1.0);
   }
 
   /// If the scroll-to-bottom button should be shown.
