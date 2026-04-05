@@ -1,3 +1,3 @@
-export 'package:langchain_core/chat_history.dart';
+export 'base.dart';
 
 export 'in_memory.dart';

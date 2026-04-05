@@ -1,8 +1,8 @@
-import 'package:langchain_core/chat_history.dart';
-import 'package:langchain_core/chat_models.dart';
-import 'package:langchain_core/language_models.dart';
-import 'package:langchain_core/memory.dart';
-import 'package:langchain_core/prompts.dart';
+import '../chat_history/chat_history.dart';
+import '../chat_models/chat_models.dart';
+import '../language_models/language_models.dart';
+import '../memory/memory.dart';
+import '../prompts/prompts.dart';
 
 import '../chains/chains.dart';
 import '../chat_history/in_memory.dart';

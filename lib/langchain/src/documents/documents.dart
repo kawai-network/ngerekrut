@@ -1,1 +1,2 @@
-export 'package:langchain_core/documents.dart';
+export 'document.dart';
+export 'transformer.dart';
