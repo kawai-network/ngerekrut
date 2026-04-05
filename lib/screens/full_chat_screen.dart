@@ -9,19 +9,25 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:uuid/uuid.dart';
-import '../objectbox/objectbox.dart';
-import '../flutter_chat_core/flutter_chat_core.dart';
-import '../flutter_chat_ui/flutter_chat_ui.dart';
+import 'package:ngerekrut/objectbox_store_provider.dart';
+import 'package:ngerekrut/flutter_chat_core/flutter_chat_core.dart';
+import 'package:ngerekrut/flutter_chat_ui/flutter_chat_ui.dart';
+
 import '../flyer_chat_file_message/flyer_chat_file_message.dart';
 import '../flyer_chat_system_message/flyer_chat_system_message.dart';
 import '../flyer_chat_text_message/flyer_chat_text_message.dart';
 import '../flyer_chat_text_stream_message/flyer_chat_text_stream_message.dart';
 
+// Import LangChain untuk persistence
+import 'package:ngerekrut/langchain/langchain.dart' as ai;
+
 /// Main chat screen widget with full library integration.
 class FullChatScreen extends StatefulWidget {
   /// Current user ID for the chat session.
   final String currentUserId;
+
+  /// Session ID for the chat.
+  final String sessionId;
 
   /// Optional current user name.
   final String? currentUserName;
@@ -30,6 +36,7 @@ class FullChatScreen extends StatefulWidget {
   const FullChatScreen({
     super.key,
     required this.currentUserId,
+    required this.sessionId,
     this.currentUserName,
   });
 
@@ -52,24 +59,13 @@ class _FullChatScreenState extends State<FullChatScreen> {
     ObjectBoxChatController? controller;
     try {
       // Initialize ObjectBox
-      await ObjectBoxStoreProvider.initialize();
+      if (!ObjectBoxStoreProvider.isInitialized) {
+        await ObjectBoxStoreProvider.initialize();
+      }
 
-      // Create repositories
-      final messageRepository = ObjectBoxMessageRepository();
-      final userRepository = ObjectBoxUserRepository();
-
-      // Create controller with ObjectBox persistence
+      // Create controller with sessionId
       controller = ObjectBoxChatController(
-        messageRepository: messageRepository,
-        userRepository: userRepository,
-      );
-
-      // Save current user
-      await controller.saveUser(
-        User(
-          id: widget.currentUserId,
-          name: widget.currentUserName ?? 'User',
-        ),
+        sessionId: widget.sessionId,
       );
 
       // Load existing messages
@@ -97,18 +93,6 @@ class _FullChatScreenState extends State<FullChatScreen> {
   void dispose() {
     _chatController?.dispose();
     super.dispose();
-  }
-
-  Future<void> _sendMessage(String text) async {
-    final message = Message.text(
-      id: const Uuid().v4(),
-      authorId: widget.currentUserId,
-      text: text,
-      createdAt: DateTime.now(),
-      status: MessageStatus.sent,
-    );
-
-    await _chatController?.insertMessage(message);
   }
 
   Future<void> _sendSystemMessage() async {
@@ -188,7 +172,74 @@ class _FullChatScreenState extends State<FullChatScreen> {
                 _simulateStreamingResponse();
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.history),
+              title: const Text('View Chat History'),
+              onTap: () {
+                Navigator.pop(context);
+                _showChatHistory();
+              },
+            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showChatHistory() {
+    final messages = ai.ChatMessageQuery.fromSession(widget.sessionId);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.3,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Chat History',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: messages.isEmpty
+                    ? const Center(child: Text('No messages yet'))
+                    : ListView.builder(
+                        itemCount: messages.length,
+                        itemBuilder: (context, index) {
+                          final msg = messages[index];
+                          final prefix = switch (msg) {
+                            ai.SystemChatMessage() => 'System',
+                            ai.HumanChatMessage() => 'You',
+                            ai.AIChatMessage() => 'AI',
+                            ai.ToolChatMessage() => 'Tool',
+                            ai.CustomChatMessage() => 'Custom',
+                          };
+                          return ListTile(
+                            leading: Text(prefix[0], style: const TextStyle(fontWeight: FontWeight.bold)),
+                            title: Text(msg.contentAsString),
+                            subtitle: Text(msg.runtimeType.toString()),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -197,7 +248,7 @@ class _FullChatScreenState extends State<FullChatScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isInitializing) {
-      return const Scaffold(
+      return Scaffold(
         body: Center(
           child: CircularProgressIndicator(),
         ),
@@ -264,7 +315,9 @@ class _FullChatScreenState extends State<FullChatScreen> {
               );
 
               if (confirm == true) {
-                await _chatController?.deleteAllPersistedMessages();
+                ai.ChatMessageQuery.deleteSession(widget.sessionId);
+                await _chatController?.loadMessages(limit: 50);
+                setState(() {});
               }
             },
             tooltip: 'Clear Chat',
@@ -276,7 +329,10 @@ class _FullChatScreenState extends State<FullChatScreen> {
         resolveUser: _resolveUser,
         chatController: _chatController!,
         builders: _buildBuilders(),
-        onMessageSend: _sendMessage,
+        onMessageSend: (text) async {
+          // Save via ChatMessagePersist
+          ai.ChatMessage.humanText(text).save(widget.sessionId);
+        },
         onMessageTap: (context, message, {required index, required details}) {
           debugPrint('Tapped message: ${message.id}');
         },
@@ -300,7 +356,7 @@ class _FullChatScreenState extends State<FullChatScreen> {
           },
         );
       },
-      
+
       // System message builder - uses FlyerChatSystemMessage
       systemMessageBuilder: (context, message, index, {isSentByMe = false, groupStatus}) {
         return FlyerChatSystemMessage(
@@ -308,7 +364,7 @@ class _FullChatScreenState extends State<FullChatScreen> {
           index: index,
         );
       },
-      
+
       // Text stream message builder - uses FlyerChatTextStreamMessage
       // Note: For a real implementation, you need to manage the stream state externally
       textStreamMessageBuilder: (context, message, index, {isSentByMe = false, groupStatus}) {
@@ -318,7 +374,7 @@ class _FullChatScreenState extends State<FullChatScreen> {
           streamState: const StreamStateStreaming(''),
         );
       },
-      
+
       // File message builder - uses FlyerChatFileMessage
       fileMessageBuilder: (context, message, index, {isSentByMe = false, groupStatus}) {
         return FlyerChatFileMessage(
@@ -330,16 +386,11 @@ class _FullChatScreenState extends State<FullChatScreen> {
   }
 
   Future<User?> _resolveUser(UserID userId) async {
-    // Try to get from controller cache first
-    try {
-      return await _chatController?.getUser(userId);
-    } catch (e) {
-      // Return default user if not found
-      return User(
-        id: userId,
-        name: userId == 'system' ? 'System' : 'User',
-      );
-    }
+    // Return default user
+    return User(
+      id: userId,
+      name: userId == 'system' ? 'System' : (userId == 'ai' ? 'AI Assistant' : 'User'),
+    );
   }
 
   void _showMessageActions(BuildContext context, Message message) {

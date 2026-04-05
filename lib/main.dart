@@ -40,7 +40,7 @@ Future<void> _initializeFirebaseMessaging() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Only initialize Firebase on supported platforms
-  final bool isSupportedPlatform = kIsWeb ||
+  final isSupportedPlatform = kIsWeb ||
       (Platform.isAndroid || Platform.isIOS || Platform.isMacOS);
   if (isSupportedPlatform) {
     try {
@@ -70,6 +70,7 @@ class MyApp extends StatelessWidget {
       ),
       home: const FullChatScreen(
         currentUserId: 'user_123',
+        sessionId: 'session_demo',
         currentUserName: 'Demo User',
       ),
     );
