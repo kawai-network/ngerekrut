@@ -1,10 +1,8 @@
-import 'package:objectbox/objectbox.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'entities.dart';
 import '../../../objectbox.g.dart';
 
-/// Provider for ObjectBox store initialization.
+/// Provider untuk ObjectBox store initialization.
 class ObjectBoxStoreProvider {
   static Store? _store;
   static Future<void>? _initFuture;
@@ -14,7 +12,6 @@ class ObjectBoxStoreProvider {
   static Future<void> initialize() async {
     if (_store != null) return;
 
-    // Prevent race condition: only one initialization at a time
     _initFuture ??= (() async {
       try {
         final docsDir = await getApplicationDocumentsDirectory();
@@ -50,8 +47,4 @@ class ObjectBoxStoreProvider {
       _initFuture = null;
     }
   }
-
-  static Box<UserEntity> get userBox => box<UserEntity>();
-  static Box<MessageEntity> get messageBox => box<MessageEntity>();
-  static Box<ReactionEntity> get reactionBox => box<ReactionEntity>();
 }

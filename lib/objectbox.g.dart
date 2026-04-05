@@ -14,308 +14,70 @@ import 'package:objectbox/internal.dart'
 import 'package:objectbox/objectbox.dart' as obx;
 import 'package:objectbox_flutter_libs/objectbox_flutter_libs.dart';
 
-import 'objectbox/entities/message_entity.dart';
-import 'objectbox/entities/reaction_entity.dart';
-import 'objectbox/entities/user_entity.dart';
+import 'langchain/src/chat_models/chat_message_record.dart';
 
 export 'package:objectbox/objectbox.dart'; // so that callers only have to import this file
 
 final _entities = <obx_int.ModelEntity>[
   obx_int.ModelEntity(
-    id: const obx_int.IdUid(1, 6671613770378980644),
-    name: 'ReactionEntity',
-    lastPropertyId: const obx_int.IdUid(5, 1708203424266546156),
+    id: const obx_int.IdUid(5, 192818138724406839),
+    name: 'ChatMessageRecord',
+    lastPropertyId: const obx_int.IdUid(9, 7211320712244921855),
     flags: 0,
     properties: <obx_int.ModelProperty>[
       obx_int.ModelProperty(
-        id: const obx_int.IdUid(1, 7321281553670282433),
+        id: const obx_int.IdUid(1, 4486096757669346649),
         name: 'id',
         type: 6,
         flags: 1,
       ),
       obx_int.ModelProperty(
-        id: const obx_int.IdUid(2, 3706272313851520381),
+        id: const obx_int.IdUid(2, 7897140007528916518),
         name: 'messageId',
         type: 9,
-        flags: 2048,
-        indexId: const obx_int.IdUid(1, 8992323022180025142),
+        flags: 0,
       ),
       obx_int.ModelProperty(
-        id: const obx_int.IdUid(3, 4549889876804853519),
-        name: 'reactionKey',
+        id: const obx_int.IdUid(3, 7513786765870543113),
+        name: 'sessionId',
         type: 9,
         flags: 0,
       ),
       obx_int.ModelProperty(
-        id: const obx_int.IdUid(4, 6020046693126939406),
-        name: 'userId',
+        id: const obx_int.IdUid(4, 8947658321406391850),
+        name: 'role',
         type: 9,
-        flags: 2048,
-        indexId: const obx_int.IdUid(2, 2581825681410462337),
+        flags: 0,
       ),
       obx_int.ModelProperty(
-        id: const obx_int.IdUid(5, 1708203424266546156),
+        id: const obx_int.IdUid(5, 8076194560651863931),
+        name: 'content',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(6, 2296081089943326958),
+        name: 'toolCallId',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(7, 2914226483797808815),
+        name: 'toolCallsJson',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(8, 1980748462399766782),
+        name: 'customRole',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(9, 7211320712244921855),
         name: 'createdAt',
         type: 6,
         flags: 0,
-      ),
-    ],
-    relations: <obx_int.ModelRelation>[],
-    backlinks: <obx_int.ModelBacklink>[],
-  ),
-  obx_int.ModelEntity(
-    id: const obx_int.IdUid(2, 3771481167136907639),
-    name: 'UserEntity',
-    lastPropertyId: const obx_int.IdUid(6, 8618417641717077670),
-    flags: 0,
-    properties: <obx_int.ModelProperty>[
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(1, 1767980893389551358),
-        name: 'id',
-        type: 6,
-        flags: 1,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(2, 3989367533359699525),
-        name: 'userId',
-        type: 9,
-        flags: 34848,
-        indexId: const obx_int.IdUid(3, 639518591358201255),
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(3, 8057606781533614106),
-        name: 'name',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(4, 3410859472718768378),
-        name: 'imageSource',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(5, 7832942748883753715),
-        name: 'createdAt',
-        type: 6,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(6, 8618417641717077670),
-        name: 'metadataJson',
-        type: 9,
-        flags: 0,
-      ),
-    ],
-    relations: <obx_int.ModelRelation>[],
-    backlinks: <obx_int.ModelBacklink>[],
-  ),
-  obx_int.ModelEntity(
-    id: const obx_int.IdUid(3, 604602462602967945),
-    name: 'MessageEntity',
-    lastPropertyId: const obx_int.IdUid(33, 1448300247578670125),
-    flags: 0,
-    properties: <obx_int.ModelProperty>[
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(1, 9020498126875084071),
-        name: 'id',
-        type: 6,
-        flags: 1,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(2, 2928340504084804308),
-        name: 'messageId',
-        type: 9,
-        flags: 2080,
-        indexId: const obx_int.IdUid(4, 6067193557172216876),
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(3, 7860798235639004503),
-        name: 'type',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(4, 7694501788501946898),
-        name: 'authorId',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(5, 3971290223628064188),
-        name: 'replyToMessageId',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(6, 1986276478004498093),
-        name: 'createdAt',
-        type: 6,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(7, 4451049728594606965),
-        name: 'deletedAt',
-        type: 6,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(8, 969892726751428890),
-        name: 'failedAt',
-        type: 6,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(9, 8844568291758900397),
-        name: 'sentAt',
-        type: 6,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(10, 5038484887291045652),
-        name: 'deliveredAt',
-        type: 6,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(11, 3855690217103562002),
-        name: 'seenAt',
-        type: 6,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(12, 8470091968744341694),
-        name: 'updatedAt',
-        type: 6,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(13, 2566421430921201837),
-        name: 'editedAt',
-        type: 6,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(14, 4512349858036600612),
-        name: 'pinned',
-        type: 1,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(15, 8439705179731743929),
-        name: 'status',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(16, 4850305063538289741),
-        name: 'textContent',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(17, 3697027191662953051),
-        name: 'mediaSource',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(18, 1388097754296658474),
-        name: 'mediaMetadataJson',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(19, 7198630570270777952),
-        name: 'customMetadataJson',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(20, 5207525822740862074),
-        name: 'reactionsJson',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(21, 2370715338551868757),
-        name: 'streamId',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(22, 4914659517885697083),
-        name: 'thumbhash',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(23, 2211747628578735823),
-        name: 'blurhash',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(24, 7699944642613597094),
-        name: 'width',
-        type: 8,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(25, 8623317648174922149),
-        name: 'height',
-        type: 8,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(26, 4330794384961091333),
-        name: 'size',
-        type: 6,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(27, 8759241658610005985),
-        name: 'hasOverlay',
-        type: 1,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(28, 4128512444098594912),
-        name: 'fileName',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(29, 6524160172408730722),
-        name: 'mimeType',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(30, 9003624544635338794),
-        name: 'duration',
-        type: 6,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(31, 7707400394331054288),
-        name: 'waveformJson',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(32, 8904013953663975119),
-        name: 'linkPreviewDataJson',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(33, 1448300247578670125),
-        name: 'embedding',
-        type: 28,
-        flags: 8,
-        indexId: const obx_int.IdUid(5, 55935655743686634),
-        hnswParams: obx_int.ModelHnswParams(dimensions: 768),
       ),
     ],
     relations: <obx_int.ModelRelation>[],
@@ -366,13 +128,76 @@ obx_int.ModelDefinition getObjectBoxModel() {
     // Typically, this is done with `dart run build_runner build`.
     generatorVersion: obx_int.GeneratorVersion.v2025_12_16,
     entities: _entities,
-    lastEntityId: const obx_int.IdUid(3, 604602462602967945),
-    lastIndexId: const obx_int.IdUid(5, 55935655743686634),
+    lastEntityId: const obx_int.IdUid(5, 192818138724406839),
+    lastIndexId: const obx_int.IdUid(10, 8502198300901827169),
     lastRelationId: const obx_int.IdUid(0, 0),
     lastSequenceId: const obx_int.IdUid(0, 0),
-    retiredEntityUids: const [],
+    retiredEntityUids: const [
+      6671613770378980644,
+      3771481167136907639,
+      604602462602967945,
+      8873902695905099242,
+    ],
     retiredIndexUids: const [],
-    retiredPropertyUids: const [],
+    retiredPropertyUids: const [
+      7321281553670282433,
+      3706272313851520381,
+      4549889876804853519,
+      6020046693126939406,
+      1708203424266546156,
+      1767980893389551358,
+      3989367533359699525,
+      8057606781533614106,
+      3410859472718768378,
+      7832942748883753715,
+      8618417641717077670,
+      9020498126875084071,
+      2928340504084804308,
+      7860798235639004503,
+      7694501788501946898,
+      3971290223628064188,
+      1986276478004498093,
+      4451049728594606965,
+      969892726751428890,
+      8844568291758900397,
+      5038484887291045652,
+      3855690217103562002,
+      8470091968744341694,
+      2566421430921201837,
+      4512349858036600612,
+      8439705179731743929,
+      4850305063538289741,
+      3697027191662953051,
+      1388097754296658474,
+      7198630570270777952,
+      5207525822740862074,
+      2370715338551868757,
+      4914659517885697083,
+      2211747628578735823,
+      7699944642613597094,
+      8623317648174922149,
+      4330794384961091333,
+      8759241658610005985,
+      4128512444098594912,
+      6524160172408730722,
+      9003624544635338794,
+      7707400394331054288,
+      8904013953663975119,
+      1448300247578670125,
+      8449866426002043341,
+      4090136038613682916,
+      788011157978678040,
+      4950799976665734156,
+      5098157767805719933,
+      3954630399829658470,
+      2421495247382426039,
+      7043033964983700569,
+      234934850642461181,
+      4843349229031811443,
+      2551999332351935629,
+      5297307485412032798,
+      633213066595533854,
+    ],
     retiredRelationUids: const [],
     modelVersion: 5,
     modelVersionParserMinimum: 5,
@@ -380,24 +205,38 @@ obx_int.ModelDefinition getObjectBoxModel() {
   );
 
   final bindings = <Type, obx_int.EntityDefinition>{
-    ReactionEntity: obx_int.EntityDefinition<ReactionEntity>(
+    ChatMessageRecord: obx_int.EntityDefinition<ChatMessageRecord>(
       model: _entities[0],
-      toOneRelations: (ReactionEntity object) => [],
-      toManyRelations: (ReactionEntity object) => {},
-      getId: (ReactionEntity object) => object.id,
-      setId: (ReactionEntity object, int id) {
+      toOneRelations: (ChatMessageRecord object) => [],
+      toManyRelations: (ChatMessageRecord object) => {},
+      getId: (ChatMessageRecord object) => object.id,
+      setId: (ChatMessageRecord object, int id) {
         object.id = id;
       },
-      objectToFB: (ReactionEntity object, fb.Builder fbb) {
+      objectToFB: (ChatMessageRecord object, fb.Builder fbb) {
         final messageIdOffset = fbb.writeString(object.messageId);
-        final reactionKeyOffset = fbb.writeString(object.reactionKey);
-        final userIdOffset = fbb.writeString(object.userId);
-        fbb.startTable(6);
+        final sessionIdOffset = fbb.writeString(object.sessionId);
+        final roleOffset = fbb.writeString(object.role);
+        final contentOffset = fbb.writeString(object.content);
+        final toolCallIdOffset = object.toolCallId == null
+            ? null
+            : fbb.writeString(object.toolCallId!);
+        final toolCallsJsonOffset = object.toolCallsJson == null
+            ? null
+            : fbb.writeString(object.toolCallsJson!);
+        final customRoleOffset = object.customRole == null
+            ? null
+            : fbb.writeString(object.customRole!);
+        fbb.startTable(10);
         fbb.addInt64(0, object.id);
         fbb.addOffset(1, messageIdOffset);
-        fbb.addOffset(2, reactionKeyOffset);
-        fbb.addOffset(3, userIdOffset);
-        fbb.addInt64(4, object.createdAt);
+        fbb.addOffset(2, sessionIdOffset);
+        fbb.addOffset(3, roleOffset);
+        fbb.addOffset(4, contentOffset);
+        fbb.addOffset(5, toolCallIdOffset);
+        fbb.addOffset(6, toolCallsJsonOffset);
+        fbb.addOffset(7, customRoleOffset);
+        fbb.addInt64(8, object.createdAt);
         fbb.finish(fbb.endTable());
         return object.id;
       },
@@ -413,361 +252,40 @@ obx_int.ModelDefinition getObjectBoxModel() {
         final messageIdParam = const fb.StringReader(
           asciiOptimization: true,
         ).vTableGet(buffer, rootOffset, 6, '');
-        final reactionKeyParam = const fb.StringReader(
+        final sessionIdParam = const fb.StringReader(
           asciiOptimization: true,
         ).vTableGet(buffer, rootOffset, 8, '');
-        final userIdParam = const fb.StringReader(
+        final roleParam = const fb.StringReader(
           asciiOptimization: true,
         ).vTableGet(buffer, rootOffset, 10, '');
-        final createdAtParam = const fb.Int64Reader().vTableGet(
-          buffer,
-          rootOffset,
-          12,
-          0,
-        );
-        final object = ReactionEntity(
-          id: idParam,
-          messageId: messageIdParam,
-          reactionKey: reactionKeyParam,
-          userId: userIdParam,
-          createdAt: createdAtParam,
-        );
-
-        return object;
-      },
-    ),
-    UserEntity: obx_int.EntityDefinition<UserEntity>(
-      model: _entities[1],
-      toOneRelations: (UserEntity object) => [],
-      toManyRelations: (UserEntity object) => {},
-      getId: (UserEntity object) => object.id,
-      setId: (UserEntity object, int id) {
-        object.id = id;
-      },
-      objectToFB: (UserEntity object, fb.Builder fbb) {
-        final userIdOffset = fbb.writeString(object.userId);
-        final nameOffset = object.name == null
-            ? null
-            : fbb.writeString(object.name!);
-        final imageSourceOffset = object.imageSource == null
-            ? null
-            : fbb.writeString(object.imageSource!);
-        final metadataJsonOffset = object.metadataJson == null
-            ? null
-            : fbb.writeString(object.metadataJson!);
-        fbb.startTable(7);
-        fbb.addInt64(0, object.id);
-        fbb.addOffset(1, userIdOffset);
-        fbb.addOffset(2, nameOffset);
-        fbb.addOffset(3, imageSourceOffset);
-        fbb.addInt64(4, object.createdAt);
-        fbb.addOffset(5, metadataJsonOffset);
-        fbb.finish(fbb.endTable());
-        return object.id;
-      },
-      objectFromFB: (obx.Store store, ByteData fbData) {
-        final buffer = fb.BufferContext(fbData);
-        final rootOffset = buffer.derefObject(0);
-        final idParam = const fb.Int64Reader().vTableGet(
-          buffer,
-          rootOffset,
-          4,
-          0,
-        );
-        final userIdParam = const fb.StringReader(
+        final contentParam = const fb.StringReader(
           asciiOptimization: true,
-        ).vTableGet(buffer, rootOffset, 6, '');
-        final nameParam = const fb.StringReader(
-          asciiOptimization: true,
-        ).vTableGetNullable(buffer, rootOffset, 8);
-        final imageSourceParam = const fb.StringReader(
-          asciiOptimization: true,
-        ).vTableGetNullable(buffer, rootOffset, 10);
-        final createdAtParam = const fb.Int64Reader().vTableGet(
-          buffer,
-          rootOffset,
-          12,
-          0,
-        );
-        final metadataJsonParam = const fb.StringReader(
+        ).vTableGet(buffer, rootOffset, 12, '');
+        final toolCallIdParam = const fb.StringReader(
           asciiOptimization: true,
         ).vTableGetNullable(buffer, rootOffset, 14);
-        final object = UserEntity(
-          id: idParam,
-          userId: userIdParam,
-          name: nameParam,
-          imageSource: imageSourceParam,
-          createdAt: createdAtParam,
-          metadataJson: metadataJsonParam,
-        );
-
-        return object;
-      },
-    ),
-    MessageEntity: obx_int.EntityDefinition<MessageEntity>(
-      model: _entities[2],
-      toOneRelations: (MessageEntity object) => [],
-      toManyRelations: (MessageEntity object) => {},
-      getId: (MessageEntity object) => object.id,
-      setId: (MessageEntity object, int id) {
-        object.id = id;
-      },
-      objectToFB: (MessageEntity object, fb.Builder fbb) {
-        final messageIdOffset = fbb.writeString(object.messageId);
-        final typeOffset = fbb.writeString(object.type);
-        final authorIdOffset = fbb.writeString(object.authorId);
-        final replyToMessageIdOffset = object.replyToMessageId == null
-            ? null
-            : fbb.writeString(object.replyToMessageId!);
-        final statusOffset = object.status == null
-            ? null
-            : fbb.writeString(object.status!);
-        final textContentOffset = object.textContent == null
-            ? null
-            : fbb.writeString(object.textContent!);
-        final mediaSourceOffset = object.mediaSource == null
-            ? null
-            : fbb.writeString(object.mediaSource!);
-        final mediaMetadataJsonOffset = object.mediaMetadataJson == null
-            ? null
-            : fbb.writeString(object.mediaMetadataJson!);
-        final customMetadataJsonOffset = object.customMetadataJson == null
-            ? null
-            : fbb.writeString(object.customMetadataJson!);
-        final reactionsJsonOffset = object.reactionsJson == null
-            ? null
-            : fbb.writeString(object.reactionsJson!);
-        final streamIdOffset = object.streamId == null
-            ? null
-            : fbb.writeString(object.streamId!);
-        final thumbhashOffset = object.thumbhash == null
-            ? null
-            : fbb.writeString(object.thumbhash!);
-        final blurhashOffset = object.blurhash == null
-            ? null
-            : fbb.writeString(object.blurhash!);
-        final fileNameOffset = object.fileName == null
-            ? null
-            : fbb.writeString(object.fileName!);
-        final mimeTypeOffset = object.mimeType == null
-            ? null
-            : fbb.writeString(object.mimeType!);
-        final waveformJsonOffset = object.waveformJson == null
-            ? null
-            : fbb.writeString(object.waveformJson!);
-        final linkPreviewDataJsonOffset = object.linkPreviewDataJson == null
-            ? null
-            : fbb.writeString(object.linkPreviewDataJson!);
-        final embeddingOffset = object.embedding == null
-            ? null
-            : fbb.writeListFloat32(object.embedding!);
-        fbb.startTable(34);
-        fbb.addInt64(0, object.id);
-        fbb.addOffset(1, messageIdOffset);
-        fbb.addOffset(2, typeOffset);
-        fbb.addOffset(3, authorIdOffset);
-        fbb.addOffset(4, replyToMessageIdOffset);
-        fbb.addInt64(5, object.createdAt);
-        fbb.addInt64(6, object.deletedAt);
-        fbb.addInt64(7, object.failedAt);
-        fbb.addInt64(8, object.sentAt);
-        fbb.addInt64(9, object.deliveredAt);
-        fbb.addInt64(10, object.seenAt);
-        fbb.addInt64(11, object.updatedAt);
-        fbb.addInt64(12, object.editedAt);
-        fbb.addBool(13, object.pinned);
-        fbb.addOffset(14, statusOffset);
-        fbb.addOffset(15, textContentOffset);
-        fbb.addOffset(16, mediaSourceOffset);
-        fbb.addOffset(17, mediaMetadataJsonOffset);
-        fbb.addOffset(18, customMetadataJsonOffset);
-        fbb.addOffset(19, reactionsJsonOffset);
-        fbb.addOffset(20, streamIdOffset);
-        fbb.addOffset(21, thumbhashOffset);
-        fbb.addOffset(22, blurhashOffset);
-        fbb.addFloat64(23, object.width);
-        fbb.addFloat64(24, object.height);
-        fbb.addInt64(25, object.size);
-        fbb.addBool(26, object.hasOverlay);
-        fbb.addOffset(27, fileNameOffset);
-        fbb.addOffset(28, mimeTypeOffset);
-        fbb.addInt64(29, object.duration);
-        fbb.addOffset(30, waveformJsonOffset);
-        fbb.addOffset(31, linkPreviewDataJsonOffset);
-        fbb.addOffset(32, embeddingOffset);
-        fbb.finish(fbb.endTable());
-        return object.id;
-      },
-      objectFromFB: (obx.Store store, ByteData fbData) {
-        final buffer = fb.BufferContext(fbData);
-        final rootOffset = buffer.derefObject(0);
-        final idParam = const fb.Int64Reader().vTableGet(
-          buffer,
-          rootOffset,
-          4,
-          0,
-        );
-        final messageIdParam = const fb.StringReader(
+        final toolCallsJsonParam = const fb.StringReader(
           asciiOptimization: true,
-        ).vTableGet(buffer, rootOffset, 6, '');
-        final typeParam = const fb.StringReader(
+        ).vTableGetNullable(buffer, rootOffset, 16);
+        final customRoleParam = const fb.StringReader(
           asciiOptimization: true,
-        ).vTableGet(buffer, rootOffset, 8, '');
-        final authorIdParam = const fb.StringReader(
-          asciiOptimization: true,
-        ).vTableGet(buffer, rootOffset, 10, '');
-        final replyToMessageIdParam = const fb.StringReader(
-          asciiOptimization: true,
-        ).vTableGetNullable(buffer, rootOffset, 12);
+        ).vTableGetNullable(buffer, rootOffset, 18);
         final createdAtParam = const fb.Int64Reader().vTableGet(
-          buffer,
-          rootOffset,
-          14,
-          0,
-        );
-        final deletedAtParam = const fb.Int64Reader().vTableGetNullable(
-          buffer,
-          rootOffset,
-          16,
-        );
-        final failedAtParam = const fb.Int64Reader().vTableGetNullable(
-          buffer,
-          rootOffset,
-          18,
-        );
-        final sentAtParam = const fb.Int64Reader().vTableGetNullable(
           buffer,
           rootOffset,
           20,
+          0,
         );
-        final deliveredAtParam = const fb.Int64Reader().vTableGetNullable(
-          buffer,
-          rootOffset,
-          22,
-        );
-        final seenAtParam = const fb.Int64Reader().vTableGetNullable(
-          buffer,
-          rootOffset,
-          24,
-        );
-        final updatedAtParam = const fb.Int64Reader().vTableGetNullable(
-          buffer,
-          rootOffset,
-          26,
-        );
-        final editedAtParam = const fb.Int64Reader().vTableGetNullable(
-          buffer,
-          rootOffset,
-          28,
-        );
-        final pinnedParam = const fb.BoolReader().vTableGet(
-          buffer,
-          rootOffset,
-          30,
-          false,
-        );
-        final statusParam = const fb.StringReader(
-          asciiOptimization: true,
-        ).vTableGetNullable(buffer, rootOffset, 32);
-        final textContentParam = const fb.StringReader(
-          asciiOptimization: true,
-        ).vTableGetNullable(buffer, rootOffset, 34);
-        final mediaSourceParam = const fb.StringReader(
-          asciiOptimization: true,
-        ).vTableGetNullable(buffer, rootOffset, 36);
-        final mediaMetadataJsonParam = const fb.StringReader(
-          asciiOptimization: true,
-        ).vTableGetNullable(buffer, rootOffset, 38);
-        final customMetadataJsonParam = const fb.StringReader(
-          asciiOptimization: true,
-        ).vTableGetNullable(buffer, rootOffset, 40);
-        final reactionsJsonParam = const fb.StringReader(
-          asciiOptimization: true,
-        ).vTableGetNullable(buffer, rootOffset, 42);
-        final streamIdParam = const fb.StringReader(
-          asciiOptimization: true,
-        ).vTableGetNullable(buffer, rootOffset, 44);
-        final thumbhashParam = const fb.StringReader(
-          asciiOptimization: true,
-        ).vTableGetNullable(buffer, rootOffset, 46);
-        final blurhashParam = const fb.StringReader(
-          asciiOptimization: true,
-        ).vTableGetNullable(buffer, rootOffset, 48);
-        final widthParam = const fb.Float64Reader().vTableGetNullable(
-          buffer,
-          rootOffset,
-          50,
-        );
-        final heightParam = const fb.Float64Reader().vTableGetNullable(
-          buffer,
-          rootOffset,
-          52,
-        );
-        final sizeParam = const fb.Int64Reader().vTableGetNullable(
-          buffer,
-          rootOffset,
-          54,
-        );
-        final hasOverlayParam = const fb.BoolReader().vTableGetNullable(
-          buffer,
-          rootOffset,
-          56,
-        );
-        final fileNameParam = const fb.StringReader(
-          asciiOptimization: true,
-        ).vTableGetNullable(buffer, rootOffset, 58);
-        final mimeTypeParam = const fb.StringReader(
-          asciiOptimization: true,
-        ).vTableGetNullable(buffer, rootOffset, 60);
-        final durationParam = const fb.Int64Reader().vTableGetNullable(
-          buffer,
-          rootOffset,
-          62,
-        );
-        final waveformJsonParam = const fb.StringReader(
-          asciiOptimization: true,
-        ).vTableGetNullable(buffer, rootOffset, 64);
-        final linkPreviewDataJsonParam = const fb.StringReader(
-          asciiOptimization: true,
-        ).vTableGetNullable(buffer, rootOffset, 66);
-        final embeddingParam = const fb.ListReader<double>(
-          fb.Float32Reader(),
-          lazy: false,
-        ).vTableGetNullable(buffer, rootOffset, 68);
-        final object = MessageEntity(
+        final object = ChatMessageRecord(
           id: idParam,
           messageId: messageIdParam,
-          type: typeParam,
-          authorId: authorIdParam,
-          replyToMessageId: replyToMessageIdParam,
+          sessionId: sessionIdParam,
+          role: roleParam,
+          content: contentParam,
+          toolCallId: toolCallIdParam,
+          toolCallsJson: toolCallsJsonParam,
+          customRole: customRoleParam,
           createdAt: createdAtParam,
-          deletedAt: deletedAtParam,
-          failedAt: failedAtParam,
-          sentAt: sentAtParam,
-          deliveredAt: deliveredAtParam,
-          seenAt: seenAtParam,
-          updatedAt: updatedAtParam,
-          editedAt: editedAtParam,
-          pinned: pinnedParam,
-          status: statusParam,
-          textContent: textContentParam,
-          mediaSource: mediaSourceParam,
-          mediaMetadataJson: mediaMetadataJsonParam,
-          customMetadataJson: customMetadataJsonParam,
-          reactionsJson: reactionsJsonParam,
-          streamId: streamIdParam,
-          thumbhash: thumbhashParam,
-          blurhash: blurhashParam,
-          width: widthParam,
-          height: heightParam,
-          size: sizeParam,
-          hasOverlay: hasOverlayParam,
-          fileName: fileNameParam,
-          mimeType: mimeTypeParam,
-          duration: durationParam,
-          waveformJson: waveformJsonParam,
-          linkPreviewDataJson: linkPreviewDataJsonParam,
-          embedding: embeddingParam,
         );
 
         return object;
@@ -778,231 +296,50 @@ obx_int.ModelDefinition getObjectBoxModel() {
   return obx_int.ModelDefinition(model, bindings);
 }
 
-/// [ReactionEntity] entity fields to define ObjectBox queries.
-class ReactionEntity_ {
-  /// See [ReactionEntity.id].
-  static final id = obx.QueryIntegerProperty<ReactionEntity>(
+/// [ChatMessageRecord] entity fields to define ObjectBox queries.
+class ChatMessageRecord_ {
+  /// See [ChatMessageRecord.id].
+  static final id = obx.QueryIntegerProperty<ChatMessageRecord>(
     _entities[0].properties[0],
   );
 
-  /// See [ReactionEntity.messageId].
-  static final messageId = obx.QueryStringProperty<ReactionEntity>(
+  /// See [ChatMessageRecord.messageId].
+  static final messageId = obx.QueryStringProperty<ChatMessageRecord>(
     _entities[0].properties[1],
   );
 
-  /// See [ReactionEntity.reactionKey].
-  static final reactionKey = obx.QueryStringProperty<ReactionEntity>(
+  /// See [ChatMessageRecord.sessionId].
+  static final sessionId = obx.QueryStringProperty<ChatMessageRecord>(
     _entities[0].properties[2],
   );
 
-  /// See [ReactionEntity.userId].
-  static final userId = obx.QueryStringProperty<ReactionEntity>(
+  /// See [ChatMessageRecord.role].
+  static final role = obx.QueryStringProperty<ChatMessageRecord>(
     _entities[0].properties[3],
   );
 
-  /// See [ReactionEntity.createdAt].
-  static final createdAt = obx.QueryIntegerProperty<ReactionEntity>(
+  /// See [ChatMessageRecord.content].
+  static final content = obx.QueryStringProperty<ChatMessageRecord>(
     _entities[0].properties[4],
   );
-}
 
-/// [UserEntity] entity fields to define ObjectBox queries.
-class UserEntity_ {
-  /// See [UserEntity.id].
-  static final id = obx.QueryIntegerProperty<UserEntity>(
-    _entities[1].properties[0],
+  /// See [ChatMessageRecord.toolCallId].
+  static final toolCallId = obx.QueryStringProperty<ChatMessageRecord>(
+    _entities[0].properties[5],
   );
 
-  /// See [UserEntity.userId].
-  static final userId = obx.QueryStringProperty<UserEntity>(
-    _entities[1].properties[1],
+  /// See [ChatMessageRecord.toolCallsJson].
+  static final toolCallsJson = obx.QueryStringProperty<ChatMessageRecord>(
+    _entities[0].properties[6],
   );
 
-  /// See [UserEntity.name].
-  static final name = obx.QueryStringProperty<UserEntity>(
-    _entities[1].properties[2],
+  /// See [ChatMessageRecord.customRole].
+  static final customRole = obx.QueryStringProperty<ChatMessageRecord>(
+    _entities[0].properties[7],
   );
 
-  /// See [UserEntity.imageSource].
-  static final imageSource = obx.QueryStringProperty<UserEntity>(
-    _entities[1].properties[3],
-  );
-
-  /// See [UserEntity.createdAt].
-  static final createdAt = obx.QueryIntegerProperty<UserEntity>(
-    _entities[1].properties[4],
-  );
-
-  /// See [UserEntity.metadataJson].
-  static final metadataJson = obx.QueryStringProperty<UserEntity>(
-    _entities[1].properties[5],
-  );
-}
-
-/// [MessageEntity] entity fields to define ObjectBox queries.
-class MessageEntity_ {
-  /// See [MessageEntity.id].
-  static final id = obx.QueryIntegerProperty<MessageEntity>(
-    _entities[2].properties[0],
-  );
-
-  /// See [MessageEntity.messageId].
-  static final messageId = obx.QueryStringProperty<MessageEntity>(
-    _entities[2].properties[1],
-  );
-
-  /// See [MessageEntity.type].
-  static final type = obx.QueryStringProperty<MessageEntity>(
-    _entities[2].properties[2],
-  );
-
-  /// See [MessageEntity.authorId].
-  static final authorId = obx.QueryStringProperty<MessageEntity>(
-    _entities[2].properties[3],
-  );
-
-  /// See [MessageEntity.replyToMessageId].
-  static final replyToMessageId = obx.QueryStringProperty<MessageEntity>(
-    _entities[2].properties[4],
-  );
-
-  /// See [MessageEntity.createdAt].
-  static final createdAt = obx.QueryIntegerProperty<MessageEntity>(
-    _entities[2].properties[5],
-  );
-
-  /// See [MessageEntity.deletedAt].
-  static final deletedAt = obx.QueryIntegerProperty<MessageEntity>(
-    _entities[2].properties[6],
-  );
-
-  /// See [MessageEntity.failedAt].
-  static final failedAt = obx.QueryIntegerProperty<MessageEntity>(
-    _entities[2].properties[7],
-  );
-
-  /// See [MessageEntity.sentAt].
-  static final sentAt = obx.QueryIntegerProperty<MessageEntity>(
-    _entities[2].properties[8],
-  );
-
-  /// See [MessageEntity.deliveredAt].
-  static final deliveredAt = obx.QueryIntegerProperty<MessageEntity>(
-    _entities[2].properties[9],
-  );
-
-  /// See [MessageEntity.seenAt].
-  static final seenAt = obx.QueryIntegerProperty<MessageEntity>(
-    _entities[2].properties[10],
-  );
-
-  /// See [MessageEntity.updatedAt].
-  static final updatedAt = obx.QueryIntegerProperty<MessageEntity>(
-    _entities[2].properties[11],
-  );
-
-  /// See [MessageEntity.editedAt].
-  static final editedAt = obx.QueryIntegerProperty<MessageEntity>(
-    _entities[2].properties[12],
-  );
-
-  /// See [MessageEntity.pinned].
-  static final pinned = obx.QueryBooleanProperty<MessageEntity>(
-    _entities[2].properties[13],
-  );
-
-  /// See [MessageEntity.status].
-  static final status = obx.QueryStringProperty<MessageEntity>(
-    _entities[2].properties[14],
-  );
-
-  /// See [MessageEntity.textContent].
-  static final textContent = obx.QueryStringProperty<MessageEntity>(
-    _entities[2].properties[15],
-  );
-
-  /// See [MessageEntity.mediaSource].
-  static final mediaSource = obx.QueryStringProperty<MessageEntity>(
-    _entities[2].properties[16],
-  );
-
-  /// See [MessageEntity.mediaMetadataJson].
-  static final mediaMetadataJson = obx.QueryStringProperty<MessageEntity>(
-    _entities[2].properties[17],
-  );
-
-  /// See [MessageEntity.customMetadataJson].
-  static final customMetadataJson = obx.QueryStringProperty<MessageEntity>(
-    _entities[2].properties[18],
-  );
-
-  /// See [MessageEntity.reactionsJson].
-  static final reactionsJson = obx.QueryStringProperty<MessageEntity>(
-    _entities[2].properties[19],
-  );
-
-  /// See [MessageEntity.streamId].
-  static final streamId = obx.QueryStringProperty<MessageEntity>(
-    _entities[2].properties[20],
-  );
-
-  /// See [MessageEntity.thumbhash].
-  static final thumbhash = obx.QueryStringProperty<MessageEntity>(
-    _entities[2].properties[21],
-  );
-
-  /// See [MessageEntity.blurhash].
-  static final blurhash = obx.QueryStringProperty<MessageEntity>(
-    _entities[2].properties[22],
-  );
-
-  /// See [MessageEntity.width].
-  static final width = obx.QueryDoubleProperty<MessageEntity>(
-    _entities[2].properties[23],
-  );
-
-  /// See [MessageEntity.height].
-  static final height = obx.QueryDoubleProperty<MessageEntity>(
-    _entities[2].properties[24],
-  );
-
-  /// See [MessageEntity.size].
-  static final size = obx.QueryIntegerProperty<MessageEntity>(
-    _entities[2].properties[25],
-  );
-
-  /// See [MessageEntity.hasOverlay].
-  static final hasOverlay = obx.QueryBooleanProperty<MessageEntity>(
-    _entities[2].properties[26],
-  );
-
-  /// See [MessageEntity.fileName].
-  static final fileName = obx.QueryStringProperty<MessageEntity>(
-    _entities[2].properties[27],
-  );
-
-  /// See [MessageEntity.mimeType].
-  static final mimeType = obx.QueryStringProperty<MessageEntity>(
-    _entities[2].properties[28],
-  );
-
-  /// See [MessageEntity.duration].
-  static final duration = obx.QueryIntegerProperty<MessageEntity>(
-    _entities[2].properties[29],
-  );
-
-  /// See [MessageEntity.waveformJson].
-  static final waveformJson = obx.QueryStringProperty<MessageEntity>(
-    _entities[2].properties[30],
-  );
-
-  /// See [MessageEntity.linkPreviewDataJson].
-  static final linkPreviewDataJson = obx.QueryStringProperty<MessageEntity>(
-    _entities[2].properties[31],
-  );
-
-  /// See [MessageEntity.embedding].
-  static final embedding = obx.QueryHnswProperty<MessageEntity>(
-    _entities[2].properties[32],
+  /// See [ChatMessageRecord.createdAt].
+  static final createdAt = obx.QueryIntegerProperty<ChatMessageRecord>(
+    _entities[0].properties[8],
   );
 }

@@ -1,9 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:ngerekrut/objectbox/objectbox.dart';
+import 'package:ngerekrut/objectbox_store_provider.dart';
 import 'package:ngerekrut/flutter_chat_core/flutter_chat_core.dart';
 
 import 'chat.dart';
+import 'controllers/objectbox_chat_controller.dart';
 import 'utils/typedefs.dart';
 
 /// A wrapper around [Chat] that automatically initializes and manages
@@ -13,13 +14,16 @@ import 'utils/typedefs.dart';
 /// making it easy to add ObjectBox-powered chat to your app with minimal setup.
 ///
 /// Features:
-/// - ObjectBox persistence (fast, native database)
-/// - Vector search support for semantic message search
+/// - ObjectBox persistence via LangChain ChatMessage
+/// - Simple API with sessionId
 /// - Automatic loading state management
 /// - Error handling with customizable UI
 class PersistentChat extends StatefulWidget {
   /// The ID of the currently logged-in user.
   final UserID currentUserId;
+
+  /// Session ID untuk grouping messages.
+  final String sessionId;
 
   /// Callback to resolve a [User] object from a [UserID].
   final ResolveUserCallback resolveUser;
@@ -67,6 +71,7 @@ class PersistentChat extends StatefulWidget {
   const PersistentChat({
     super.key,
     required this.currentUserId,
+    required this.sessionId,
     required this.resolveUser,
     this.onMessageSend,
     this.onMessageTap,
@@ -95,10 +100,10 @@ class _PersistentChatState extends State<PersistentChat> {
   @override
   void initState() {
     super.initState();
-    _initializeDatabase();
+    _initializeController();
   }
 
-  Future<void> _initializeDatabase() async {
+  Future<void> _initializeController() async {
     ObjectBoxChatController? controller;
     try {
       if (!mounted) return;
@@ -110,13 +115,9 @@ class _PersistentChatState extends State<PersistentChat> {
       if (!mounted) return;
       setState(() => _loadingProgress = 0.6);
 
-      // Step 2: Create repositories and controller
-      final messageRepository = ObjectBoxMessageRepository();
-      final userRepository = ObjectBoxUserRepository();
-
+      // Step 2: Create controller
       controller = ObjectBoxChatController(
-        messageRepository: messageRepository,
-        userRepository: userRepository,
+        sessionId: widget.sessionId,
       );
 
       if (!mounted) {
@@ -237,7 +238,7 @@ class _PersistentChatState extends State<PersistentChat> {
                   _error = null;
                   _loadingProgress = 0.0;
                 });
-                _initializeDatabase();
+                _initializeController();
               },
               child: const Text('Retry'),
             ),
