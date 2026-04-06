@@ -56,6 +56,11 @@ dependencies:
   uuid: ^4.5.2
   # Local AI inference
   flutter_gemma: ^0.13.1
+  # Kawai X package
+  kawai_x:
+    git:
+      url: https://github.com/kawai-network/x.git
+      ref: main
 
 dev_dependencies:
   build_runner: ^2.10.4
