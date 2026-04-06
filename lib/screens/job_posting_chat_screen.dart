@@ -59,11 +59,6 @@ class _JobPostingChatScreenState extends State<JobPostingChatScreen> {
 
   Future<void> _initHybridService() async {
     final apiKey = widget.apiKey;
-    if (apiKey == null || apiKey.isEmpty) {
-      await _sendErrorMessage('API Key belum dikonfigurasi.');
-      return;
-    }
-
     setState(() => _isInitializing = true);
 
     try {
@@ -76,6 +71,9 @@ class _JobPostingChatScreenState extends State<JobPostingChatScreen> {
 
       if (localReady) {
         debugPrint('[JobPostingChat] Local AI ready!');
+        if (!(_hybridService?.hasCloudAI ?? false)) {
+          debugPrint('[JobPostingChat] Cloud AI not configured, using local-only mode');
+        }
       } else {
         debugPrint('[JobPostingChat] Using cloud AI fallback');
       }

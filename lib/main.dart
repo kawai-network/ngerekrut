@@ -95,8 +95,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _initHybridService() async {
     final apiKey = const String.fromEnvironment('OPENAI_API_KEY');
-    if (apiKey.isEmpty) return;
-
     try {
       _hybridService = HybridAIService(cloudApiKey: apiKey);
       await _hybridService!.initialize();
@@ -200,20 +198,19 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 12),
               ElevatedButton.icon(
                 onPressed: () {
-                  if (_hybridService == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Harap jalankan dengan --dart-define=OPENAI_API_KEY=your_key'),
-                        duration: Duration(seconds: 3),
-                      ),
-                    );
-                    return;
-                  }
+                  final service =
+                      _hybridService ??
+                      HybridAIService(
+                        cloudApiKey: const String.fromEnvironment(
+                          'OPENAI_API_KEY',
+                        ),
+                      );
+                  _hybridService ??= service;
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => HiringScreen(
-                        aiService: _hybridService!,
+                        aiService: service,
                       ),
                     ),
                   );

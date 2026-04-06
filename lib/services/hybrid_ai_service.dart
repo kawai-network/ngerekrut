@@ -35,19 +35,22 @@ class GenerationResult {
 /// Hybrid AI service that intelligently routes between local and cloud AI.
 class HybridAIService {
   final LocalAIClient _localAI;
-  final JobPostingGenerator _cloudAI;
+  final JobPostingGenerator? _cloudAI;
 
   AIMode _currentMode = AIMode.auto;
   AIMode _lastUsedMode = AIMode.local;
 
   HybridAIService({
-    required String cloudApiKey,
+    String? cloudApiKey,
     LocalAIClient? localAI,
   }) : _localAI = localAI ?? GemmaLocalAIClient(),
-       _cloudAI = JobPostingGenerator(apiKey: cloudApiKey);
+       _cloudAI = cloudApiKey != null && cloudApiKey.isNotEmpty
+           ? JobPostingGenerator(apiKey: cloudApiKey)
+           : null;
 
   AIMode get currentMode => _currentMode;
   AIMode get lastUsedMode => _lastUsedMode;
+  bool get hasCloudAI => _cloudAI != null;
 
   /// Set the preferred AI mode.
   void setMode(AIMode mode) {
@@ -81,6 +84,7 @@ class HybridAIService {
   /// - If mode is [AIMode.auto]: try local first, fallback to cloud on error
   Future<GenerationResult> generateJobPosting(String position) async {
     final shouldTryLocal = _currentMode == AIMode.local ||
+        !hasCloudAI ||
         (_currentMode == AIMode.auto && _localAI.isReady);
 
     if (shouldTryLocal) {
@@ -99,8 +103,14 @@ class HybridAIService {
     }
 
     // Fallback to cloud AI
+    final cloudAI = _cloudAI;
+    if (cloudAI == null) {
+      throw LocalAIException(
+        'Cloud AI is not configured and local AI is unavailable.',
+      );
+    }
     debugPrint('[HybridAIService] Using Cloud AI for: $position');
-    final jobPosting = await _cloudAI.generate(position);
+    final jobPosting = await cloudAI.generate(position);
     _lastUsedMode = AIMode.cloud;
     return GenerationResult(
       jobPosting: jobPosting,
@@ -114,6 +124,7 @@ class HybridAIService {
     String userRequest,
   ) async {
     final shouldTryLocal = _currentMode == AIMode.local ||
+        !hasCloudAI ||
         (_currentMode == AIMode.auto && _localAI.isReady);
 
     if (shouldTryLocal) {
@@ -130,8 +141,14 @@ class HybridAIService {
       }
     }
 
+    final cloudAI = _cloudAI;
+    if (cloudAI == null) {
+      throw LocalAIException(
+        'Cloud AI is not configured and local AI is unavailable.',
+      );
+    }
     debugPrint('[HybridAIService] Refining with Cloud AI');
-    final refined = await _cloudAI.refine(current, userRequest);
+    final refined = await cloudAI.refine(current, userRequest);
     _lastUsedMode = AIMode.cloud;
     return GenerationResult(
       jobPosting: refined,

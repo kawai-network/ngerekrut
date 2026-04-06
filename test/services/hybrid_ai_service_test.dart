@@ -101,5 +101,20 @@ void main() {
       expect(result.jobPosting.title, 'Kasir');
       expect(result.jobPosting.salaryRange, '5-6 juta');
     });
+
+    test('generateJobPosting works without cloud API key by using local AI', () async {
+      final service = HybridAIService(
+        localAI: _FakeLocalAIClient(
+          toolResponse:
+              '{"title":"Admin Gudang","location":"Depok","description":"Kelola stok barang","requirements":["Rapi"],"responsibilities":["Catat inventaris"],"salary_range":"4-5 juta","employment_type":"Full Time"}',
+        ),
+      );
+
+      final result = await service.generateJobPosting('Admin Gudang');
+
+      expect(service.hasCloudAI, isFalse);
+      expect(result.usedMode, AIMode.local);
+      expect(result.jobPosting.title, 'Admin Gudang');
+    });
   });
 }
