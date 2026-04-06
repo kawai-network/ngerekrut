@@ -55,7 +55,7 @@ enum Competency {
 // ==================== Job Description ====================
 
 @freezed
-class JobDescription with _$JobDescription {
+abstract class JobDescription with _$JobDescription {
   const factory JobDescription({
     required String roleTitle,
     required String team,
@@ -71,14 +71,12 @@ class JobDescription with _$JobDescription {
 
   factory JobDescription.fromJson(Map<String, dynamic> json) =>
       _$JobDescriptionFromJson(json);
-
-  Map<String, dynamic> toJson() => _$JobDescriptionToJson(this as _JobDescription);
 }
 
 // ==================== Interview Scorecard ====================
 
 @freezed
-class ScorecardEntry with _$ScorecardEntry {
+abstract class ScorecardEntry with _$ScorecardEntry {
   const factory ScorecardEntry({
     required Competency competency,
     required int weight, // Percentage
@@ -90,12 +88,10 @@ class ScorecardEntry with _$ScorecardEntry {
 
   factory ScorecardEntry.fromJson(Map<String, dynamic> json) =>
       _$ScorecardEntryFromJson(json);
-
-  Map<String, dynamic> toJson() => _$ScorecardEntryToJson(this as _ScorecardEntry);
 }
 
 @freezed
-class InterviewScorecard with _$InterviewScorecard {
+abstract class InterviewScorecard with _$InterviewScorecard {
   const factory InterviewScorecard({
     required String candidate,
     required String role,
@@ -111,14 +107,12 @@ class InterviewScorecard with _$InterviewScorecard {
 
   factory InterviewScorecard.fromJson(Map<String, dynamic> json) =>
       _$InterviewScorecardFromJson(json);
-
-  Map<String, dynamic> toJson() => _$InterviewScorecardToJson(this as _InterviewScorecard);
 }
 
 // ==================== STAR Interview Questions ====================
 
 @freezed
-class STARQuestion with _$STARQuestion {
+abstract class STARQuestion with _$STARQuestion {
   const factory STARQuestion({
     required String competency,
     required String question,
@@ -127,12 +121,10 @@ class STARQuestion with _$STARQuestion {
 
   factory STARQuestion.fromJson(Map<String, dynamic> json) =>
       _$STARQuestionFromJson(json);
-
-  Map<String, dynamic> toJson() => _$STARQuestionToJson(this as _STARQuestion);
 }
 
 @freezed
-class STARInterviewGuide with _$STARInterviewGuide {
+abstract class STARInterviewGuide with _$STARInterviewGuide {
   const factory STARInterviewGuide({
     required String role,
     required List<STARQuestion> questions,
@@ -141,14 +133,12 @@ class STARInterviewGuide with _$STARInterviewGuide {
 
   factory STARInterviewGuide.fromJson(Map<String, dynamic> json) =>
       _$STARInterviewGuideFromJson(json);
-
-  Map<String, dynamic> toJson() => _$STARInterviewGuideToJson(this as _STARInterviewGuide);
 }
 
 // ==================== Hiring Metrics ====================
 
 @freezed
-class HiringMetrics with _$HiringMetrics {
+abstract class HiringMetrics with _$HiringMetrics {
   const factory HiringMetrics({
     required Map<String, double> funnelMetrics,
     required Map<String, String> timeMetrics,
@@ -159,14 +149,12 @@ class HiringMetrics with _$HiringMetrics {
 
   factory HiringMetrics.fromJson(Map<String, dynamic> json) =>
       _$HiringMetricsFromJson(json);
-
-  Map<String, dynamic> toJson() => _$HiringMetricsToJson(this as _HiringMetrics);
 }
 
 // ==================== Hiring Pipeline ====================
 
 @freezed
-class HiringPipeline with _$HiringPipeline {
+abstract class HiringPipeline with _$HiringPipeline {
   const factory HiringPipeline({
     required String role,
     required RoleLevel roleLevel,
@@ -182,14 +170,12 @@ class HiringPipeline with _$HiringPipeline {
 
   factory HiringPipeline.fromJson(Map<String, dynamic> json) =>
       _$HiringPipelineFromJson(json);
-
-  Map<String, dynamic> toJson() => _$HiringPipelineToJson(this as _HiringPipeline);
 }
 
 // ==================== Hiring Skill Request ====================
 
 @freezed
-class HiringSkillRequest with _$HiringSkillRequest {
+abstract class HiringSkillRequest with _$HiringSkillRequest {
   const factory HiringSkillRequest({
     required String skill, // 'job_description', 'scorecard', 'star_questions', 'metrics'
     required Map<String, dynamic> parameters,
@@ -197,14 +183,12 @@ class HiringSkillRequest with _$HiringSkillRequest {
 
   factory HiringSkillRequest.fromJson(Map<String, dynamic> json) =>
       _$HiringSkillRequestFromJson(json);
-
-  Map<String, dynamic> toJson() => _$HiringSkillRequestToJson(this as _HiringSkillRequest);
 }
 
 // ==================== Hiring Skill Response ====================
 
 @freezed
-class HiringSkillResponse with _$HiringSkillResponse {
+abstract class HiringSkillResponse with _$HiringSkillResponse {
   const factory HiringSkillResponse({
     required String skill,
     required Map<String, dynamic> data,
@@ -213,6 +197,4 @@ class HiringSkillResponse with _$HiringSkillResponse {
 
   factory HiringSkillResponse.fromJson(Map<String, dynamic> json) =>
       _$HiringSkillResponseFromJson(json);
-
-  Map<String, dynamic> toJson() => _$HiringSkillResponseToJson(this as _HiringSkillResponse);
 }
