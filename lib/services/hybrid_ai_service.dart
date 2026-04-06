@@ -2,7 +2,7 @@
 library;
 
 import 'package:flutter/foundation.dart';
-import 'local_ai_service.dart';
+import '../langchain_gemma/langchain_gemma.dart';
 import 'job_posting_generator.dart';
 import 'tools/job_posting_tool.dart';
 import '../models/job_posting.dart';
@@ -34,7 +34,7 @@ class GenerationResult {
 
 /// Hybrid AI service that intelligently routes between local and cloud AI.
 class HybridAIService {
-  final LocalAIService _localAI;
+  final LocalAIClient _localAI;
   final JobPostingGenerator _cloudAI;
 
   AIMode _currentMode = AIMode.auto;
@@ -42,7 +42,8 @@ class HybridAIService {
 
   HybridAIService({
     required String cloudApiKey,
-  }) : _localAI = LocalAIService(),
+    LocalAIClient? localAI,
+  }) : _localAI = localAI ?? GemmaLocalAIClient(),
        _cloudAI = JobPostingGenerator(apiKey: cloudApiKey);
 
   AIMode get currentMode => _currentMode;
@@ -138,12 +139,60 @@ class HybridAIService {
     );
   }
 
+  /// Generate text with the configured local provider.
+  Future<String> generateLocalResponse({
+    required String prompt,
+    String? systemPrompt,
+  }) async {
+    final response = await _localAI.generateResponse(
+      prompt: prompt,
+      systemPrompt: systemPrompt,
+    );
+    _lastUsedMode = AIMode.local;
+    return response;
+  }
+
+  /// Generate tool-call output with the configured local provider.
+  Future<String> generateLocalWithTools({
+    required String prompt,
+    required List<Map<String, dynamic>> tools,
+    String? systemPrompt,
+  }) async {
+    final response = await _localAI.generateWithTools(
+      prompt: prompt,
+      tools: tools,
+      systemPrompt: systemPrompt,
+    );
+    _lastUsedMode = AIMode.local;
+    return response;
+  }
+
+  /// Execute a structured local tool call and parse its response.
+  Future<LocalToolCallResult<T>> executeLocalToolCall<T>({
+    required String prompt,
+    required List<Map<String, dynamic>> tools,
+    required T? Function(String response) parser,
+    String? systemPrompt,
+    String Function(String response)? errorBuilder,
+  }) async {
+    final result = await LocalToolCallExecutor.execute<T>(
+      client: _localAI,
+      prompt: prompt,
+      tools: tools,
+      parser: parser,
+      systemPrompt: systemPrompt,
+      errorBuilder: errorBuilder,
+    );
+    _lastUsedMode = AIMode.local;
+    return result;
+  }
+
   /// Generate using local AI with function calling.
   Future<GenerationResult> _generateWithLocal(String position) async {
     final systemPrompt = _buildSystemPrompt();
     final userPrompt = _buildGeneratePrompt(position);
 
-    final response = await _localAI.generateWithTools(
+    final response = await generateLocalWithTools(
       prompt: userPrompt,
       tools: [JobPostingTool.schema],
       systemPrompt: systemPrompt,
@@ -171,7 +220,7 @@ class HybridAIService {
     final systemPrompt = _buildSystemPrompt();
     final userPrompt = _buildRefinePrompt(current, userRequest);
 
-    final response = await _localAI.generateWithTools(
+    final response = await generateLocalWithTools(
       prompt: userPrompt,
       tools: [JobPostingTool.schema],
       systemPrompt: systemPrompt,
@@ -219,9 +268,6 @@ Silakan generate_job_posting dengan data yang sudah diupdate sesuai request.''';
 
   /// Get local AI status.
   LocalAIStatus get localAIStatus => _localAI.status;
-
-  /// Get local AI service (for advanced usage like skills)
-  LocalAIService get localAI => _localAI;
 
   /// Release resources.
   Future<void> dispose() async {

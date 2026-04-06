@@ -1,8 +1,6 @@
 /// Hiring & Recruitment Skill definitions with Function Calling tools
 library;
 
-import 'dart:convert';
-
 /// Hiring & Recruitment Skill with Function Calling support
 class HiringSkill {
   // ==================== Tool Definitions ====================
@@ -312,49 +310,4 @@ Use the appropriate function calls to provide structured, professional outputs.'
     }
   }
 
-  /// Parse function call response to specific model
-  static T? parseFunctionCall<T>(
-    String response,
-    T Function(Map<String, dynamic>) fromJson,
-  ) {
-    // Try to extract JSON from response
-    final json = _extractJson(response);
-    if (json != null) {
-      try {
-        return fromJson(json);
-      } catch (e) {
-        // If parsing fails, return null
-      }
-    }
-    return null;
-  }
-
-  /// Extract JSON from AI response
-  static Map<String, dynamic>? _extractJson(String response) {
-    // Remove markdown code blocks
-    var cleaned = response.trim();
-
-    // Remove ```json ... ``` or ``` ... ```
-    final codeBlockRegex = RegExp(r'```(?:json)?\s*([\s\S]*?)\s*```');
-    final codeMatch = codeBlockRegex.firstMatch(cleaned);
-    if (codeMatch != null) {
-      cleaned = codeMatch.group(1)!;
-    }
-
-    // Find JSON object
-    final jsonStart = cleaned.indexOf('{');
-    final jsonEnd = cleaned.lastIndexOf('}');
-
-    if (jsonStart == -1 || jsonEnd == -1 || jsonEnd <= jsonStart) {
-      return null;
-    }
-
-    final jsonString = cleaned.substring(jsonStart, jsonEnd + 1);
-
-    try {
-      return jsonDecode(jsonString) as Map<String, dynamic>;
-    } catch (e) {
-      return null;
-    }
-  }
 }

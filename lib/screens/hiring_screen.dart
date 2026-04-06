@@ -351,7 +351,7 @@ Saya akan menganalisis kandidat berdasarkan:
           buffer.writeln('**Role:** ${guide.role}');
           buffer.writeln('');
           buffer.writeln('## Questions');
-          for (int i = 0; i < guide.questions.length && i < 5; i++) {
+          for (var i = 0; i < guide.questions.length && i < 5; i++) {
             final q = guide.questions[i];
             buffer.writeln('${i + 1}. **${q.competency}**');
             buffer.writeln('   ${q.question}');

@@ -53,14 +53,14 @@ class _JobPostingChatScreenState extends State<JobPostingChatScreen> {
   void initState() {
     super.initState();
     _chatController = InMemoryChatController();
-    _initHybridService();
-    _sendWelcomeMessage();
+    unawaited(_initHybridService());
+    unawaited(_sendWelcomeMessage());
   }
 
   Future<void> _initHybridService() async {
     final apiKey = widget.apiKey;
     if (apiKey == null || apiKey.isEmpty) {
-      _sendErrorMessage('API Key belum dikonfigurasi.');
+      await _sendErrorMessage('API Key belum dikonfigurasi.');
       return;
     }
 
@@ -81,7 +81,7 @@ class _JobPostingChatScreenState extends State<JobPostingChatScreen> {
       }
     } catch (e) {
       debugPrint('[JobPostingChat] Init failed: $e');
-      _sendErrorMessage('Gagal inisialisasi AI: $e');
+      await _sendErrorMessage('Gagal inisialisasi AI: $e');
     } finally {
       setState(() => _isInitializing = false);
     }

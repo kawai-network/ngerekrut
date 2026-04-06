@@ -1,7 +1,7 @@
 /// Function calling tools for JobPosting generation.
 library;
 
-import 'dart:convert';
+import '../../langchain_gemma/langchain_gemma.dart';
 
 /// Tool schema for generating JobPosting via function calling.
 class JobPostingTool {
@@ -60,56 +60,11 @@ class JobPostingTool {
   ///
   /// Extracts JSON from various formats the AI might return.
   static Map<String, dynamic>? parseFunctionCall(String response) {
-    // Try to parse as direct JSON first
-    try {
-      final json = _extractJson(response);
-      if (json != null) {
-        // Check if it has function field
-        if (json.containsKey('function')) {
-          final functionName = json['function'] as String?;
-          if (functionName == 'generate_job_posting') {
-            return json['arguments'] as Map<String, dynamic>?;
-          }
-        }
-        // If no function field, check if it's the arguments directly
-        if (_isValidJobPosting(json)) {
-          return json;
-        }
-      }
-    } catch (e) {
-      // Continue to other parsing methods
-    }
-
-    return null;
-  }
-
-  /// Extract JSON from AI response.
-  static Map<String, dynamic>? _extractJson(String response) {
-    // Remove markdown code blocks
-    var cleaned = response.trim();
-
-    // Remove ```json ... ``` or ``` ... ```
-    final codeBlockRegex = RegExp(r'```(?:json)?\s*([\s\S]*?)\s*```');
-    final codeMatch = codeBlockRegex.firstMatch(cleaned);
-    if (codeMatch != null) {
-      cleaned = codeMatch.group(1)!;
-    }
-
-    // Find JSON object
-    final jsonStart = cleaned.indexOf('{');
-    final jsonEnd = cleaned.lastIndexOf('}');
-
-    if (jsonStart == -1 || jsonEnd == -1 || jsonEnd <= jsonStart) {
-      return null;
-    }
-
-    final jsonString = cleaned.substring(jsonStart, jsonEnd + 1);
-
-    try {
-      return jsonDecode(jsonString) as Map<String, dynamic>;
-    } catch (e) {
-      return null;
-    }
+    return LocalToolCallParser.parseArguments(
+      response,
+      expectedFunction: 'generate_job_posting',
+      directValidator: _isValidJobPosting,
+    );
   }
 
   /// Validate if the JSON has required JobPosting fields.

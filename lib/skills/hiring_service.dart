@@ -1,8 +1,9 @@
 /// Hiring Service - Orchestrates hiring skills with Gemma AI
 library;
 
-import '../services/hybrid_ai_service.dart';
+import '../langchain_gemma/langchain_gemma.dart';
 import '../models/hiring_models.dart';
+import '../services/hybrid_ai_service.dart';
 import 'hiring_skill.dart';
 
 /// Result of hiring skill execution
@@ -20,32 +21,27 @@ class HiringSkillResult {
   });
 
   /// Get as JobDescription
-  JobDescription? get asJobDescription => data.containsKey('roleTitle')
-      ? JobDescription.fromJson(data)
-      : null;
+  JobDescription? get asJobDescription =>
+      data.containsKey('roleTitle') ? JobDescription.fromJson(data) : null;
 
   /// Get as InterviewScorecard
-  InterviewScorecard? get asScorecard => data.containsKey('candidate')
-      ? InterviewScorecard.fromJson(data)
-      : null;
+  InterviewScorecard? get asScorecard =>
+      data.containsKey('candidate') ? InterviewScorecard.fromJson(data) : null;
 
   /// Get as STARInterviewGuide
-  STARInterviewGuide? get asStarGuide => data.containsKey('questions')
-      ? STARInterviewGuide.fromJson(data)
-      : null;
+  STARInterviewGuide? get asStarGuide =>
+      data.containsKey('questions') ? STARInterviewGuide.fromJson(data) : null;
 
   /// Get as HiringMetrics
-  HiringMetrics? get asMetrics => data.containsKey('funnelMetrics')
-      ? HiringMetrics.fromJson(data)
-      : null;
+  HiringMetrics? get asMetrics =>
+      data.containsKey('funnelMetrics') ? HiringMetrics.fromJson(data) : null;
 }
 
 /// Service for executing hiring skills with AI
 class HiringService {
   final HybridAIService _aiService;
 
-  HiringService({required HybridAIService aiService})
-      : _aiService = aiService;
+  HiringService({required HybridAIService aiService}) : _aiService = aiService;
 
   // ==================== Job Description ====================
 
@@ -61,8 +57,6 @@ class HiringService {
     List<String>? benefits,
     String? compensationRange,
   }) async {
-    final systemPrompt = HiringSkill.jobDescriptionPrompt;
-
     final userPrompt = _buildJobDescriptionPrompt(
       roleTitle: roleTitle,
       team: team,
@@ -70,28 +64,13 @@ class HiringService {
       aboutRole: aboutRole,
     );
 
-    final response = await _aiService.localAI.generateWithTools(
+    return _executeSkillCall(
+      skill: 'generate_job_description',
       prompt: userPrompt,
       tools: [HiringSkill.jobDescriptionTool],
-      systemPrompt: systemPrompt,
+      systemPrompt: HiringSkill.jobDescriptionPrompt,
+      errorMessage: 'Failed to parse job description from AI response',
     );
-
-    // Parse function call result
-    final functionData = HiringSkill.parseFunctionCall(
-      response,
-      (json) => json,
-    );
-
-    if (functionData != null) {
-      return HiringSkillResult(
-        skill: 'generate_job_description',
-        data: functionData,
-        textResponse: response,
-        usedMode: AIMode.local,
-      );
-    }
-
-    throw Exception('Failed to parse job description from AI response');
   }
 
   String _buildJobDescriptionPrompt({
@@ -124,35 +103,19 @@ class HiringService {
     String interviewer = 'Interviewer Name',
     List<Map<String, dynamic>>? competencies,
   }) async {
-    final systemPrompt = HiringSkill.scorecardPrompt;
-
     final userPrompt = _buildScorecardPrompt(
       role: role,
       interviewType: interviewType,
       competencies: competencies,
     );
 
-    final response = await _aiService.localAI.generateWithTools(
+    return _executeSkillCall(
+      skill: 'create_interview_scorecard',
       prompt: userPrompt,
       tools: [HiringSkill.scorecardTool],
-      systemPrompt: systemPrompt,
+      systemPrompt: HiringSkill.scorecardPrompt,
+      errorMessage: 'Failed to parse scorecard from AI response',
     );
-
-    final functionData = HiringSkill.parseFunctionCall(
-      response,
-      (json) => json,
-    );
-
-    if (functionData != null) {
-      return HiringSkillResult(
-        skill: 'create_interview_scorecard',
-        data: functionData,
-        textResponse: response,
-        usedMode: AIMode.local,
-      );
-    }
-
-    throw Exception('Failed to parse scorecard from AI response');
   }
 
   String _buildScorecardPrompt({
@@ -184,35 +147,19 @@ class HiringService {
     List<String>? competencyFocus,
     int questionCount = 5,
   }) async {
-    final systemPrompt = HiringSkill.starQuestionsPrompt;
-
     final userPrompt = _buildStarPrompt(
       role: role,
       competencyFocus: competencyFocus,
       questionCount: questionCount,
     );
 
-    final response = await _aiService.localAI.generateWithTools(
+    return _executeSkillCall(
+      skill: 'generate_star_questions',
       prompt: userPrompt,
       tools: [HiringSkill.starQuestionsTool],
-      systemPrompt: systemPrompt,
+      systemPrompt: HiringSkill.starQuestionsPrompt,
+      errorMessage: 'Failed to parse STAR questions from AI response',
     );
-
-    final functionData = HiringSkill.parseFunctionCall(
-      response,
-      (json) => json,
-    );
-
-    if (functionData != null) {
-      return HiringSkillResult(
-        skill: 'generate_star_questions',
-        data: functionData,
-        textResponse: response,
-        usedMode: AIMode.local,
-      );
-    }
-
-    throw Exception('Failed to parse STAR questions from AI response');
   }
 
   String _buildStarPrompt({
@@ -221,7 +168,9 @@ class HiringService {
     required int questionCount,
   }) {
     final buffer = StringBuffer();
-    buffer.writeln('Buat $questionCount pertanyaan behavioral interview (STAR) untuk:');
+    buffer.writeln(
+      'Buat $questionCount pertanyaan behavioral interview (STAR) untuk:',
+    );
     buffer.writeln('Posisi: $role');
 
     if (competencyFocus != null && competencyFocus.isNotEmpty) {
@@ -240,35 +189,19 @@ class HiringService {
     int? teamSize,
     Urgency urgency = Urgency.medium,
   }) async {
-    final systemPrompt = HiringSkill.metricsPrompt;
-
     final userPrompt = _buildMetricsPrompt(
       role: role,
       teamSize: teamSize,
       urgency: urgency,
     );
 
-    final response = await _aiService.localAI.generateWithTools(
+    return _executeSkillCall(
+      skill: 'generate_hiring_metrics',
       prompt: userPrompt,
       tools: [HiringSkill.metricsTool],
-      systemPrompt: systemPrompt,
+      systemPrompt: HiringSkill.metricsPrompt,
+      errorMessage: 'Failed to parse hiring metrics from AI response',
     );
-
-    final functionData = HiringSkill.parseFunctionCall(
-      response,
-      (json) => json,
-    );
-
-    if (functionData != null) {
-      return HiringSkillResult(
-        skill: 'generate_hiring_metrics',
-        data: functionData,
-        textResponse: response,
-        usedMode: AIMode.local,
-      );
-    }
-
-    throw Exception('Failed to parse hiring metrics from AI response');
   }
 
   String _buildMetricsPrompt({
@@ -300,8 +233,6 @@ class HiringService {
     List<String>? concerns,
     String? interviewFeedback,
   }) async {
-    final systemPrompt = HiringSkill.candidateAnalysisPrompt;
-
     final userPrompt = _buildCandidatePrompt(
       candidateName: candidateName,
       role: role,
@@ -311,27 +242,13 @@ class HiringService {
       interviewFeedback: interviewFeedback,
     );
 
-    final response = await _aiService.localAI.generateWithTools(
+    return _executeSkillCall(
+      skill: 'analyze_candidate_fit',
       prompt: userPrompt,
       tools: [HiringSkill.candidateAnalysisTool],
-      systemPrompt: systemPrompt,
+      systemPrompt: HiringSkill.candidateAnalysisPrompt,
+      errorMessage: 'Failed to parse candidate analysis from AI response',
     );
-
-    final functionData = HiringSkill.parseFunctionCall(
-      response,
-      (json) => json,
-    );
-
-    if (functionData != null) {
-      return HiringSkillResult(
-        skill: 'analyze_candidate_fit',
-        data: functionData,
-        textResponse: response,
-        usedMode: AIMode.local,
-      );
-    }
-
-    throw Exception('Failed to parse candidate analysis from AI response');
   }
 
   String _buildCandidatePrompt({
@@ -381,31 +298,15 @@ class HiringService {
       throw ArgumentError('Unknown skill: $skillName');
     }
 
-    final systemPrompt = HiringSkill.getSystemPrompt(skillName);
-
     final userPrompt = _buildGenericPrompt(skillName, parameters);
 
-    final response = await _aiService.localAI.generateWithTools(
+    return _executeSkillCall(
+      skill: skillName,
       prompt: userPrompt,
       tools: [tool],
-      systemPrompt: systemPrompt,
+      systemPrompt: HiringSkill.getSystemPrompt(skillName),
+      errorMessage: 'Failed to parse response from AI',
     );
-
-    final functionData = HiringSkill.parseFunctionCall(
-      response,
-      (json) => json,
-    );
-
-    if (functionData != null) {
-      return HiringSkillResult(
-        skill: skillName,
-        data: functionData,
-        textResponse: response,
-        usedMode: AIMode.local,
-      );
-    }
-
-    throw Exception('Failed to parse response from AI');
   }
 
   String _buildGenericPrompt(String skillName, Map<String, dynamic> parameters) {
@@ -421,6 +322,32 @@ class HiringService {
 
     buffer.writeln('\nGunakan function yang sesuai.');
     return buffer.toString();
+  }
+
+  Future<HiringSkillResult> _executeSkillCall({
+    required String skill,
+    required String prompt,
+    required List<Map<String, dynamic>> tools,
+    required String systemPrompt,
+    required String errorMessage,
+  }) async {
+    final result = await _aiService.executeLocalToolCall<Map<String, dynamic>>(
+      prompt: prompt,
+      tools: tools,
+      systemPrompt: systemPrompt,
+      parser: (response) => LocalToolCallParser.parse(
+        response,
+        (json) => json,
+      ),
+      errorBuilder: (_) => errorMessage,
+    );
+
+    return HiringSkillResult(
+      skill: skill,
+      data: result.data,
+      textResponse: result.rawResponse,
+      usedMode: AIMode.local,
+    );
   }
 
   /// Get all available skills
