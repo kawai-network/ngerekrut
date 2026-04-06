@@ -1,12 +1,19 @@
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'firebase_options.dart';
+import 'repositories/hiring_repository.dart';
 import 'screens/full_chat_screen.dart';
+import 'screens/job_candidates_screen.dart';
 import 'screens/job_posting_chat_screen.dart';
 import 'screens/hiring_screen.dart';
+import 'services/api/candidates_api.dart';
+import 'services/api/cloudflare_kv_api_client.dart';
+import 'services/api/jobs_api.dart';
+import 'services/api/screenings_api.dart';
 import 'services/hybrid_ai_service.dart';
 
 @pragma('vm:entry-point')
@@ -42,6 +49,7 @@ Future<void> _initializeFirebaseMessaging() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await _loadEnv();
   // Only initialize Firebase on supported platforms
   final isSupportedPlatform = kIsWeb ||
       (Platform.isAndroid || Platform.isIOS || Platform.isMacOS);
@@ -58,6 +66,31 @@ void main() async {
     }
   }
   runApp(const MyApp());
+}
+
+Future<void> _loadEnv() async {
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (_) {
+    // Development setup may rely on --dart-define only.
+  }
+}
+
+String _readConfig(String key) {
+  const dartDefineValues = {
+    'CLOUDFLARE_ACCOUNT_ID': String.fromEnvironment('CLOUDFLARE_ACCOUNT_ID'),
+    'CLOUDFLARE_KV_NAMESPACE_ID': String.fromEnvironment(
+      'CLOUDFLARE_KV_NAMESPACE_ID',
+    ),
+    'CLOUDFLARE_API_TOKEN': String.fromEnvironment('CLOUDFLARE_API_TOKEN'),
+    'OPENAI_API_KEY': String.fromEnvironment('OPENAI_API_KEY'),
+  };
+
+  final envValue = dotenv.maybeGet(key);
+  if (envValue != null && envValue.isNotEmpty) {
+    return envValue;
+  }
+  return dartDefineValues[key] ?? '';
 }
 
 class MyApp extends StatelessWidget {
@@ -86,17 +119,36 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   HybridAIService? _hybridService;
+  HiringRepository? _hiringRepository;
   bool _isInitializingAI = false;
   double _downloadProgress = 0.0;
 
   @override
   void initState() {
     super.initState();
+    final cloudflareAccountId = _readConfig('CLOUDFLARE_ACCOUNT_ID');
+    final cloudflareNamespaceId = _readConfig('CLOUDFLARE_KV_NAMESPACE_ID');
+    final cloudflareApiToken = _readConfig('CLOUDFLARE_API_TOKEN');
+
+    if (cloudflareAccountId.isNotEmpty &&
+        cloudflareNamespaceId.isNotEmpty &&
+        cloudflareApiToken.isNotEmpty) {
+      final apiClient = CloudflareKvApiClient(
+        accountId: cloudflareAccountId,
+        namespaceId: cloudflareNamespaceId,
+        apiToken: cloudflareApiToken,
+      );
+      _hiringRepository = HiringRepository(
+        jobsApi: JobsApi(apiClient),
+        candidatesApi: CandidatesApi(apiClient),
+        screeningsApi: ScreeningsApi(apiClient),
+      );
+    }
     _initHybridService();
   }
 
   Future<void> _initHybridService() async {
-    final apiKey = const String.fromEnvironment('OPENAI_API_KEY');
+    final apiKey = _readConfig('OPENAI_API_KEY');
     try {
       setState(() => _isInitializingAI = true);
       _hybridService = HybridAIService(cloudApiKey: apiKey);
@@ -222,6 +274,29 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed: _hiringRepository == null
+                    ? null
+                    : () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => JobCandidatesScreen(
+                        repository: _hiringRepository!,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.groups_2),
+                label: const Text('Recruiter Screening Flow'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  textStyle: const TextStyle(fontSize: 16),
+                  backgroundColor: const Color(0xFF0F766E),
+                  foregroundColor: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 12),
               OutlinedButton.icon(
                 onPressed: () {
                   Navigator.push(
@@ -272,8 +347,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const Spacer(),
-              const Text(
-                '🤖 AI Hiring Assistant berjalan dengan Gemma secara lokal.\n\n💡 Tambahkan --dart-define=OPENAI_API_KEY=your_key jika ingin mengaktifkan fallback Cloud AI.',
+              Text(
+                '🤖 AI Hiring Assistant berjalan dengan Gemma secara lokal.\n\n💡 Tambahkan --dart-define=OPENAI_API_KEY=your_key jika ingin mengaktifkan fallback Cloud AI.'
+                '\n\n🌐 Recruiter flow membaca data langsung dari Cloudflare KV.'
+                '\nButuh --dart-define=CLOUDFLARE_ACCOUNT_ID=...'
+                '\n--dart-define=CLOUDFLARE_KV_NAMESPACE_ID=...'
+                '\n--dart-define=CLOUDFLARE_API_TOKEN=...'
+                '${_hiringRepository == null ? '\nSaat ini akses Cloudflare KV belum dikonfigurasi.' : ''}',
                 style: TextStyle(color: Colors.grey, fontSize: 12),
                 textAlign: TextAlign.center,
               ),
