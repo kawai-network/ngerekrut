@@ -226,7 +226,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const Spacer(),
               const Text(
-                '💡 Tip: Jalankan dengan --dart-define=OPENAI_API_KEY=your_key untuk mengaktifkan fitur AI.\n\n🤖 AI Hiring Assistant memerlukan model Gemma 4 E4B (didownload otomatis).',
+                '🤖 AI Hiring Assistant berjalan dengan Gemma secara lokal.\n\n💡 Tambahkan --dart-define=OPENAI_API_KEY=your_key jika ingin mengaktifkan fallback Cloud AI.',
                 style: TextStyle(color: Colors.grey, fontSize: 12),
                 textAlign: TextAlign.center,
               ),

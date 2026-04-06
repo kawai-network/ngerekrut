@@ -98,7 +98,15 @@ class _JobPostingChatScreenState extends State<JobPostingChatScreen> {
   }
 
   String _buildWelcomeMessage() {
-    return '''👋 Halo! Saya asisten rekrutmen AI dengan **Hybrid Mode**.
+    final modeDescription = _hybridService?.hasCloudAI ?? false
+        ? '''**Mode AI:**
+- 🧠 **Local** - Offline, gratis, privasi terjaga
+- ☁️ **Cloud** - Fallback, kualitas lebih konsisten'''
+        : '''**Mode AI:**
+- 🧠 **Local (Gemma)** - Aktif
+- ☁️ **Cloud** - Tidak dikonfigurasi''';
+
+    return '''👋 Halo! Saya asisten rekrutmen AI.
 
 **Ketik posisi yang kamu butuhkan**, saya akan buatkan job posting lengkap dalam hitungan detik.
 
@@ -107,9 +115,7 @@ Contoh:
 • "Admin Gudang untuk cabang Depok"
 • "Sales berpengalaman di bidang otomotif"
 
-**Mode AI:**
-- 🧠 **Local** - Offline, gratis, privasi terjaga
-- ☁️ **Cloud** - Fallback, kualitas lebih konsisten
+$modeDescription
 
 Setelah job posting jadi, kamu bisa:
 ✏️ Edit detail (gaji, lokasi, requirements)
@@ -447,17 +453,22 @@ Setelah job posting jadi, kamu bisa:
   Widget _buildAIModeChip() {
     final mode = _hybridService?.currentMode ?? AIMode.auto;
     final lastUsed = _hybridService?.lastUsedMode ?? AIMode.local;
+    final hasCloudAI = _hybridService?.hasCloudAI ?? false;
 
     return Chip(
-      label: Text(_getModeLabel(mode, lastUsed)),
+      label: Text(_getModeLabel(mode, lastUsed, hasCloudAI)),
       avatar: Icon(_getModeIcon(mode), size: 14),
       visualDensity: VisualDensity.compact,
     );
   }
 
-  String _getModeLabel(AIMode current, AIMode lastUsed) {
+  String _getModeLabel(AIMode current, AIMode lastUsed, bool hasCloudAI) {
     if (current == AIMode.auto) {
+      if (!hasCloudAI) return 'Local';
       return lastUsed == AIMode.local ? 'Local' : 'Cloud';
+    }
+    if (current == AIMode.cloud && !hasCloudAI) {
+      return 'Local';
     }
     return current == AIMode.local ? 'Local' : 'Cloud';
   }
@@ -474,13 +485,20 @@ Setelah job posting jadi, kamu bisa:
     if (_hybridService == null) return;
 
     final current = _hybridService!.currentMode;
-    final newMode = current == AIMode.local ? AIMode.cloud : AIMode.local;
+    final hasCloudAI = _hybridService!.hasCloudAI;
+    final newMode = hasCloudAI
+        ? (current == AIMode.local ? AIMode.cloud : AIMode.local)
+        : AIMode.local;
     _hybridService!.setMode(newMode);
     setState(() {});
 
+    final modeText = hasCloudAI
+        ? (newMode == AIMode.local ? 'Local (Offline)' : 'Cloud (OpenAI)')
+        : 'Local (Gemma only)';
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Mode AI: ${newMode == AIMode.local ? 'Local (Offline)' : 'Cloud (OpenAI)'}'),
+        content: Text('Mode AI: $modeText'),
         duration: const Duration(seconds: 2),
       ),
     );
