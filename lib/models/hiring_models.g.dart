@@ -20,10 +20,10 @@ _JobDescription _$JobDescriptionFromJson(Map<String, dynamic> json) =>
       niceToHave: (json['nice_to_have'] as List<dynamic>)
           .map((e) => e as String)
           .toList(),
-      interviewSteps: (json['interviewSteps'] as List<dynamic>)
+      interviewSteps: (json['interview_steps'] as List<dynamic>)
           .map((e) => e as String)
           .toList(),
-      expectedTimeline: json['expectedTimeline'] as String,
+      expectedTimeline: json['expected_timeline'] as String,
       benefits: (json['benefits'] as List<dynamic>)
           .map((e) => e as String)
           .toList(),
@@ -38,8 +38,8 @@ Map<String, dynamic> _$JobDescriptionToJson(_JobDescription instance) =>
       'responsibilities': instance.responsibilities,
       'must_have': instance.mustHave,
       'nice_to_have': instance.niceToHave,
-      'interviewSteps': instance.interviewSteps,
-      'expectedTimeline': instance.expectedTimeline,
+      'interview_steps': instance.interviewSteps,
+      'expected_timeline': instance.expectedTimeline,
       'benefits': instance.benefits,
       'compensation_range': ?instance.compensationRange,
     };
@@ -50,7 +50,7 @@ _ScorecardEntry _$ScorecardEntryFromJson(Map<String, dynamic> json) =>
       weight: (json['weight'] as num).toInt(),
       score: (json['score'] as num?)?.toInt(),
       evidence: json['evidence'] as String?,
-      strongSignals: (json['strongSignals'] as List<dynamic>)
+      strongSignals: (json['strong_signals'] as List<dynamic>)
           .map((e) => e as String)
           .toList(),
       concerns: (json['concerns'] as List<dynamic>)
@@ -64,7 +64,7 @@ Map<String, dynamic> _$ScorecardEntryToJson(_ScorecardEntry instance) =>
       'weight': instance.weight,
       'score': ?instance.score,
       'evidence': ?instance.evidence,
-      'strongSignals': instance.strongSignals,
+      'strong_signals': instance.strongSignals,
       'concerns': instance.concerns,
     };
 
@@ -90,13 +90,13 @@ _InterviewScorecard _$InterviewScorecardFromJson(Map<String, dynamic> json) =>
       competencies: (json['competencies'] as List<dynamic>)
           .map((e) => ScorecardEntry.fromJson(e as Map<String, dynamic>))
           .toList(),
-      weightedScore: (json['weightedScore'] as num?)?.toDouble(),
+      weightedScore: (json['weighted_score'] as num?)?.toDouble(),
       recommendation: $enumDecodeNullable(
         _$HiringRecommendationEnumMap,
         json['recommendation'],
       ),
       summary: json['summary'] as String?,
-      nextSteps: json['nextSteps'] as String?,
+      nextSteps: json['next_steps'] as String?,
     );
 
 Map<String, dynamic> _$InterviewScorecardToJson(_InterviewScorecard instance) =>
@@ -107,10 +107,10 @@ Map<String, dynamic> _$InterviewScorecardToJson(_InterviewScorecard instance) =>
       'date': instance.date.toIso8601String(),
       'interview_type': _$InterviewTypeEnumMap[instance.interviewType]!,
       'competencies': instance.competencies.map((e) => e.toJson()).toList(),
-      'weightedScore': ?instance.weightedScore,
+      'weighted_score': ?instance.weightedScore,
       'recommendation': ?_$HiringRecommendationEnumMap[instance.recommendation],
       'summary': ?instance.summary,
-      'nextSteps': ?instance.nextSteps,
+      'next_steps': ?instance.nextSteps,
     };
 
 const _$InterviewTypeEnumMap = {
@@ -132,7 +132,7 @@ _STARQuestion _$STARQuestionFromJson(Map<String, dynamic> json) =>
     _STARQuestion(
       competency: json['competency'] as String,
       question: json['question'] as String,
-      lookFor: (json['lookFor'] as List<dynamic>)
+      lookFor: (json['look_for'] as List<dynamic>)
           .map((e) => e as String)
           .toList(),
     );
@@ -141,7 +141,7 @@ Map<String, dynamic> _$STARQuestionToJson(_STARQuestion instance) =>
     <String, dynamic>{
       'competency': instance.competency,
       'question': instance.question,
-      'lookFor': instance.lookFor,
+      'look_for': instance.lookFor,
     };
 
 _STARInterviewGuide _$STARInterviewGuideFromJson(Map<String, dynamic> json) =>
@@ -162,26 +162,26 @@ Map<String, dynamic> _$STARInterviewGuideToJson(_STARInterviewGuide instance) =>
 
 _HiringMetrics _$HiringMetricsFromJson(Map<String, dynamic> json) =>
     _HiringMetrics(
-      funnelMetrics: (json['funnelMetrics'] as Map<String, dynamic>).map(
+      funnelMetrics: (json['funnel_metrics'] as Map<String, dynamic>).map(
         (k, e) => MapEntry(k, (e as num).toDouble()),
       ),
-      timeMetrics: Map<String, String>.from(json['timeMetrics'] as Map),
-      qualityMetrics: (json['qualityMetrics'] as Map<String, dynamic>).map(
+      timeMetrics: Map<String, String>.from(json['time_metrics'] as Map),
+      qualityMetrics: (json['quality_metrics'] as Map<String, dynamic>).map(
         (k, e) => MapEntry(k, (e as num).toDouble()),
       ),
       targets: Map<String, String>.from(json['targets'] as Map),
-      redFlags: (json['redFlags'] as List<dynamic>)
+      redFlags: (json['red_flags'] as List<dynamic>)
           .map((e) => e as String)
           .toList(),
     );
 
 Map<String, dynamic> _$HiringMetricsToJson(_HiringMetrics instance) =>
     <String, dynamic>{
-      'funnelMetrics': instance.funnelMetrics,
-      'timeMetrics': instance.timeMetrics,
-      'qualityMetrics': instance.qualityMetrics,
+      'funnel_metrics': instance.funnelMetrics,
+      'time_metrics': instance.timeMetrics,
+      'quality_metrics': instance.qualityMetrics,
       'targets': instance.targets,
-      'redFlags': instance.redFlags,
+      'red_flags': instance.redFlags,
     };
 
 _HiringPipeline _$HiringPipelineFromJson(Map<String, dynamic> json) =>

@@ -56,9 +56,63 @@
         }
       ],
       "relations": []
+    },
+    {
+      "id": "6:3942250377093927904",
+      "lastPropertyId": "9:1341466104078536359",
+      "name": "RecruiterShortlistRecord",
+      "properties": [
+        {
+          "id": "1:314809207923630999",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:4669264022339063678",
+          "name": "screeningId",
+          "type": 9
+        },
+        {
+          "id": "3:6315619543830011374",
+          "name": "jobId",
+          "type": 9
+        },
+        {
+          "id": "4:1092589508076213968",
+          "name": "status",
+          "type": 9
+        },
+        {
+          "id": "5:1679749732970520689",
+          "name": "summary",
+          "type": 9
+        },
+        {
+          "id": "6:4959888345009046664",
+          "name": "rankedCandidatesJson",
+          "type": 9
+        },
+        {
+          "id": "7:3931532207535275999",
+          "name": "topCandidatesJson",
+          "type": 9
+        },
+        {
+          "id": "8:2781382479281100873",
+          "name": "createdAt",
+          "type": 6
+        },
+        {
+          "id": "9:1341466104078536359",
+          "name": "usedMode",
+          "type": 9
+        }
+      ],
+      "relations": []
     }
   ],
-  "lastEntityId": "5:192818138724406839",
+  "lastEntityId": "6:3942250377093927904",
   "lastIndexId": "10:8502198300901827169",
   "lastRelationId": "0:0",
   "lastSequenceId": "0:0",

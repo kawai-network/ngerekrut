@@ -1,16 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../models/recruiter_candidate.dart';
 import '../models/recruiter_job.dart';
+import '../models/recruiter_shortlist.dart';
 import '../repositories/hiring_repository.dart';
+import '../repositories/local_shortlist_repository.dart';
+import '../services/resume_screening_service.dart';
 import 'shortlist_result_screen.dart';
 
 class JobCandidatesScreen extends StatefulWidget {
   final HiringRepository repository;
+  final LocalShortlistRepository localShortlistRepository;
+  final ResumeScreeningService screeningService;
 
   const JobCandidatesScreen({
     super.key,
     required this.repository,
+    required this.localShortlistRepository,
+    required this.screeningService,
   });
 
   @override
@@ -23,6 +31,7 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
   String? _error;
   RecruiterJob? _job;
   List<RecruiterCandidate> _candidates = const [];
+  List<RecruiterShortlistResult> _localShortlists = const [];
 
   @override
   void initState() {
@@ -43,10 +52,14 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
       }
 
       final data = await widget.repository.fetchCandidates(jobs.first.id);
+      final shortlists = await widget.localShortlistRepository.listForJob(
+        data.job.id,
+      );
       if (!mounted) return;
       setState(() {
         _job = data.job;
         _candidates = data.candidates;
+        _localShortlists = shortlists;
       });
     } catch (e) {
       if (!mounted) return;
@@ -64,13 +77,21 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
 
     setState(() => _isSubmitting = true);
     try {
-      final shortlist = await widget.repository.fetchLatestShortlist(job.id);
+      final shortlist = await widget.screeningService.screenCandidates(
+        job: job,
+        candidates: _candidates,
+        topN: 3,
+      );
+      await widget.localShortlistRepository.save(shortlist);
+      final shortlists = await widget.localShortlistRepository.listForJob(job.id);
       if (!mounted) return;
+      setState(() => _localShortlists = shortlists);
       await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => ShortlistResultScreen(
             repository: widget.repository,
+            localShortlistRepository: widget.localShortlistRepository,
             job: job,
             initialResult: shortlist,
           ),
@@ -139,11 +160,85 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
                             label: Text(
                               _isSubmitting
                                   ? 'Memuat...'
-                                  : 'Load Latest Shortlist',
+                                  : 'Run AI Screening',
                             ),
                           ),
                         ],
                       ),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: _job == null
+                            ? null
+                            : () async {
+                                final navigator = Navigator.of(context);
+                                final messenger = ScaffoldMessenger.of(context);
+                                final saved = await widget
+                                    .localShortlistRepository
+                                    .getLatestForJob(_job!.id);
+                                if (!mounted) return;
+                                if (saved == null) {
+                                  messenger.showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Belum ada shortlist lokal tersimpan.',
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                await navigator.push(
+                                  MaterialPageRoute(
+                                    builder: (context) => ShortlistResultScreen(
+                                      repository: widget.repository,
+                                      localShortlistRepository:
+                                          widget.localShortlistRepository,
+                                      job: _job!,
+                                      initialResult: saved,
+                                    ),
+                                  ),
+                                );
+                              },
+                        icon: const Icon(Icons.history),
+                        label: const Text('Open Saved Shortlist'),
+                      ),
+                      if (_localShortlists.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        Text(
+                          'Riwayat Shortlist Lokal',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 8),
+                        for (final shortlist in _localShortlists.take(5))
+                          Card(
+                            child: ListTile(
+                              leading: const Icon(Icons.history),
+                              title: Text(
+                                shortlist.usedMode == null
+                                    ? shortlist.status
+                                    : '${shortlist.status} • ${shortlist.usedMode}',
+                              ),
+                              subtitle: Text(
+                                shortlist.createdAt == null
+                                    ? shortlist.summary
+                                    : '${DateFormat('dd MMM yyyy HH:mm').format(DateTime.fromMillisecondsSinceEpoch(shortlist.createdAt!))}\n${shortlist.summary}',
+                              ),
+                              isThreeLine: true,
+                              onTap: () async {
+                                await Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => ShortlistResultScreen(
+                                      repository: widget.repository,
+                                      localShortlistRepository:
+                                          widget.localShortlistRepository,
+                                      job: _job!,
+                                      initialResult: shortlist,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                      ],
                       const SizedBox(height: 12),
                       for (final candidate in _candidates)
                         Card(

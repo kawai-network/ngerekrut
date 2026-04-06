@@ -15,6 +15,7 @@ import 'package:objectbox/objectbox.dart' as obx;
 import 'package:objectbox_flutter_libs/objectbox_flutter_libs.dart';
 
 import 'langchain/chat_models/chat_message_record.dart';
+import 'models/recruiter_shortlist_record.dart';
 
 export 'package:objectbox/objectbox.dart'; // so that callers only have to import this file
 
@@ -83,6 +84,70 @@ final _entities = <obx_int.ModelEntity>[
     relations: <obx_int.ModelRelation>[],
     backlinks: <obx_int.ModelBacklink>[],
   ),
+  obx_int.ModelEntity(
+    id: const obx_int.IdUid(6, 3942250377093927904),
+    name: 'RecruiterShortlistRecord',
+    lastPropertyId: const obx_int.IdUid(9, 1341466104078536359),
+    flags: 0,
+    properties: <obx_int.ModelProperty>[
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(1, 314809207923630999),
+        name: 'id',
+        type: 6,
+        flags: 1,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(2, 4669264022339063678),
+        name: 'screeningId',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(3, 6315619543830011374),
+        name: 'jobId',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(4, 1092589508076213968),
+        name: 'status',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(5, 1679749732970520689),
+        name: 'summary',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(6, 4959888345009046664),
+        name: 'rankedCandidatesJson',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(7, 3931532207535275999),
+        name: 'topCandidatesJson',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(8, 2781382479281100873),
+        name: 'createdAt',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(9, 1341466104078536359),
+        name: 'usedMode',
+        type: 9,
+        flags: 0,
+      ),
+    ],
+    relations: <obx_int.ModelRelation>[],
+    backlinks: <obx_int.ModelBacklink>[],
+  ),
 ];
 
 /// Shortcut for [obx.Store.new] that passes [getObjectBoxModel] and for Flutter
@@ -128,7 +193,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
     // Typically, this is done with `dart run build_runner build`.
     generatorVersion: obx_int.GeneratorVersion.v2025_12_16,
     entities: _entities,
-    lastEntityId: const obx_int.IdUid(5, 192818138724406839),
+    lastEntityId: const obx_int.IdUid(6, 3942250377093927904),
     lastIndexId: const obx_int.IdUid(10, 8502198300901827169),
     lastRelationId: const obx_int.IdUid(0, 0),
     lastSequenceId: const obx_int.IdUid(0, 0),
@@ -291,6 +356,93 @@ obx_int.ModelDefinition getObjectBoxModel() {
         return object;
       },
     ),
+    RecruiterShortlistRecord:
+        obx_int.EntityDefinition<RecruiterShortlistRecord>(
+          model: _entities[1],
+          toOneRelations: (RecruiterShortlistRecord object) => [],
+          toManyRelations: (RecruiterShortlistRecord object) => {},
+          getId: (RecruiterShortlistRecord object) => object.id,
+          setId: (RecruiterShortlistRecord object, int id) {
+            object.id = id;
+          },
+          objectToFB: (RecruiterShortlistRecord object, fb.Builder fbb) {
+            final screeningIdOffset = fbb.writeString(object.screeningId);
+            final jobIdOffset = fbb.writeString(object.jobId);
+            final statusOffset = fbb.writeString(object.status);
+            final summaryOffset = fbb.writeString(object.summary);
+            final rankedCandidatesJsonOffset = fbb.writeString(
+              object.rankedCandidatesJson,
+            );
+            final topCandidatesJsonOffset = fbb.writeString(
+              object.topCandidatesJson,
+            );
+            final usedModeOffset = object.usedMode == null
+                ? null
+                : fbb.writeString(object.usedMode!);
+            fbb.startTable(10);
+            fbb.addInt64(0, object.id);
+            fbb.addOffset(1, screeningIdOffset);
+            fbb.addOffset(2, jobIdOffset);
+            fbb.addOffset(3, statusOffset);
+            fbb.addOffset(4, summaryOffset);
+            fbb.addOffset(5, rankedCandidatesJsonOffset);
+            fbb.addOffset(6, topCandidatesJsonOffset);
+            fbb.addInt64(7, object.createdAt);
+            fbb.addOffset(8, usedModeOffset);
+            fbb.finish(fbb.endTable());
+            return object.id;
+          },
+          objectFromFB: (obx.Store store, ByteData fbData) {
+            final buffer = fb.BufferContext(fbData);
+            final rootOffset = buffer.derefObject(0);
+            final idParam = const fb.Int64Reader().vTableGet(
+              buffer,
+              rootOffset,
+              4,
+              0,
+            );
+            final screeningIdParam = const fb.StringReader(
+              asciiOptimization: true,
+            ).vTableGet(buffer, rootOffset, 6, '');
+            final jobIdParam = const fb.StringReader(
+              asciiOptimization: true,
+            ).vTableGet(buffer, rootOffset, 8, '');
+            final statusParam = const fb.StringReader(
+              asciiOptimization: true,
+            ).vTableGet(buffer, rootOffset, 10, '');
+            final summaryParam = const fb.StringReader(
+              asciiOptimization: true,
+            ).vTableGet(buffer, rootOffset, 12, '');
+            final usedModeParam = const fb.StringReader(
+              asciiOptimization: true,
+            ).vTableGetNullable(buffer, rootOffset, 20);
+            final rankedCandidatesJsonParam = const fb.StringReader(
+              asciiOptimization: true,
+            ).vTableGet(buffer, rootOffset, 14, '');
+            final topCandidatesJsonParam = const fb.StringReader(
+              asciiOptimization: true,
+            ).vTableGet(buffer, rootOffset, 16, '');
+            final createdAtParam = const fb.Int64Reader().vTableGet(
+              buffer,
+              rootOffset,
+              18,
+              0,
+            );
+            final object = RecruiterShortlistRecord(
+              id: idParam,
+              screeningId: screeningIdParam,
+              jobId: jobIdParam,
+              status: statusParam,
+              summary: summaryParam,
+              usedMode: usedModeParam,
+              rankedCandidatesJson: rankedCandidatesJsonParam,
+              topCandidatesJson: topCandidatesJsonParam,
+              createdAt: createdAtParam,
+            );
+
+            return object;
+          },
+        ),
   };
 
   return obx_int.ModelDefinition(model, bindings);
@@ -341,5 +493,55 @@ class ChatMessageRecord_ {
   /// See [ChatMessageRecord.createdAt].
   static final createdAt = obx.QueryIntegerProperty<ChatMessageRecord>(
     _entities[0].properties[8],
+  );
+}
+
+/// [RecruiterShortlistRecord] entity fields to define ObjectBox queries.
+class RecruiterShortlistRecord_ {
+  /// See [RecruiterShortlistRecord.id].
+  static final id = obx.QueryIntegerProperty<RecruiterShortlistRecord>(
+    _entities[1].properties[0],
+  );
+
+  /// See [RecruiterShortlistRecord.screeningId].
+  static final screeningId = obx.QueryStringProperty<RecruiterShortlistRecord>(
+    _entities[1].properties[1],
+  );
+
+  /// See [RecruiterShortlistRecord.jobId].
+  static final jobId = obx.QueryStringProperty<RecruiterShortlistRecord>(
+    _entities[1].properties[2],
+  );
+
+  /// See [RecruiterShortlistRecord.status].
+  static final status = obx.QueryStringProperty<RecruiterShortlistRecord>(
+    _entities[1].properties[3],
+  );
+
+  /// See [RecruiterShortlistRecord.summary].
+  static final summary = obx.QueryStringProperty<RecruiterShortlistRecord>(
+    _entities[1].properties[4],
+  );
+
+  /// See [RecruiterShortlistRecord.rankedCandidatesJson].
+  static final rankedCandidatesJson =
+      obx.QueryStringProperty<RecruiterShortlistRecord>(
+        _entities[1].properties[5],
+      );
+
+  /// See [RecruiterShortlistRecord.topCandidatesJson].
+  static final topCandidatesJson =
+      obx.QueryStringProperty<RecruiterShortlistRecord>(
+        _entities[1].properties[6],
+      );
+
+  /// See [RecruiterShortlistRecord.createdAt].
+  static final createdAt = obx.QueryIntegerProperty<RecruiterShortlistRecord>(
+    _entities[1].properties[7],
+  );
+
+  /// See [RecruiterShortlistRecord.usedMode].
+  static final usedMode = obx.QueryStringProperty<RecruiterShortlistRecord>(
+    _entities[1].properties[8],
   );
 }

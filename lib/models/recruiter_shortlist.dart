@@ -83,6 +83,9 @@ class RecruiterShortlistResult {
   final String jobId;
   final String status;
   final String summary;
+  final int? createdAt;
+  final String? usedMode;
+  final List<RecruiterShortlistEntry> rankedCandidates;
   final List<RecruiterShortlistEntry> topCandidates;
 
   const RecruiterShortlistResult({
@@ -90,19 +93,31 @@ class RecruiterShortlistResult {
     required this.jobId,
     required this.status,
     required this.summary,
+    this.createdAt,
+    this.usedMode,
+    this.rankedCandidates = const [],
     this.topCandidates = const [],
   });
 
   factory RecruiterShortlistResult.fromJson(Map<String, dynamic> json) {
+    final ranked = (json['ranked_candidates'] as List<dynamic>? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(RecruiterShortlistEntry.fromJson)
+        .toList();
+    final top = (json['top_candidates'] as List<dynamic>? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(RecruiterShortlistEntry.fromJson)
+        .toList();
+
     return RecruiterShortlistResult(
       screeningId: json['screening_id'] as String,
       jobId: json['job_id'] as String,
       status: json['status'] as String? ?? 'pending',
       summary: json['summary'] as String? ?? '',
-      topCandidates: (json['top_candidates'] as List<dynamic>? ?? const [])
-          .whereType<Map<String, dynamic>>()
-          .map(RecruiterShortlistEntry.fromJson)
-          .toList(),
+      createdAt: (json['created_at'] as num?)?.toInt(),
+      usedMode: json['used_mode'] as String?,
+      rankedCandidates: ranked,
+      topCandidates: top.isNotEmpty ? top : ranked.take(3).toList(),
     );
   }
 }

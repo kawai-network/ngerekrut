@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$JobDescription {
 
-@JsonKey(name: 'role_title') String get roleTitle; String get team;@JsonKey(name: 'about_role') String get aboutRole; List<String> get responsibilities;@JsonKey(name: 'must_have') List<String> get mustHave;@JsonKey(name: 'nice_to_have') List<String> get niceToHave; List<String> get interviewSteps; String get expectedTimeline; List<String> get benefits;@JsonKey(name: 'compensation_range') String? get compensationRange;
+@JsonKey(name: 'role_title') String get roleTitle; String get team;@JsonKey(name: 'about_role') String get aboutRole; List<String> get responsibilities;@JsonKey(name: 'must_have') List<String> get mustHave;@JsonKey(name: 'nice_to_have') List<String> get niceToHave;@JsonKey(name: 'interview_steps') List<String> get interviewSteps;@JsonKey(name: 'expected_timeline') String get expectedTimeline; List<String> get benefits;@JsonKey(name: 'compensation_range') String? get compensationRange;
 /// Create a copy of JobDescription
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $JobDescriptionCopyWith<$Res>  {
   factory $JobDescriptionCopyWith(JobDescription value, $Res Function(JobDescription) _then) = _$JobDescriptionCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'role_title') String roleTitle, String team,@JsonKey(name: 'about_role') String aboutRole, List<String> responsibilities,@JsonKey(name: 'must_have') List<String> mustHave,@JsonKey(name: 'nice_to_have') List<String> niceToHave, List<String> interviewSteps, String expectedTimeline, List<String> benefits,@JsonKey(name: 'compensation_range') String? compensationRange
+@JsonKey(name: 'role_title') String roleTitle, String team,@JsonKey(name: 'about_role') String aboutRole, List<String> responsibilities,@JsonKey(name: 'must_have') List<String> mustHave,@JsonKey(name: 'nice_to_have') List<String> niceToHave,@JsonKey(name: 'interview_steps') List<String> interviewSteps,@JsonKey(name: 'expected_timeline') String expectedTimeline, List<String> benefits,@JsonKey(name: 'compensation_range') String? compensationRange
 });
 
 
@@ -162,7 +162,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'role_title')  String roleTitle,  String team, @JsonKey(name: 'about_role')  String aboutRole,  List<String> responsibilities, @JsonKey(name: 'must_have')  List<String> mustHave, @JsonKey(name: 'nice_to_have')  List<String> niceToHave,  List<String> interviewSteps,  String expectedTimeline,  List<String> benefits, @JsonKey(name: 'compensation_range')  String? compensationRange)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'role_title')  String roleTitle,  String team, @JsonKey(name: 'about_role')  String aboutRole,  List<String> responsibilities, @JsonKey(name: 'must_have')  List<String> mustHave, @JsonKey(name: 'nice_to_have')  List<String> niceToHave, @JsonKey(name: 'interview_steps')  List<String> interviewSteps, @JsonKey(name: 'expected_timeline')  String expectedTimeline,  List<String> benefits, @JsonKey(name: 'compensation_range')  String? compensationRange)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _JobDescription() when $default != null:
 return $default(_that.roleTitle,_that.team,_that.aboutRole,_that.responsibilities,_that.mustHave,_that.niceToHave,_that.interviewSteps,_that.expectedTimeline,_that.benefits,_that.compensationRange);case _:
@@ -183,7 +183,7 @@ return $default(_that.roleTitle,_that.team,_that.aboutRole,_that.responsibilitie
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'role_title')  String roleTitle,  String team, @JsonKey(name: 'about_role')  String aboutRole,  List<String> responsibilities, @JsonKey(name: 'must_have')  List<String> mustHave, @JsonKey(name: 'nice_to_have')  List<String> niceToHave,  List<String> interviewSteps,  String expectedTimeline,  List<String> benefits, @JsonKey(name: 'compensation_range')  String? compensationRange)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'role_title')  String roleTitle,  String team, @JsonKey(name: 'about_role')  String aboutRole,  List<String> responsibilities, @JsonKey(name: 'must_have')  List<String> mustHave, @JsonKey(name: 'nice_to_have')  List<String> niceToHave, @JsonKey(name: 'interview_steps')  List<String> interviewSteps, @JsonKey(name: 'expected_timeline')  String expectedTimeline,  List<String> benefits, @JsonKey(name: 'compensation_range')  String? compensationRange)  $default,) {final _that = this;
 switch (_that) {
 case _JobDescription():
 return $default(_that.roleTitle,_that.team,_that.aboutRole,_that.responsibilities,_that.mustHave,_that.niceToHave,_that.interviewSteps,_that.expectedTimeline,_that.benefits,_that.compensationRange);case _:
@@ -203,7 +203,7 @@ return $default(_that.roleTitle,_that.team,_that.aboutRole,_that.responsibilitie
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'role_title')  String roleTitle,  String team, @JsonKey(name: 'about_role')  String aboutRole,  List<String> responsibilities, @JsonKey(name: 'must_have')  List<String> mustHave, @JsonKey(name: 'nice_to_have')  List<String> niceToHave,  List<String> interviewSteps,  String expectedTimeline,  List<String> benefits, @JsonKey(name: 'compensation_range')  String? compensationRange)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'role_title')  String roleTitle,  String team, @JsonKey(name: 'about_role')  String aboutRole,  List<String> responsibilities, @JsonKey(name: 'must_have')  List<String> mustHave, @JsonKey(name: 'nice_to_have')  List<String> niceToHave, @JsonKey(name: 'interview_steps')  List<String> interviewSteps, @JsonKey(name: 'expected_timeline')  String expectedTimeline,  List<String> benefits, @JsonKey(name: 'compensation_range')  String? compensationRange)?  $default,) {final _that = this;
 switch (_that) {
 case _JobDescription() when $default != null:
 return $default(_that.roleTitle,_that.team,_that.aboutRole,_that.responsibilities,_that.mustHave,_that.niceToHave,_that.interviewSteps,_that.expectedTimeline,_that.benefits,_that.compensationRange);case _:
@@ -218,7 +218,7 @@ return $default(_that.roleTitle,_that.team,_that.aboutRole,_that.responsibilitie
 @JsonSerializable()
 
 class _JobDescription implements JobDescription {
-  const _JobDescription({@JsonKey(name: 'role_title') required this.roleTitle, required this.team, @JsonKey(name: 'about_role') required this.aboutRole, required final  List<String> responsibilities, @JsonKey(name: 'must_have') required final  List<String> mustHave, @JsonKey(name: 'nice_to_have') required final  List<String> niceToHave, required final  List<String> interviewSteps, required this.expectedTimeline, required final  List<String> benefits, @JsonKey(name: 'compensation_range') this.compensationRange}): _responsibilities = responsibilities,_mustHave = mustHave,_niceToHave = niceToHave,_interviewSteps = interviewSteps,_benefits = benefits;
+  const _JobDescription({@JsonKey(name: 'role_title') required this.roleTitle, required this.team, @JsonKey(name: 'about_role') required this.aboutRole, required final  List<String> responsibilities, @JsonKey(name: 'must_have') required final  List<String> mustHave, @JsonKey(name: 'nice_to_have') required final  List<String> niceToHave, @JsonKey(name: 'interview_steps') required final  List<String> interviewSteps, @JsonKey(name: 'expected_timeline') required this.expectedTimeline, required final  List<String> benefits, @JsonKey(name: 'compensation_range') this.compensationRange}): _responsibilities = responsibilities,_mustHave = mustHave,_niceToHave = niceToHave,_interviewSteps = interviewSteps,_benefits = benefits;
   factory _JobDescription.fromJson(Map<String, dynamic> json) => _$JobDescriptionFromJson(json);
 
 @override@JsonKey(name: 'role_title') final  String roleTitle;
@@ -246,13 +246,13 @@ class _JobDescription implements JobDescription {
 }
 
  final  List<String> _interviewSteps;
-@override List<String> get interviewSteps {
+@override@JsonKey(name: 'interview_steps') List<String> get interviewSteps {
   if (_interviewSteps is EqualUnmodifiableListView) return _interviewSteps;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_interviewSteps);
 }
 
-@override final  String expectedTimeline;
+@override@JsonKey(name: 'expected_timeline') final  String expectedTimeline;
  final  List<String> _benefits;
 @override List<String> get benefits {
   if (_benefits is EqualUnmodifiableListView) return _benefits;
@@ -295,7 +295,7 @@ abstract mixin class _$JobDescriptionCopyWith<$Res> implements $JobDescriptionCo
   factory _$JobDescriptionCopyWith(_JobDescription value, $Res Function(_JobDescription) _then) = __$JobDescriptionCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'role_title') String roleTitle, String team,@JsonKey(name: 'about_role') String aboutRole, List<String> responsibilities,@JsonKey(name: 'must_have') List<String> mustHave,@JsonKey(name: 'nice_to_have') List<String> niceToHave, List<String> interviewSteps, String expectedTimeline, List<String> benefits,@JsonKey(name: 'compensation_range') String? compensationRange
+@JsonKey(name: 'role_title') String roleTitle, String team,@JsonKey(name: 'about_role') String aboutRole, List<String> responsibilities,@JsonKey(name: 'must_have') List<String> mustHave,@JsonKey(name: 'nice_to_have') List<String> niceToHave,@JsonKey(name: 'interview_steps') List<String> interviewSteps,@JsonKey(name: 'expected_timeline') String expectedTimeline, List<String> benefits,@JsonKey(name: 'compensation_range') String? compensationRange
 });
 
 
@@ -337,7 +337,7 @@ mixin _$ScorecardEntry {
 
  Competency get competency; int get weight;// Percentage
  int? get score;// 1-5
- String? get evidence; List<String> get strongSignals; List<String> get concerns;
+ String? get evidence;@JsonKey(name: 'strong_signals') List<String> get strongSignals; List<String> get concerns;
 /// Create a copy of ScorecardEntry
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -370,7 +370,7 @@ abstract mixin class $ScorecardEntryCopyWith<$Res>  {
   factory $ScorecardEntryCopyWith(ScorecardEntry value, $Res Function(ScorecardEntry) _then) = _$ScorecardEntryCopyWithImpl;
 @useResult
 $Res call({
- Competency competency, int weight, int? score, String? evidence, List<String> strongSignals, List<String> concerns
+ Competency competency, int weight, int? score, String? evidence,@JsonKey(name: 'strong_signals') List<String> strongSignals, List<String> concerns
 });
 
 
@@ -480,7 +480,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( Competency competency,  int weight,  int? score,  String? evidence,  List<String> strongSignals,  List<String> concerns)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( Competency competency,  int weight,  int? score,  String? evidence, @JsonKey(name: 'strong_signals')  List<String> strongSignals,  List<String> concerns)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ScorecardEntry() when $default != null:
 return $default(_that.competency,_that.weight,_that.score,_that.evidence,_that.strongSignals,_that.concerns);case _:
@@ -501,7 +501,7 @@ return $default(_that.competency,_that.weight,_that.score,_that.evidence,_that.s
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( Competency competency,  int weight,  int? score,  String? evidence,  List<String> strongSignals,  List<String> concerns)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( Competency competency,  int weight,  int? score,  String? evidence, @JsonKey(name: 'strong_signals')  List<String> strongSignals,  List<String> concerns)  $default,) {final _that = this;
 switch (_that) {
 case _ScorecardEntry():
 return $default(_that.competency,_that.weight,_that.score,_that.evidence,_that.strongSignals,_that.concerns);case _:
@@ -521,7 +521,7 @@ return $default(_that.competency,_that.weight,_that.score,_that.evidence,_that.s
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( Competency competency,  int weight,  int? score,  String? evidence,  List<String> strongSignals,  List<String> concerns)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( Competency competency,  int weight,  int? score,  String? evidence, @JsonKey(name: 'strong_signals')  List<String> strongSignals,  List<String> concerns)?  $default,) {final _that = this;
 switch (_that) {
 case _ScorecardEntry() when $default != null:
 return $default(_that.competency,_that.weight,_that.score,_that.evidence,_that.strongSignals,_that.concerns);case _:
@@ -536,7 +536,7 @@ return $default(_that.competency,_that.weight,_that.score,_that.evidence,_that.s
 @JsonSerializable()
 
 class _ScorecardEntry implements ScorecardEntry {
-  const _ScorecardEntry({required this.competency, required this.weight, this.score, this.evidence, required final  List<String> strongSignals, required final  List<String> concerns}): _strongSignals = strongSignals,_concerns = concerns;
+  const _ScorecardEntry({required this.competency, required this.weight, this.score, this.evidence, @JsonKey(name: 'strong_signals') required final  List<String> strongSignals, required final  List<String> concerns}): _strongSignals = strongSignals,_concerns = concerns;
   factory _ScorecardEntry.fromJson(Map<String, dynamic> json) => _$ScorecardEntryFromJson(json);
 
 @override final  Competency competency;
@@ -546,7 +546,7 @@ class _ScorecardEntry implements ScorecardEntry {
 // 1-5
 @override final  String? evidence;
  final  List<String> _strongSignals;
-@override List<String> get strongSignals {
+@override@JsonKey(name: 'strong_signals') List<String> get strongSignals {
   if (_strongSignals is EqualUnmodifiableListView) return _strongSignals;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_strongSignals);
@@ -593,7 +593,7 @@ abstract mixin class _$ScorecardEntryCopyWith<$Res> implements $ScorecardEntryCo
   factory _$ScorecardEntryCopyWith(_ScorecardEntry value, $Res Function(_ScorecardEntry) _then) = __$ScorecardEntryCopyWithImpl;
 @override @useResult
 $Res call({
- Competency competency, int weight, int? score, String? evidence, List<String> strongSignals, List<String> concerns
+ Competency competency, int weight, int? score, String? evidence,@JsonKey(name: 'strong_signals') List<String> strongSignals, List<String> concerns
 });
 
 
@@ -629,7 +629,7 @@ as List<String>,
 /// @nodoc
 mixin _$InterviewScorecard {
 
- String get candidate; String get role; String get interviewer; DateTime get date;@JsonKey(name: 'interview_type') InterviewType get interviewType; List<ScorecardEntry> get competencies; double? get weightedScore; HiringRecommendation? get recommendation; String? get summary; String? get nextSteps;
+ String get candidate; String get role; String get interviewer; DateTime get date;@JsonKey(name: 'interview_type') InterviewType get interviewType; List<ScorecardEntry> get competencies;@JsonKey(name: 'weighted_score') double? get weightedScore; HiringRecommendation? get recommendation; String? get summary;@JsonKey(name: 'next_steps') String? get nextSteps;
 /// Create a copy of InterviewScorecard
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -662,7 +662,7 @@ abstract mixin class $InterviewScorecardCopyWith<$Res>  {
   factory $InterviewScorecardCopyWith(InterviewScorecard value, $Res Function(InterviewScorecard) _then) = _$InterviewScorecardCopyWithImpl;
 @useResult
 $Res call({
- String candidate, String role, String interviewer, DateTime date,@JsonKey(name: 'interview_type') InterviewType interviewType, List<ScorecardEntry> competencies, double? weightedScore, HiringRecommendation? recommendation, String? summary, String? nextSteps
+ String candidate, String role, String interviewer, DateTime date,@JsonKey(name: 'interview_type') InterviewType interviewType, List<ScorecardEntry> competencies,@JsonKey(name: 'weighted_score') double? weightedScore, HiringRecommendation? recommendation, String? summary,@JsonKey(name: 'next_steps') String? nextSteps
 });
 
 
@@ -776,7 +776,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String candidate,  String role,  String interviewer,  DateTime date, @JsonKey(name: 'interview_type')  InterviewType interviewType,  List<ScorecardEntry> competencies,  double? weightedScore,  HiringRecommendation? recommendation,  String? summary,  String? nextSteps)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String candidate,  String role,  String interviewer,  DateTime date, @JsonKey(name: 'interview_type')  InterviewType interviewType,  List<ScorecardEntry> competencies, @JsonKey(name: 'weighted_score')  double? weightedScore,  HiringRecommendation? recommendation,  String? summary, @JsonKey(name: 'next_steps')  String? nextSteps)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _InterviewScorecard() when $default != null:
 return $default(_that.candidate,_that.role,_that.interviewer,_that.date,_that.interviewType,_that.competencies,_that.weightedScore,_that.recommendation,_that.summary,_that.nextSteps);case _:
@@ -797,7 +797,7 @@ return $default(_that.candidate,_that.role,_that.interviewer,_that.date,_that.in
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String candidate,  String role,  String interviewer,  DateTime date, @JsonKey(name: 'interview_type')  InterviewType interviewType,  List<ScorecardEntry> competencies,  double? weightedScore,  HiringRecommendation? recommendation,  String? summary,  String? nextSteps)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String candidate,  String role,  String interviewer,  DateTime date, @JsonKey(name: 'interview_type')  InterviewType interviewType,  List<ScorecardEntry> competencies, @JsonKey(name: 'weighted_score')  double? weightedScore,  HiringRecommendation? recommendation,  String? summary, @JsonKey(name: 'next_steps')  String? nextSteps)  $default,) {final _that = this;
 switch (_that) {
 case _InterviewScorecard():
 return $default(_that.candidate,_that.role,_that.interviewer,_that.date,_that.interviewType,_that.competencies,_that.weightedScore,_that.recommendation,_that.summary,_that.nextSteps);case _:
@@ -817,7 +817,7 @@ return $default(_that.candidate,_that.role,_that.interviewer,_that.date,_that.in
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String candidate,  String role,  String interviewer,  DateTime date, @JsonKey(name: 'interview_type')  InterviewType interviewType,  List<ScorecardEntry> competencies,  double? weightedScore,  HiringRecommendation? recommendation,  String? summary,  String? nextSteps)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String candidate,  String role,  String interviewer,  DateTime date, @JsonKey(name: 'interview_type')  InterviewType interviewType,  List<ScorecardEntry> competencies, @JsonKey(name: 'weighted_score')  double? weightedScore,  HiringRecommendation? recommendation,  String? summary, @JsonKey(name: 'next_steps')  String? nextSteps)?  $default,) {final _that = this;
 switch (_that) {
 case _InterviewScorecard() when $default != null:
 return $default(_that.candidate,_that.role,_that.interviewer,_that.date,_that.interviewType,_that.competencies,_that.weightedScore,_that.recommendation,_that.summary,_that.nextSteps);case _:
@@ -832,7 +832,7 @@ return $default(_that.candidate,_that.role,_that.interviewer,_that.date,_that.in
 @JsonSerializable()
 
 class _InterviewScorecard implements InterviewScorecard {
-  const _InterviewScorecard({required this.candidate, required this.role, required this.interviewer, required this.date, @JsonKey(name: 'interview_type') required this.interviewType, required final  List<ScorecardEntry> competencies, this.weightedScore, this.recommendation, this.summary, this.nextSteps}): _competencies = competencies;
+  const _InterviewScorecard({required this.candidate, required this.role, required this.interviewer, required this.date, @JsonKey(name: 'interview_type') required this.interviewType, required final  List<ScorecardEntry> competencies, @JsonKey(name: 'weighted_score') this.weightedScore, this.recommendation, this.summary, @JsonKey(name: 'next_steps') this.nextSteps}): _competencies = competencies;
   factory _InterviewScorecard.fromJson(Map<String, dynamic> json) => _$InterviewScorecardFromJson(json);
 
 @override final  String candidate;
@@ -847,10 +847,10 @@ class _InterviewScorecard implements InterviewScorecard {
   return EqualUnmodifiableListView(_competencies);
 }
 
-@override final  double? weightedScore;
+@override@JsonKey(name: 'weighted_score') final  double? weightedScore;
 @override final  HiringRecommendation? recommendation;
 @override final  String? summary;
-@override final  String? nextSteps;
+@override@JsonKey(name: 'next_steps') final  String? nextSteps;
 
 /// Create a copy of InterviewScorecard
 /// with the given fields replaced by the non-null parameter values.
@@ -885,7 +885,7 @@ abstract mixin class _$InterviewScorecardCopyWith<$Res> implements $InterviewSco
   factory _$InterviewScorecardCopyWith(_InterviewScorecard value, $Res Function(_InterviewScorecard) _then) = __$InterviewScorecardCopyWithImpl;
 @override @useResult
 $Res call({
- String candidate, String role, String interviewer, DateTime date,@JsonKey(name: 'interview_type') InterviewType interviewType, List<ScorecardEntry> competencies, double? weightedScore, HiringRecommendation? recommendation, String? summary, String? nextSteps
+ String candidate, String role, String interviewer, DateTime date,@JsonKey(name: 'interview_type') InterviewType interviewType, List<ScorecardEntry> competencies,@JsonKey(name: 'weighted_score') double? weightedScore, HiringRecommendation? recommendation, String? summary,@JsonKey(name: 'next_steps') String? nextSteps
 });
 
 
@@ -925,7 +925,7 @@ as String?,
 /// @nodoc
 mixin _$STARQuestion {
 
- String get competency; String get question; List<String> get lookFor;
+ String get competency; String get question;@JsonKey(name: 'look_for') List<String> get lookFor;
 /// Create a copy of STARQuestion
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -958,7 +958,7 @@ abstract mixin class $STARQuestionCopyWith<$Res>  {
   factory $STARQuestionCopyWith(STARQuestion value, $Res Function(STARQuestion) _then) = _$STARQuestionCopyWithImpl;
 @useResult
 $Res call({
- String competency, String question, List<String> lookFor
+ String competency, String question,@JsonKey(name: 'look_for') List<String> lookFor
 });
 
 
@@ -1065,7 +1065,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String competency,  String question,  List<String> lookFor)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String competency,  String question, @JsonKey(name: 'look_for')  List<String> lookFor)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _STARQuestion() when $default != null:
 return $default(_that.competency,_that.question,_that.lookFor);case _:
@@ -1086,7 +1086,7 @@ return $default(_that.competency,_that.question,_that.lookFor);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String competency,  String question,  List<String> lookFor)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String competency,  String question, @JsonKey(name: 'look_for')  List<String> lookFor)  $default,) {final _that = this;
 switch (_that) {
 case _STARQuestion():
 return $default(_that.competency,_that.question,_that.lookFor);case _:
@@ -1106,7 +1106,7 @@ return $default(_that.competency,_that.question,_that.lookFor);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String competency,  String question,  List<String> lookFor)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String competency,  String question, @JsonKey(name: 'look_for')  List<String> lookFor)?  $default,) {final _that = this;
 switch (_that) {
 case _STARQuestion() when $default != null:
 return $default(_that.competency,_that.question,_that.lookFor);case _:
@@ -1121,13 +1121,13 @@ return $default(_that.competency,_that.question,_that.lookFor);case _:
 @JsonSerializable()
 
 class _STARQuestion implements STARQuestion {
-  const _STARQuestion({required this.competency, required this.question, required final  List<String> lookFor}): _lookFor = lookFor;
+  const _STARQuestion({required this.competency, required this.question, @JsonKey(name: 'look_for') required final  List<String> lookFor}): _lookFor = lookFor;
   factory _STARQuestion.fromJson(Map<String, dynamic> json) => _$STARQuestionFromJson(json);
 
 @override final  String competency;
 @override final  String question;
  final  List<String> _lookFor;
-@override List<String> get lookFor {
+@override@JsonKey(name: 'look_for') List<String> get lookFor {
   if (_lookFor is EqualUnmodifiableListView) return _lookFor;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_lookFor);
@@ -1167,7 +1167,7 @@ abstract mixin class _$STARQuestionCopyWith<$Res> implements $STARQuestionCopyWi
   factory _$STARQuestionCopyWith(_STARQuestion value, $Res Function(_STARQuestion) _then) = __$STARQuestionCopyWithImpl;
 @override @useResult
 $Res call({
- String competency, String question, List<String> lookFor
+ String competency, String question,@JsonKey(name: 'look_for') List<String> lookFor
 });
 
 
@@ -1475,7 +1475,7 @@ as String,
 /// @nodoc
 mixin _$HiringMetrics {
 
- Map<String, double> get funnelMetrics; Map<String, String> get timeMetrics; Map<String, double> get qualityMetrics; Map<String, String> get targets; List<String> get redFlags;
+@JsonKey(name: 'funnel_metrics') Map<String, double> get funnelMetrics;@JsonKey(name: 'time_metrics') Map<String, String> get timeMetrics;@JsonKey(name: 'quality_metrics') Map<String, double> get qualityMetrics; Map<String, String> get targets;@JsonKey(name: 'red_flags') List<String> get redFlags;
 /// Create a copy of HiringMetrics
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1508,7 +1508,7 @@ abstract mixin class $HiringMetricsCopyWith<$Res>  {
   factory $HiringMetricsCopyWith(HiringMetrics value, $Res Function(HiringMetrics) _then) = _$HiringMetricsCopyWithImpl;
 @useResult
 $Res call({
- Map<String, double> funnelMetrics, Map<String, String> timeMetrics, Map<String, double> qualityMetrics, Map<String, String> targets, List<String> redFlags
+@JsonKey(name: 'funnel_metrics') Map<String, double> funnelMetrics,@JsonKey(name: 'time_metrics') Map<String, String> timeMetrics,@JsonKey(name: 'quality_metrics') Map<String, double> qualityMetrics, Map<String, String> targets,@JsonKey(name: 'red_flags') List<String> redFlags
 });
 
 
@@ -1617,7 +1617,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( Map<String, double> funnelMetrics,  Map<String, String> timeMetrics,  Map<String, double> qualityMetrics,  Map<String, String> targets,  List<String> redFlags)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'funnel_metrics')  Map<String, double> funnelMetrics, @JsonKey(name: 'time_metrics')  Map<String, String> timeMetrics, @JsonKey(name: 'quality_metrics')  Map<String, double> qualityMetrics,  Map<String, String> targets, @JsonKey(name: 'red_flags')  List<String> redFlags)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _HiringMetrics() when $default != null:
 return $default(_that.funnelMetrics,_that.timeMetrics,_that.qualityMetrics,_that.targets,_that.redFlags);case _:
@@ -1638,7 +1638,7 @@ return $default(_that.funnelMetrics,_that.timeMetrics,_that.qualityMetrics,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( Map<String, double> funnelMetrics,  Map<String, String> timeMetrics,  Map<String, double> qualityMetrics,  Map<String, String> targets,  List<String> redFlags)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'funnel_metrics')  Map<String, double> funnelMetrics, @JsonKey(name: 'time_metrics')  Map<String, String> timeMetrics, @JsonKey(name: 'quality_metrics')  Map<String, double> qualityMetrics,  Map<String, String> targets, @JsonKey(name: 'red_flags')  List<String> redFlags)  $default,) {final _that = this;
 switch (_that) {
 case _HiringMetrics():
 return $default(_that.funnelMetrics,_that.timeMetrics,_that.qualityMetrics,_that.targets,_that.redFlags);case _:
@@ -1658,7 +1658,7 @@ return $default(_that.funnelMetrics,_that.timeMetrics,_that.qualityMetrics,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( Map<String, double> funnelMetrics,  Map<String, String> timeMetrics,  Map<String, double> qualityMetrics,  Map<String, String> targets,  List<String> redFlags)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'funnel_metrics')  Map<String, double> funnelMetrics, @JsonKey(name: 'time_metrics')  Map<String, String> timeMetrics, @JsonKey(name: 'quality_metrics')  Map<String, double> qualityMetrics,  Map<String, String> targets, @JsonKey(name: 'red_flags')  List<String> redFlags)?  $default,) {final _that = this;
 switch (_that) {
 case _HiringMetrics() when $default != null:
 return $default(_that.funnelMetrics,_that.timeMetrics,_that.qualityMetrics,_that.targets,_that.redFlags);case _:
@@ -1673,25 +1673,25 @@ return $default(_that.funnelMetrics,_that.timeMetrics,_that.qualityMetrics,_that
 @JsonSerializable()
 
 class _HiringMetrics implements HiringMetrics {
-  const _HiringMetrics({required final  Map<String, double> funnelMetrics, required final  Map<String, String> timeMetrics, required final  Map<String, double> qualityMetrics, required final  Map<String, String> targets, required final  List<String> redFlags}): _funnelMetrics = funnelMetrics,_timeMetrics = timeMetrics,_qualityMetrics = qualityMetrics,_targets = targets,_redFlags = redFlags;
+  const _HiringMetrics({@JsonKey(name: 'funnel_metrics') required final  Map<String, double> funnelMetrics, @JsonKey(name: 'time_metrics') required final  Map<String, String> timeMetrics, @JsonKey(name: 'quality_metrics') required final  Map<String, double> qualityMetrics, required final  Map<String, String> targets, @JsonKey(name: 'red_flags') required final  List<String> redFlags}): _funnelMetrics = funnelMetrics,_timeMetrics = timeMetrics,_qualityMetrics = qualityMetrics,_targets = targets,_redFlags = redFlags;
   factory _HiringMetrics.fromJson(Map<String, dynamic> json) => _$HiringMetricsFromJson(json);
 
  final  Map<String, double> _funnelMetrics;
-@override Map<String, double> get funnelMetrics {
+@override@JsonKey(name: 'funnel_metrics') Map<String, double> get funnelMetrics {
   if (_funnelMetrics is EqualUnmodifiableMapView) return _funnelMetrics;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableMapView(_funnelMetrics);
 }
 
  final  Map<String, String> _timeMetrics;
-@override Map<String, String> get timeMetrics {
+@override@JsonKey(name: 'time_metrics') Map<String, String> get timeMetrics {
   if (_timeMetrics is EqualUnmodifiableMapView) return _timeMetrics;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableMapView(_timeMetrics);
 }
 
  final  Map<String, double> _qualityMetrics;
-@override Map<String, double> get qualityMetrics {
+@override@JsonKey(name: 'quality_metrics') Map<String, double> get qualityMetrics {
   if (_qualityMetrics is EqualUnmodifiableMapView) return _qualityMetrics;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableMapView(_qualityMetrics);
@@ -1705,7 +1705,7 @@ class _HiringMetrics implements HiringMetrics {
 }
 
  final  List<String> _redFlags;
-@override List<String> get redFlags {
+@override@JsonKey(name: 'red_flags') List<String> get redFlags {
   if (_redFlags is EqualUnmodifiableListView) return _redFlags;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_redFlags);
@@ -1745,7 +1745,7 @@ abstract mixin class _$HiringMetricsCopyWith<$Res> implements $HiringMetricsCopy
   factory _$HiringMetricsCopyWith(_HiringMetrics value, $Res Function(_HiringMetrics) _then) = __$HiringMetricsCopyWithImpl;
 @override @useResult
 $Res call({
- Map<String, double> funnelMetrics, Map<String, String> timeMetrics, Map<String, double> qualityMetrics, Map<String, String> targets, List<String> redFlags
+@JsonKey(name: 'funnel_metrics') Map<String, double> funnelMetrics,@JsonKey(name: 'time_metrics') Map<String, String> timeMetrics,@JsonKey(name: 'quality_metrics') Map<String, double> qualityMetrics, Map<String, String> targets,@JsonKey(name: 'red_flags') List<String> redFlags
 });
 
 

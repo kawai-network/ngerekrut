@@ -6,6 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'firebase_options.dart';
 import 'repositories/hiring_repository.dart';
+import 'repositories/local_shortlist_repository.dart';
 import 'screens/full_chat_screen.dart';
 import 'screens/job_candidates_screen.dart';
 import 'screens/job_posting_chat_screen.dart';
@@ -15,6 +16,7 @@ import 'services/api/cloudflare_kv_api_client.dart';
 import 'services/api/jobs_api.dart';
 import 'services/api/screenings_api.dart';
 import 'services/hybrid_ai_service.dart';
+import 'services/resume_screening_service.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -120,6 +122,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   HybridAIService? _hybridService;
   HiringRepository? _hiringRepository;
+  final LocalShortlistRepository _localShortlistRepository =
+      LocalShortlistRepository();
   bool _isInitializingAI = false;
   double _downloadProgress = 0.0;
 
@@ -278,11 +282,21 @@ class _HomeScreenState extends State<HomeScreen> {
                 onPressed: _hiringRepository == null
                     ? null
                     : () {
+                  final service =
+                      _hybridService ??
+                      HybridAIService(
+                        cloudApiKey: _readConfig('OPENAI_API_KEY'),
+                      );
+                  _hybridService ??= service;
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => JobCandidatesScreen(
                         repository: _hiringRepository!,
+                        localShortlistRepository: _localShortlistRepository,
+                        screeningService: ResumeScreeningService(
+                          aiService: service,
+                        ),
                       ),
                     ),
                   );

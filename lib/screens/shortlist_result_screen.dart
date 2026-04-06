@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../models/recruiter_job.dart';
 import '../models/recruiter_shortlist.dart';
 import '../repositories/hiring_repository.dart';
+import '../repositories/local_shortlist_repository.dart';
 
 class ShortlistResultScreen extends StatefulWidget {
   final HiringRepository repository;
+  final LocalShortlistRepository localShortlistRepository;
   final RecruiterJob job;
   final RecruiterShortlistResult? initialResult;
 
   const ShortlistResultScreen({
     super.key,
     required this.repository,
+    required this.localShortlistRepository,
     required this.job,
     this.initialResult,
   });
@@ -35,6 +39,7 @@ class _ShortlistResultScreenState extends State<ShortlistResultScreen> {
     try {
       final result =
           widget.initialResult ??
+          await widget.localShortlistRepository.getLatestForJob(widget.job.id) ??
           await widget.repository.fetchLatestShortlist(widget.job.id);
       if (!mounted) return;
       setState(() {
@@ -75,6 +80,22 @@ class _ShortlistResultScreenState extends State<ShortlistResultScreen> {
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     const SizedBox(height: 8),
+                    if (_result?.createdAt != null || _result?.usedMode != null)
+                      Text(
+                        [
+                          if (_result?.createdAt != null)
+                            DateFormat('dd MMM yyyy HH:mm').format(
+                              DateTime.fromMillisecondsSinceEpoch(
+                                _result!.createdAt!,
+                              ),
+                            ),
+                          if ((_result?.usedMode ?? '').isNotEmpty)
+                            'mode: ${_result!.usedMode}',
+                        ].join(' • '),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    if (_result?.createdAt != null || _result?.usedMode != null)
+                      const SizedBox(height: 8),
                     Text(_result?.summary ?? ''),
                     const SizedBox(height: 20),
                     Text(
@@ -135,6 +156,23 @@ class _ShortlistResultScreenState extends State<ShortlistResultScreen> {
                           ],
                         ),
                       ),
+                    if ((_result?.rankedCandidates.length ?? 0) > 3) ...[
+                      const SizedBox(height: 20),
+                      Text(
+                        'Kandidat Lainnya',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 12),
+                      for (final entry in (_result?.rankedCandidates ?? const [])
+                          .where((entry) => entry.rank > 3))
+                        ListTile(
+                          leading: CircleAvatar(child: Text('${entry.rank}')),
+                          title: Text(entry.candidateName),
+                          subtitle: Text(
+                            'Score ${entry.totalScore.toStringAsFixed(0)} • ${entry.recommendation}',
+                          ),
+                        ),
+                    ],
                   ],
                 ),
     );
