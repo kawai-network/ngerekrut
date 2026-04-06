@@ -16,7 +16,7 @@ import '../flutter_chat_ui/flutter_chat_ui.dart';
 import '../flyer_chat_text_message/flyer_chat_text_message.dart';
 import '../flyer_chat_text_stream_message/flyer_chat_text_stream_message.dart';
 import '../flyer_chat_system_message/flyer_chat_system_message.dart';
-import '../services/job_posting_generator.dart';
+import '../services/hybrid_ai_service.dart';
 import '../models/job_posting.dart';
 
 /// Chat screen untuk bikin lowongan sekali prompt.
@@ -31,9 +31,11 @@ class JobPostingChatScreen extends StatefulWidget {
 
 class _JobPostingChatScreenState extends State<JobPostingChatScreen> {
   late final InMemoryChatController _chatController;
-  JobPostingGenerator? _generator;
+  HybridAIService? _hybridService;
   JobPosting? _lastGenerated;
   bool _isGenerating = false;
+  bool _isInitializing = false;
+  double _downloadProgress = 0.0;
 
   final _uuid = const Uuid();
 
@@ -51,14 +53,37 @@ class _JobPostingChatScreenState extends State<JobPostingChatScreen> {
   void initState() {
     super.initState();
     _chatController = InMemoryChatController();
-    _initGenerator();
+    _initHybridService();
     _sendWelcomeMessage();
   }
 
-  void _initGenerator() {
+  Future<void> _initHybridService() async {
     final apiKey = widget.apiKey;
-    if (apiKey != null && apiKey.isNotEmpty) {
-      _generator = JobPostingGenerator(apiKey: apiKey);
+    if (apiKey == null || apiKey.isEmpty) {
+      _sendErrorMessage('API Key belum dikonfigurasi.');
+      return;
+    }
+
+    setState(() => _isInitializing = true);
+
+    try {
+      _hybridService = HybridAIService(cloudApiKey: apiKey);
+      final localReady = await _hybridService!.initialize(
+        onDownloadProgress: (progress) {
+          setState(() => _downloadProgress = progress);
+        },
+      );
+
+      if (localReady) {
+        debugPrint('[JobPostingChat] Local AI ready!');
+      } else {
+        debugPrint('[JobPostingChat] Using cloud AI fallback');
+      }
+    } catch (e) {
+      debugPrint('[JobPostingChat] Init failed: $e');
+      _sendErrorMessage('Gagal inisialisasi AI: $e');
+    } finally {
+      setState(() => _isInitializing = false);
     }
   }
 
@@ -75,7 +100,7 @@ class _JobPostingChatScreenState extends State<JobPostingChatScreen> {
   }
 
   String _buildWelcomeMessage() {
-    return '''👋 Halo! Saya asisten rekrutmen AI.
+    return '''👋 Halo! Saya asisten rekrutmen AI dengan **Hybrid Mode**.
 
 **Ketik posisi yang kamu butuhkan**, saya akan buatkan job posting lengkap dalam hitungan detik.
 
@@ -83,6 +108,10 @@ Contoh:
 • "Butuh Kasir"
 • "Admin Gudang untuk cabang Depok"
 • "Sales berpengalaman di bidang otomotif"
+
+**Mode AI:**
+- 🧠 **Local** - Offline, gratis, privasi terjaga
+- ☁️ **Cloud** - Fallback, kualitas lebih konsisten
 
 Setelah job posting jadi, kamu bisa:
 ✏️ Edit detail (gaji, lokasi, requirements)
@@ -126,10 +155,8 @@ Setelah job posting jadi, kamu bisa:
   }
 
   Future<void> _handleGenerate(String position) async {
-    if (_generator == null) {
-      await _sendErrorMessage(
-        'API Key belum dikonfigurasi. Silakan setup OpenAI API Key terlebih dahulu.',
-      );
+    if (_hybridService == null) {
+      await _sendErrorMessage('Service belum terinisialisasi.');
       return;
     }
 
@@ -147,10 +174,10 @@ Setelah job posting jadi, kamu bisa:
     await _chatController.insertMessage(streamMsg);
 
     try {
-      final jobPosting = await _generator!.generate(position);
-      _lastGenerated = jobPosting;
+      final result = await _hybridService!.generateJobPosting(position);
+      _lastGenerated = result.jobPosting;
 
-      final responseText = _formatJobPosting(jobPosting);
+      final responseText = _formatJobPosting(result.jobPosting, result.usedMode);
 
       // Update streaming message with final content
       final finalMsg = Message.text(
@@ -166,7 +193,7 @@ Setelah job posting jadi, kamu bisa:
       final errorMsg = Message.text(
         id: streamId,
         authorId: 'ai',
-        text: '❌ Maaf, terjadi kesalahan: $e\n\nCoba lagi dengan posisi yang berbeda.',
+        text: '❌ Maaf, terjadi kesalahan: $e\n\nCoba lagi atau ubah mode AI.',
         createdAt: streamMsg.createdAt,
         status: MessageStatus.seen,
       );
@@ -177,7 +204,7 @@ Setelah job posting jadi, kamu bisa:
   }
 
   Future<void> _handleRefine(String request) async {
-    if (_generator == null || _lastGenerated == null) return;
+    if (_hybridService == null || _lastGenerated == null) return;
 
     setState(() => _isGenerating = true);
 
@@ -192,10 +219,13 @@ Setelah job posting jadi, kamu bisa:
     await _chatController.insertMessage(streamMsg);
 
     try {
-      final refined = await _generator!.refine(_lastGenerated!, request);
-      _lastGenerated = refined;
+      final result = await _hybridService!.refineJobPosting(
+        _lastGenerated!,
+        request,
+      );
+      _lastGenerated = result.jobPosting;
 
-      final responseText = _formatJobPosting(refined);
+      final responseText = _formatJobPosting(result.jobPosting, result.usedMode);
 
       final finalMsg = Message.text(
         id: streamId,
@@ -219,9 +249,13 @@ Setelah job posting jadi, kamu bisa:
     }
   }
 
-  String _formatJobPosting(JobPosting job) {
+  String _formatJobPosting(JobPosting job, AIMode usedMode) {
     final buffer = StringBuffer();
-    buffer.writeln('✅ **Lowongan Siap!** 🎉');
+    final aiBadge = usedMode == AIMode.local
+        ? '🧠 **Local AI**'
+        : '☁️ **Cloud AI**';
+
+    buffer.writeln('$aiBadge ✅ **Lowongan Siap!** 🎉');
     buffer.writeln('');
     buffer.writeln('---');
     buffer.writeln('');
@@ -265,6 +299,7 @@ Setelah job posting jadi, kamu bisa:
   @override
   void dispose() {
     _chatController.dispose();
+    _hybridService?.dispose();
     super.dispose();
   }
 
@@ -272,14 +307,24 @@ Setelah job posting jadi, kamu bisa:
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.auto_awesome, size: 20),
-            SizedBox(width: 8),
-            Text('Bikin Lowongan'),
+            const Icon(Icons.auto_awesome, size: 20),
+            const SizedBox(width: 8),
+            const Text('Bikin Lowongan'),
+            if (_hybridService != null) ...[
+              const SizedBox(width: 8),
+              _buildAIModeChip(),
+            ],
           ],
         ),
         actions: [
+          if (_hybridService != null && _hybridService!.isLocalAIReady)
+            IconButton(
+              icon: Icon(_getModeIcon()),
+              tooltip: 'Toggle AI Mode',
+              onPressed: _toggleAIMode,
+            ),
           if (_lastGenerated != null)
             IconButton(
               icon: const Icon(Icons.copy_all),
@@ -295,8 +340,27 @@ Setelah job posting jadi, kamu bisa:
       ),
       body: Column(
         children: [
+          // Initialization progress
+          if (_isInitializing)
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(
+                    _downloadProgress > 0
+                        ? 'Downloading model... ${(_downloadProgress * 100).toStringAsFixed(0)}%'
+                        : 'Initializing AI...',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  if (_downloadProgress > 0)
+                    LinearProgressIndicator(value: _downloadProgress),
+                ],
+              ),
+            ),
           // Suggestion chips
-          if (!_isGenerating)
+          if (!_isGenerating && !_isInitializing)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Wrap(
@@ -380,5 +444,47 @@ Setelah job posting jadi, kamu bisa:
     _chatController.dispose();
     _chatController = InMemoryChatController();
     _sendWelcomeMessage();
+  }
+
+  Widget _buildAIModeChip() {
+    final mode = _hybridService?.currentMode ?? AIMode.auto;
+    final lastUsed = _hybridService?.lastUsedMode ?? AIMode.local;
+
+    return Chip(
+      label: Text(_getModeLabel(mode, lastUsed)),
+      avatar: Icon(_getModeIcon(mode), size: 14),
+      visualDensity: VisualDensity.compact,
+    );
+  }
+
+  String _getModeLabel(AIMode current, AIMode lastUsed) {
+    if (current == AIMode.auto) {
+      return lastUsed == AIMode.local ? 'Local' : 'Cloud';
+    }
+    return current == AIMode.local ? 'Local' : 'Cloud';
+  }
+
+  IconData _getModeIcon([AIMode? mode]) {
+    final m = mode ?? _hybridService?.currentMode ?? AIMode.auto;
+    if (m == AIMode.local || (m == AIMode.auto && _hybridService?.lastUsedMode == AIMode.local)) {
+      return Icons.memory;
+    }
+    return Icons.cloud;
+  }
+
+  void _toggleAIMode() {
+    if (_hybridService == null) return;
+
+    final current = _hybridService!.currentMode;
+    final newMode = current == AIMode.local ? AIMode.cloud : AIMode.local;
+    _hybridService!.setMode(newMode);
+    setState(() {});
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Mode AI: ${newMode == AIMode.local ? 'Local (Offline)' : 'Cloud (OpenAI)'}'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 }

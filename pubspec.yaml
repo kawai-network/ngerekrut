@@ -54,6 +54,8 @@ dependencies:
   scrollview_observer: ^1.26.2
   shimmer: ^3.0.0
   uuid: ^4.5.2
+  # Local AI inference
+  flutter_gemma: ^0.13.1
 
 dev_dependencies:
   build_runner: ^2.10.4
