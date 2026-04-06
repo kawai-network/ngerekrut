@@ -22,6 +22,12 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Configure Git for private repos
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          git config --global url."https://${GH_TOKEN}@github.com/".insteadOf "https://github.com/"
+
       - name: Cache Android SDK components
         uses: actions/cache@v4
         with:
@@ -81,7 +87,7 @@ jobs:
 
   release:
     runs-on: ubuntu-latest
-    if: ${{ needs.android.result == 'success' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') }}
+    if: ${{ needs.android.result == 'success' }}
     permissions:
       contents: write
     needs: [android]
