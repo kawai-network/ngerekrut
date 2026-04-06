@@ -6,6 +6,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'firebase_options.dart';
 import 'repositories/hiring_repository.dart';
+import 'repositories/local_interview_guide_repository.dart';
+import 'repositories/local_scorecard_repository.dart';
 import 'repositories/local_shortlist_repository.dart';
 import 'screens/full_chat_screen.dart';
 import 'screens/job_candidates_screen.dart';
@@ -16,7 +18,9 @@ import 'services/api/cloudflare_kv_api_client.dart';
 import 'services/api/jobs_api.dart';
 import 'services/api/screenings_api.dart';
 import 'services/hybrid_ai_service.dart';
+import 'services/interview_guide_generation_service.dart';
 import 'services/resume_screening_service.dart';
+import 'services/scorecard_generation_service.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -124,6 +128,10 @@ class _HomeScreenState extends State<HomeScreen> {
   HiringRepository? _hiringRepository;
   final LocalShortlistRepository _localShortlistRepository =
       LocalShortlistRepository();
+  final LocalScorecardRepository _localScorecardRepository =
+      LocalScorecardRepository();
+  final LocalInterviewGuideRepository _localInterviewGuideRepository =
+      LocalInterviewGuideRepository();
   bool _isInitializingAI = false;
   double _downloadProgress = 0.0;
 
@@ -293,8 +301,18 @@ class _HomeScreenState extends State<HomeScreen> {
                     MaterialPageRoute(
                       builder: (context) => JobCandidatesScreen(
                         repository: _hiringRepository!,
+                        localInterviewGuideRepository:
+                            _localInterviewGuideRepository,
                         localShortlistRepository: _localShortlistRepository,
+                        localScorecardRepository: _localScorecardRepository,
+                        interviewGuideGenerationService:
+                            InterviewGuideGenerationService(
+                          aiService: service,
+                        ),
                         screeningService: ResumeScreeningService(
+                          aiService: service,
+                        ),
+                        scorecardGenerationService: ScorecardGenerationService(
                           aiService: service,
                         ),
                       ),

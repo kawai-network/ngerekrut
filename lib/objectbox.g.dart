@@ -15,6 +15,8 @@ import 'package:objectbox/objectbox.dart' as obx;
 import 'package:objectbox_flutter_libs/objectbox_flutter_libs.dart';
 
 import 'langchain/chat_models/chat_message_record.dart';
+import 'models/candidate_scorecard_record.dart';
+import 'models/interview_guide_record.dart';
 import 'models/recruiter_shortlist_record.dart';
 
 export 'package:objectbox/objectbox.dart'; // so that callers only have to import this file
@@ -148,6 +150,116 @@ final _entities = <obx_int.ModelEntity>[
     relations: <obx_int.ModelRelation>[],
     backlinks: <obx_int.ModelBacklink>[],
   ),
+  obx_int.ModelEntity(
+    id: const obx_int.IdUid(7, 77447243925955203),
+    name: 'CandidateScorecardRecord',
+    lastPropertyId: const obx_int.IdUid(8, 2835945180572883496),
+    flags: 0,
+    properties: <obx_int.ModelProperty>[
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(1, 4770809965175558037),
+        name: 'id',
+        type: 6,
+        flags: 1,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(2, 5652074738406325744),
+        name: 'jobId',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(3, 7347486815145148426),
+        name: 'candidateId',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(4, 6758291099472408),
+        name: 'candidateName',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(5, 8812900862714736210),
+        name: 'interviewType',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(6, 2108219503889777624),
+        name: 'scorecardJson',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(7, 934338309060139229),
+        name: 'usedMode',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(8, 2835945180572883496),
+        name: 'createdAt',
+        type: 6,
+        flags: 0,
+      ),
+    ],
+    relations: <obx_int.ModelRelation>[],
+    backlinks: <obx_int.ModelBacklink>[],
+  ),
+  obx_int.ModelEntity(
+    id: const obx_int.IdUid(8, 5701768094403887080),
+    name: 'InterviewGuideRecord',
+    lastPropertyId: const obx_int.IdUid(7, 4996307860294067598),
+    flags: 0,
+    properties: <obx_int.ModelProperty>[
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(1, 368200842257746441),
+        name: 'id',
+        type: 6,
+        flags: 1,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(2, 3487480123981260961),
+        name: 'jobId',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(3, 2464294047583973937),
+        name: 'candidateId',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(4, 4041101307977610241),
+        name: 'candidateName',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(5, 842484296930620915),
+        name: 'guideJson',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(6, 5714351012546157956),
+        name: 'usedMode',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(7, 4996307860294067598),
+        name: 'createdAt',
+        type: 6,
+        flags: 0,
+      ),
+    ],
+    relations: <obx_int.ModelRelation>[],
+    backlinks: <obx_int.ModelBacklink>[],
+  ),
 ];
 
 /// Shortcut for [obx.Store.new] that passes [getObjectBoxModel] and for Flutter
@@ -193,7 +305,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
     // Typically, this is done with `dart run build_runner build`.
     generatorVersion: obx_int.GeneratorVersion.v2025_12_16,
     entities: _entities,
-    lastEntityId: const obx_int.IdUid(6, 3942250377093927904),
+    lastEntityId: const obx_int.IdUid(8, 5701768094403887080),
     lastIndexId: const obx_int.IdUid(10, 8502198300901827169),
     lastRelationId: const obx_int.IdUid(0, 0),
     lastSequenceId: const obx_int.IdUid(0, 0),
@@ -443,6 +555,153 @@ obx_int.ModelDefinition getObjectBoxModel() {
             return object;
           },
         ),
+    CandidateScorecardRecord:
+        obx_int.EntityDefinition<CandidateScorecardRecord>(
+          model: _entities[2],
+          toOneRelations: (CandidateScorecardRecord object) => [],
+          toManyRelations: (CandidateScorecardRecord object) => {},
+          getId: (CandidateScorecardRecord object) => object.id,
+          setId: (CandidateScorecardRecord object, int id) {
+            object.id = id;
+          },
+          objectToFB: (CandidateScorecardRecord object, fb.Builder fbb) {
+            final jobIdOffset = fbb.writeString(object.jobId);
+            final candidateIdOffset = fbb.writeString(object.candidateId);
+            final candidateNameOffset = fbb.writeString(object.candidateName);
+            final interviewTypeOffset = fbb.writeString(object.interviewType);
+            final scorecardJsonOffset = fbb.writeString(object.scorecardJson);
+            final usedModeOffset = object.usedMode == null
+                ? null
+                : fbb.writeString(object.usedMode!);
+            fbb.startTable(9);
+            fbb.addInt64(0, object.id);
+            fbb.addOffset(1, jobIdOffset);
+            fbb.addOffset(2, candidateIdOffset);
+            fbb.addOffset(3, candidateNameOffset);
+            fbb.addOffset(4, interviewTypeOffset);
+            fbb.addOffset(5, scorecardJsonOffset);
+            fbb.addOffset(6, usedModeOffset);
+            fbb.addInt64(7, object.createdAt);
+            fbb.finish(fbb.endTable());
+            return object.id;
+          },
+          objectFromFB: (obx.Store store, ByteData fbData) {
+            final buffer = fb.BufferContext(fbData);
+            final rootOffset = buffer.derefObject(0);
+            final idParam = const fb.Int64Reader().vTableGet(
+              buffer,
+              rootOffset,
+              4,
+              0,
+            );
+            final jobIdParam = const fb.StringReader(
+              asciiOptimization: true,
+            ).vTableGet(buffer, rootOffset, 6, '');
+            final candidateIdParam = const fb.StringReader(
+              asciiOptimization: true,
+            ).vTableGet(buffer, rootOffset, 8, '');
+            final candidateNameParam = const fb.StringReader(
+              asciiOptimization: true,
+            ).vTableGet(buffer, rootOffset, 10, '');
+            final interviewTypeParam = const fb.StringReader(
+              asciiOptimization: true,
+            ).vTableGet(buffer, rootOffset, 12, '');
+            final scorecardJsonParam = const fb.StringReader(
+              asciiOptimization: true,
+            ).vTableGet(buffer, rootOffset, 14, '');
+            final usedModeParam = const fb.StringReader(
+              asciiOptimization: true,
+            ).vTableGetNullable(buffer, rootOffset, 16);
+            final createdAtParam = const fb.Int64Reader().vTableGet(
+              buffer,
+              rootOffset,
+              18,
+              0,
+            );
+            final object = CandidateScorecardRecord(
+              id: idParam,
+              jobId: jobIdParam,
+              candidateId: candidateIdParam,
+              candidateName: candidateNameParam,
+              interviewType: interviewTypeParam,
+              scorecardJson: scorecardJsonParam,
+              usedMode: usedModeParam,
+              createdAt: createdAtParam,
+            );
+
+            return object;
+          },
+        ),
+    InterviewGuideRecord: obx_int.EntityDefinition<InterviewGuideRecord>(
+      model: _entities[3],
+      toOneRelations: (InterviewGuideRecord object) => [],
+      toManyRelations: (InterviewGuideRecord object) => {},
+      getId: (InterviewGuideRecord object) => object.id,
+      setId: (InterviewGuideRecord object, int id) {
+        object.id = id;
+      },
+      objectToFB: (InterviewGuideRecord object, fb.Builder fbb) {
+        final jobIdOffset = fbb.writeString(object.jobId);
+        final candidateIdOffset = fbb.writeString(object.candidateId);
+        final candidateNameOffset = fbb.writeString(object.candidateName);
+        final guideJsonOffset = fbb.writeString(object.guideJson);
+        final usedModeOffset = object.usedMode == null
+            ? null
+            : fbb.writeString(object.usedMode!);
+        fbb.startTable(8);
+        fbb.addInt64(0, object.id);
+        fbb.addOffset(1, jobIdOffset);
+        fbb.addOffset(2, candidateIdOffset);
+        fbb.addOffset(3, candidateNameOffset);
+        fbb.addOffset(4, guideJsonOffset);
+        fbb.addOffset(5, usedModeOffset);
+        fbb.addInt64(6, object.createdAt);
+        fbb.finish(fbb.endTable());
+        return object.id;
+      },
+      objectFromFB: (obx.Store store, ByteData fbData) {
+        final buffer = fb.BufferContext(fbData);
+        final rootOffset = buffer.derefObject(0);
+        final idParam = const fb.Int64Reader().vTableGet(
+          buffer,
+          rootOffset,
+          4,
+          0,
+        );
+        final jobIdParam = const fb.StringReader(
+          asciiOptimization: true,
+        ).vTableGet(buffer, rootOffset, 6, '');
+        final candidateIdParam = const fb.StringReader(
+          asciiOptimization: true,
+        ).vTableGet(buffer, rootOffset, 8, '');
+        final candidateNameParam = const fb.StringReader(
+          asciiOptimization: true,
+        ).vTableGet(buffer, rootOffset, 10, '');
+        final guideJsonParam = const fb.StringReader(
+          asciiOptimization: true,
+        ).vTableGet(buffer, rootOffset, 12, '');
+        final usedModeParam = const fb.StringReader(
+          asciiOptimization: true,
+        ).vTableGetNullable(buffer, rootOffset, 14);
+        final createdAtParam = const fb.Int64Reader().vTableGet(
+          buffer,
+          rootOffset,
+          16,
+          0,
+        );
+        final object = InterviewGuideRecord(
+          id: idParam,
+          jobId: jobIdParam,
+          candidateId: candidateIdParam,
+          candidateName: candidateNameParam,
+          guideJson: guideJsonParam,
+          usedMode: usedModeParam,
+          createdAt: createdAtParam,
+        );
+
+        return object;
+      },
+    ),
   };
 
   return obx_int.ModelDefinition(model, bindings);
@@ -543,5 +802,89 @@ class RecruiterShortlistRecord_ {
   /// See [RecruiterShortlistRecord.usedMode].
   static final usedMode = obx.QueryStringProperty<RecruiterShortlistRecord>(
     _entities[1].properties[8],
+  );
+}
+
+/// [CandidateScorecardRecord] entity fields to define ObjectBox queries.
+class CandidateScorecardRecord_ {
+  /// See [CandidateScorecardRecord.id].
+  static final id = obx.QueryIntegerProperty<CandidateScorecardRecord>(
+    _entities[2].properties[0],
+  );
+
+  /// See [CandidateScorecardRecord.jobId].
+  static final jobId = obx.QueryStringProperty<CandidateScorecardRecord>(
+    _entities[2].properties[1],
+  );
+
+  /// See [CandidateScorecardRecord.candidateId].
+  static final candidateId = obx.QueryStringProperty<CandidateScorecardRecord>(
+    _entities[2].properties[2],
+  );
+
+  /// See [CandidateScorecardRecord.candidateName].
+  static final candidateName =
+      obx.QueryStringProperty<CandidateScorecardRecord>(
+        _entities[2].properties[3],
+      );
+
+  /// See [CandidateScorecardRecord.interviewType].
+  static final interviewType =
+      obx.QueryStringProperty<CandidateScorecardRecord>(
+        _entities[2].properties[4],
+      );
+
+  /// See [CandidateScorecardRecord.scorecardJson].
+  static final scorecardJson =
+      obx.QueryStringProperty<CandidateScorecardRecord>(
+        _entities[2].properties[5],
+      );
+
+  /// See [CandidateScorecardRecord.usedMode].
+  static final usedMode = obx.QueryStringProperty<CandidateScorecardRecord>(
+    _entities[2].properties[6],
+  );
+
+  /// See [CandidateScorecardRecord.createdAt].
+  static final createdAt = obx.QueryIntegerProperty<CandidateScorecardRecord>(
+    _entities[2].properties[7],
+  );
+}
+
+/// [InterviewGuideRecord] entity fields to define ObjectBox queries.
+class InterviewGuideRecord_ {
+  /// See [InterviewGuideRecord.id].
+  static final id = obx.QueryIntegerProperty<InterviewGuideRecord>(
+    _entities[3].properties[0],
+  );
+
+  /// See [InterviewGuideRecord.jobId].
+  static final jobId = obx.QueryStringProperty<InterviewGuideRecord>(
+    _entities[3].properties[1],
+  );
+
+  /// See [InterviewGuideRecord.candidateId].
+  static final candidateId = obx.QueryStringProperty<InterviewGuideRecord>(
+    _entities[3].properties[2],
+  );
+
+  /// See [InterviewGuideRecord.candidateName].
+  static final candidateName = obx.QueryStringProperty<InterviewGuideRecord>(
+    _entities[3].properties[3],
+  );
+
+  /// See [InterviewGuideRecord.guideJson].
+  static final guideJson = obx.QueryStringProperty<InterviewGuideRecord>(
+    _entities[3].properties[4],
+  );
+
+  /// See [InterviewGuideRecord.usedMode].
+  static final usedMode = obx.QueryStringProperty<InterviewGuideRecord>(
+    _entities[3].properties[5],
+  );
+
+  /// See [InterviewGuideRecord.createdAt].
+  static final createdAt = obx.QueryIntegerProperty<InterviewGuideRecord>(
+    _entities[3].properties[6],
   );
 }

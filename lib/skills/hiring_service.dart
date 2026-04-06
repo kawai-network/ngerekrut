@@ -106,6 +106,8 @@ class HiringService {
     final userPrompt = _buildScorecardPrompt(
       role: role,
       interviewType: interviewType,
+      candidate: candidate,
+      interviewer: interviewer,
       competencies: competencies,
     );
 
@@ -121,11 +123,16 @@ class HiringService {
   String _buildScorecardPrompt({
     required String role,
     required InterviewType interviewType,
+    required String candidate,
+    required String interviewer,
     List<Map<String, dynamic>>? competencies,
   }) {
     final buffer = StringBuffer();
     buffer.writeln('Buat interview scorecard untuk:');
+    buffer.writeln('Kandidat: $candidate');
     buffer.writeln('Posisi: $role');
+    buffer.writeln('Interviewer: $interviewer');
+    buffer.writeln('Tanggal: ${DateTime.now().toIso8601String()}');
     buffer.writeln('Tipe interview: ${interviewType.name}');
 
     if (competencies != null && competencies.isNotEmpty) {

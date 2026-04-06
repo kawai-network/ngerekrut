@@ -110,9 +110,102 @@
         }
       ],
       "relations": []
+    },
+    {
+      "id": "7:77447243925955203",
+      "lastPropertyId": "8:2835945180572883496",
+      "name": "CandidateScorecardRecord",
+      "properties": [
+        {
+          "id": "1:4770809965175558037",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:5652074738406325744",
+          "name": "jobId",
+          "type": 9
+        },
+        {
+          "id": "3:7347486815145148426",
+          "name": "candidateId",
+          "type": 9
+        },
+        {
+          "id": "4:6758291099472408",
+          "name": "candidateName",
+          "type": 9
+        },
+        {
+          "id": "5:8812900862714736210",
+          "name": "interviewType",
+          "type": 9
+        },
+        {
+          "id": "6:2108219503889777624",
+          "name": "scorecardJson",
+          "type": 9
+        },
+        {
+          "id": "7:934338309060139229",
+          "name": "usedMode",
+          "type": 9
+        },
+        {
+          "id": "8:2835945180572883496",
+          "name": "createdAt",
+          "type": 6
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "8:5701768094403887080",
+      "lastPropertyId": "7:4996307860294067598",
+      "name": "InterviewGuideRecord",
+      "properties": [
+        {
+          "id": "1:368200842257746441",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:3487480123981260961",
+          "name": "jobId",
+          "type": 9
+        },
+        {
+          "id": "3:2464294047583973937",
+          "name": "candidateId",
+          "type": 9
+        },
+        {
+          "id": "4:4041101307977610241",
+          "name": "candidateName",
+          "type": 9
+        },
+        {
+          "id": "5:842484296930620915",
+          "name": "guideJson",
+          "type": 9
+        },
+        {
+          "id": "6:5714351012546157956",
+          "name": "usedMode",
+          "type": 9
+        },
+        {
+          "id": "7:4996307860294067598",
+          "name": "createdAt",
+          "type": 6
+        }
+      ],
+      "relations": []
     }
   ],
-  "lastEntityId": "6:3942250377093927904",
+  "lastEntityId": "8:5701768094403887080",
   "lastIndexId": "10:8502198300901827169",
   "lastRelationId": "0:0",
   "lastSequenceId": "0:0",

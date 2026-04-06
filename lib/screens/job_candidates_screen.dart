@@ -5,20 +5,32 @@ import '../models/recruiter_candidate.dart';
 import '../models/recruiter_job.dart';
 import '../models/recruiter_shortlist.dart';
 import '../repositories/hiring_repository.dart';
+import '../repositories/local_interview_guide_repository.dart';
+import '../repositories/local_scorecard_repository.dart';
 import '../repositories/local_shortlist_repository.dart';
 import '../services/resume_screening_service.dart';
+import '../services/scorecard_generation_service.dart';
+import '../services/interview_guide_generation_service.dart';
 import 'shortlist_result_screen.dart';
 
 class JobCandidatesScreen extends StatefulWidget {
   final HiringRepository repository;
+  final LocalInterviewGuideRepository localInterviewGuideRepository;
   final LocalShortlistRepository localShortlistRepository;
+  final LocalScorecardRepository localScorecardRepository;
+  final InterviewGuideGenerationService interviewGuideGenerationService;
   final ResumeScreeningService screeningService;
+  final ScorecardGenerationService scorecardGenerationService;
 
   const JobCandidatesScreen({
     super.key,
     required this.repository,
+    required this.localInterviewGuideRepository,
     required this.localShortlistRepository,
+    required this.localScorecardRepository,
+    required this.interviewGuideGenerationService,
     required this.screeningService,
+    required this.scorecardGenerationService,
   });
 
   @override
@@ -91,7 +103,12 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
         MaterialPageRoute(
           builder: (context) => ShortlistResultScreen(
             repository: widget.repository,
+            localInterviewGuideRepository: widget.localInterviewGuideRepository,
             localShortlistRepository: widget.localShortlistRepository,
+            localScorecardRepository: widget.localScorecardRepository,
+            interviewGuideGenerationService:
+                widget.interviewGuideGenerationService,
+            scorecardGenerationService: widget.scorecardGenerationService,
             job: job,
             initialResult: shortlist,
           ),
@@ -190,8 +207,16 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
                                   MaterialPageRoute(
                                     builder: (context) => ShortlistResultScreen(
                                       repository: widget.repository,
+                                      localInterviewGuideRepository:
+                                          widget.localInterviewGuideRepository,
                                       localShortlistRepository:
                                           widget.localShortlistRepository,
+                                      localScorecardRepository:
+                                          widget.localScorecardRepository,
+                                      interviewGuideGenerationService:
+                                          widget.interviewGuideGenerationService,
+                                      scorecardGenerationService:
+                                          widget.scorecardGenerationService,
                                       job: _job!,
                                       initialResult: saved,
                                     ),
@@ -228,8 +253,16 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
                                   MaterialPageRoute(
                                     builder: (context) => ShortlistResultScreen(
                                       repository: widget.repository,
+                                      localInterviewGuideRepository:
+                                          widget.localInterviewGuideRepository,
                                       localShortlistRepository:
                                           widget.localShortlistRepository,
+                                      localScorecardRepository:
+                                          widget.localScorecardRepository,
+                                      interviewGuideGenerationService:
+                                          widget.interviewGuideGenerationService,
+                                      scorecardGenerationService:
+                                          widget.scorecardGenerationService,
                                       job: _job!,
                                       initialResult: shortlist,
                                     ),
