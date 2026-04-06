@@ -81,7 +81,7 @@ jobs:
 
   release:
     runs-on: ubuntu-latest
-    if: ${{ needs.android.result == 'success' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') }}
+    if: ${{ needs.android.result == 'success' }}
     permissions:
       contents: write
     needs: [android]
