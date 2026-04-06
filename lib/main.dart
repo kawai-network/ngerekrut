@@ -6,6 +6,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'firebase_options.dart';
 import 'screens/full_chat_screen.dart';
 import 'screens/job_posting_chat_screen.dart';
+import 'screens/hiring_screen.dart';
+import 'services/hybrid_ai_service.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -75,8 +77,34 @@ class MyApp extends StatelessWidget {
 }
 
 /// Home screen dengan pilihan fitur.
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  HybridAIService? _hybridService;
+
+  @override
+  void initState() {
+    super.initState();
+    _initHybridService();
+  }
+
+  Future<void> _initHybridService() async {
+    final apiKey = const String.fromEnvironment('OPENAI_API_KEY');
+    if (apiKey.isEmpty) return;
+
+    try {
+      _hybridService = HybridAIService(cloudApiKey: apiKey);
+      await _hybridService!.initialize();
+      setState(() {});
+    } catch (e) {
+      debugPrint('Failed to initialize hybrid service: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -169,9 +197,39 @@ class HomeScreen extends StatelessWidget {
                   textStyle: const TextStyle(fontSize: 16),
                 ),
               ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed: () {
+                  if (_hybridService == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Harap jalankan dengan --dart-define=OPENAI_API_KEY=your_key'),
+                        duration: Duration(seconds: 3),
+                      ),
+                    );
+                    return;
+                  }
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => HiringScreen(
+                        aiService: _hybridService!,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.badge),
+                label: const Text('AI Hiring Assistant'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  textStyle: const TextStyle(fontSize: 16),
+                  backgroundColor: const Color(0xFF6366F1),
+                  foregroundColor: Colors.white,
+                ),
+              ),
               const Spacer(),
               const Text(
-                '💡 Tip: Jalankan dengan --dart-define=OPENAI_API_KEY=your_key untuk mengaktifkan fitur AI.',
+                '💡 Tip: Jalankan dengan --dart-define=OPENAI_API_KEY=your_key untuk mengaktifkan fitur AI.\n\n🤖 AI Hiring Assistant memerlukan model Gemma 4 E4B (didownload otomatis).',
                 style: TextStyle(color: Colors.grey, fontSize: 12),
                 textAlign: TextAlign.center,
               ),

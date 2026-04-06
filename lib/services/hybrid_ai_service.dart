@@ -220,6 +220,9 @@ Silakan generate_job_posting dengan data yang sudah diupdate sesuai request.''';
   /// Get local AI status.
   LocalAIStatus get localAIStatus => _localAI.status;
 
+  /// Get local AI service (for advanced usage like skills)
+  LocalAIService get localAI => _localAI;
+
   /// Release resources.
   Future<void> dispose() async {
     await _localAI.dispose();
