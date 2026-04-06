@@ -86,6 +86,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   HybridAIService? _hybridService;
+  bool _isInitializingAI = false;
+  double _downloadProgress = 0.0;
 
   @override
   void initState() {
@@ -96,11 +98,21 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _initHybridService() async {
     final apiKey = const String.fromEnvironment('OPENAI_API_KEY');
     try {
+      setState(() => _isInitializingAI = true);
       _hybridService = HybridAIService(cloudApiKey: apiKey);
-      await _hybridService!.initialize();
+      await _hybridService!.initialize(
+        onDownloadProgress: (progress) {
+          if (!mounted) return;
+          setState(() => _downloadProgress = progress);
+        },
+      );
       setState(() {});
     } catch (e) {
       debugPrint('Failed to initialize hybrid service: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isInitializingAI = false);
+      }
     }
   }
 
@@ -154,6 +166,41 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(height: 24),
+              if (_isInitializingAI)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _downloadProgress > 0
+                                  ? 'Mengunduh model Gemma... ${(_downloadProgress * 100).toStringAsFixed(0)}%'
+                                  : 'Menyiapkan Gemma lokal...',
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_downloadProgress > 0) ...[
+                        const SizedBox(height: 12),
+                        LinearProgressIndicator(value: _downloadProgress),
+                      ],
+                    ],
+                  ),
+                ),
               // Feature buttons
               ElevatedButton.icon(
                 onPressed: () {

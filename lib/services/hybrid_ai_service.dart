@@ -106,7 +106,7 @@ class HybridAIService {
     final cloudAI = _cloudAI;
     if (cloudAI == null) {
       throw LocalAIException(
-        'Cloud AI is not configured and local AI is unavailable.',
+        'Gemma lokal belum siap, dan Cloud AI belum dikonfigurasi.',
       );
     }
     debugPrint('[HybridAIService] Using Cloud AI for: $position');
@@ -144,7 +144,7 @@ class HybridAIService {
     final cloudAI = _cloudAI;
     if (cloudAI == null) {
       throw LocalAIException(
-        'Cloud AI is not configured and local AI is unavailable.',
+        'Gemma lokal belum siap, dan Cloud AI belum dikonfigurasi.',
       );
     }
     debugPrint('[HybridAIService] Refining with Cloud AI');
