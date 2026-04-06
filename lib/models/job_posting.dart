@@ -13,6 +13,7 @@ class JobPosting {
   final String description;
   final List<String> requirements;
   final List<String> responsibilities;
+  @JsonKey(name: 'salary_range')
   final String salaryRange;
   @JsonKey(name: 'employment_type')
   final String employmentType;
@@ -23,6 +24,7 @@ class JobPosting {
     required this.description,
     required this.requirements,
     required this.responsibilities,
+    @JsonKey(name: 'salary_range')
     required this.salaryRange,
     @JsonKey(name: 'employment_type') this.employmentType = 'Full Time',
   });

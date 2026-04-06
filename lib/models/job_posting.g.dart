@@ -16,7 +16,7 @@ JobPosting _$JobPostingFromJson(Map<String, dynamic> json) => JobPosting(
   responsibilities: (json['responsibilities'] as List<dynamic>)
       .map((e) => e as String)
       .toList(),
-  salaryRange: json['salaryRange'] as String,
+  salaryRange: json['salary_range'] as String,
   employmentType: json['employment_type'] as String? ?? 'Full Time',
 );
 
@@ -27,6 +27,6 @@ Map<String, dynamic> _$JobPostingToJson(JobPosting instance) =>
       'description': instance.description,
       'requirements': instance.requirements,
       'responsibilities': instance.responsibilities,
-      'salaryRange': instance.salaryRange,
+      'salary_range': instance.salaryRange,
       'employment_type': instance.employmentType,
     };

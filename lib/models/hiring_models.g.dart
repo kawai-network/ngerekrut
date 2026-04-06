@@ -8,16 +8,16 @@ part of 'hiring_models.dart';
 
 _JobDescription _$JobDescriptionFromJson(Map<String, dynamic> json) =>
     _JobDescription(
-      roleTitle: json['roleTitle'] as String,
+      roleTitle: json['role_title'] as String,
       team: json['team'] as String,
-      aboutRole: json['aboutRole'] as String,
+      aboutRole: json['about_role'] as String,
       responsibilities: (json['responsibilities'] as List<dynamic>)
           .map((e) => e as String)
           .toList(),
-      mustHave: (json['mustHave'] as List<dynamic>)
+      mustHave: (json['must_have'] as List<dynamic>)
           .map((e) => e as String)
           .toList(),
-      niceToHave: (json['niceToHave'] as List<dynamic>)
+      niceToHave: (json['nice_to_have'] as List<dynamic>)
           .map((e) => e as String)
           .toList(),
       interviewSteps: (json['interviewSteps'] as List<dynamic>)
@@ -27,21 +27,21 @@ _JobDescription _$JobDescriptionFromJson(Map<String, dynamic> json) =>
       benefits: (json['benefits'] as List<dynamic>)
           .map((e) => e as String)
           .toList(),
-      compensationRange: json['compensationRange'] as String?,
+      compensationRange: json['compensation_range'] as String?,
     );
 
 Map<String, dynamic> _$JobDescriptionToJson(_JobDescription instance) =>
     <String, dynamic>{
-      'roleTitle': instance.roleTitle,
+      'role_title': instance.roleTitle,
       'team': instance.team,
-      'aboutRole': instance.aboutRole,
+      'about_role': instance.aboutRole,
       'responsibilities': instance.responsibilities,
-      'mustHave': instance.mustHave,
-      'niceToHave': instance.niceToHave,
+      'must_have': instance.mustHave,
+      'nice_to_have': instance.niceToHave,
       'interviewSteps': instance.interviewSteps,
       'expectedTimeline': instance.expectedTimeline,
       'benefits': instance.benefits,
-      'compensationRange': ?instance.compensationRange,
+      'compensation_range': ?instance.compensationRange,
     };
 
 _ScorecardEntry _$ScorecardEntryFromJson(Map<String, dynamic> json) =>
@@ -83,7 +83,10 @@ _InterviewScorecard _$InterviewScorecardFromJson(Map<String, dynamic> json) =>
       role: json['role'] as String,
       interviewer: json['interviewer'] as String,
       date: DateTime.parse(json['date'] as String),
-      interviewType: $enumDecode(_$InterviewTypeEnumMap, json['interviewType']),
+      interviewType: $enumDecode(
+        _$InterviewTypeEnumMap,
+        json['interview_type'],
+      ),
       competencies: (json['competencies'] as List<dynamic>)
           .map((e) => ScorecardEntry.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -102,7 +105,7 @@ Map<String, dynamic> _$InterviewScorecardToJson(_InterviewScorecard instance) =>
       'role': instance.role,
       'interviewer': instance.interviewer,
       'date': instance.date.toIso8601String(),
-      'interviewType': _$InterviewTypeEnumMap[instance.interviewType]!,
+      'interview_type': _$InterviewTypeEnumMap[instance.interviewType]!,
       'competencies': instance.competencies.map((e) => e.toJson()).toList(),
       'weightedScore': ?instance.weightedScore,
       'recommendation': ?_$HiringRecommendationEnumMap[instance.recommendation],
@@ -147,14 +150,14 @@ _STARInterviewGuide _$STARInterviewGuideFromJson(Map<String, dynamic> json) =>
       questions: (json['questions'] as List<dynamic>)
           .map((e) => STARQuestion.fromJson(e as Map<String, dynamic>))
           .toList(),
-      scoringGuide: json['scoringGuide'] as String,
+      scoringGuide: json['scoring_guide'] as String,
     );
 
 Map<String, dynamic> _$STARInterviewGuideToJson(_STARInterviewGuide instance) =>
     <String, dynamic>{
       'role': instance.role,
       'questions': instance.questions.map((e) => e.toJson()).toList(),
-      'scoringGuide': instance.scoringGuide,
+      'scoring_guide': instance.scoringGuide,
     };
 
 _HiringMetrics _$HiringMetricsFromJson(Map<String, dynamic> json) =>
@@ -184,14 +187,14 @@ Map<String, dynamic> _$HiringMetricsToJson(_HiringMetrics instance) =>
 _HiringPipeline _$HiringPipelineFromJson(Map<String, dynamic> json) =>
     _HiringPipeline(
       role: json['role'] as String,
-      roleLevel: $enumDecode(_$RoleLevelEnumMap, json['roleLevel']),
+      roleLevel: $enumDecode(_$RoleLevelEnumMap, json['role_level']),
       urgency: $enumDecode(_$UrgencyEnumMap, json['urgency']),
-      postedDate: DateTime.parse(json['postedDate'] as String),
-      applicantsCount: (json['applicantsCount'] as num?)?.toInt(),
-      screenedCount: (json['screenedCount'] as num?)?.toInt(),
-      interviewCount: (json['interviewCount'] as num?)?.toInt(),
-      offerCount: (json['offerCount'] as num?)?.toInt(),
-      hiredCount: (json['hiredCount'] as num?)?.toInt(),
+      postedDate: DateTime.parse(json['posted_date'] as String),
+      applicantsCount: (json['applicants_count'] as num?)?.toInt(),
+      screenedCount: (json['screened_count'] as num?)?.toInt(),
+      interviewCount: (json['interview_count'] as num?)?.toInt(),
+      offerCount: (json['offer_count'] as num?)?.toInt(),
+      hiredCount: (json['hired_count'] as num?)?.toInt(),
       metrics: json['metrics'] == null
           ? null
           : HiringMetrics.fromJson(json['metrics'] as Map<String, dynamic>),
@@ -200,14 +203,14 @@ _HiringPipeline _$HiringPipelineFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$HiringPipelineToJson(_HiringPipeline instance) =>
     <String, dynamic>{
       'role': instance.role,
-      'roleLevel': _$RoleLevelEnumMap[instance.roleLevel]!,
+      'role_level': _$RoleLevelEnumMap[instance.roleLevel]!,
       'urgency': _$UrgencyEnumMap[instance.urgency]!,
-      'postedDate': instance.postedDate.toIso8601String(),
-      'applicantsCount': ?instance.applicantsCount,
-      'screenedCount': ?instance.screenedCount,
-      'interviewCount': ?instance.interviewCount,
-      'offerCount': ?instance.offerCount,
-      'hiredCount': ?instance.hiredCount,
+      'posted_date': instance.postedDate.toIso8601String(),
+      'applicants_count': ?instance.applicantsCount,
+      'screened_count': ?instance.screenedCount,
+      'interview_count': ?instance.interviewCount,
+      'offer_count': ?instance.offerCount,
+      'hired_count': ?instance.hiredCount,
       'metrics': ?instance.metrics?.toJson(),
     };
 

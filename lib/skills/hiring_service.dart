@@ -342,12 +342,85 @@ class HiringService {
       errorBuilder: (_) => errorMessage,
     );
 
+    final normalizedData = _normalizeSkillData(skill, result.data);
+
     return HiringSkillResult(
       skill: skill,
-      data: result.data,
+      data: normalizedData,
       textResponse: result.rawResponse,
       usedMode: AIMode.local,
     );
+  }
+
+  Map<String, dynamic> _normalizeSkillData(
+    String skill,
+    Map<String, dynamic> data,
+  ) {
+    switch (skill) {
+      case 'generate_job_description':
+        return {
+          ...data,
+          if (data.containsKey('role_title')) 'roleTitle': data['role_title'],
+          if (data.containsKey('about_role')) 'aboutRole': data['about_role'],
+          if (data.containsKey('must_have')) 'mustHave': data['must_have'],
+          if (data.containsKey('nice_to_have'))
+            'niceToHave': data['nice_to_have'],
+          if (data.containsKey('interview_steps'))
+            'interviewSteps': data['interview_steps'],
+          if (data.containsKey('expected_timeline'))
+            'expectedTimeline': data['expected_timeline'],
+          if (data.containsKey('compensation_range'))
+            'compensationRange': data['compensation_range'],
+        };
+      case 'create_interview_scorecard':
+        return {
+          ...data,
+          if (data.containsKey('interview_type'))
+            'interviewType': data['interview_type'],
+          if (data.containsKey('weighted_score'))
+            'weightedScore': data['weighted_score'],
+          if (data.containsKey('next_steps')) 'nextSteps': data['next_steps'],
+          if (data['competencies'] is List)
+            'competencies': (data['competencies'] as List)
+                .map((entry) => entry is Map<String, dynamic>
+                    ? {
+                        ...entry,
+                        if (entry.containsKey('strong_signals'))
+                          'strongSignals': entry['strong_signals'],
+                      }
+                    : entry)
+                .toList(),
+        };
+      case 'generate_star_questions':
+        return {
+          ...data,
+          if (data.containsKey('scoring_guide'))
+            'scoringGuide': data['scoring_guide'],
+          if (data['questions'] is List)
+            'questions': (data['questions'] as List)
+                .map((entry) => entry is Map<String, dynamic>
+                    ? {
+                        ...entry,
+                        if (entry.containsKey('look_for'))
+                          'lookFor': entry['look_for'],
+                      }
+                    : entry)
+                .toList(),
+        };
+      case 'generate_hiring_metrics':
+        return {
+          ...data,
+          if (data.containsKey('funnel_metrics'))
+            'funnelMetrics': data['funnel_metrics'],
+          if (data.containsKey('time_metrics'))
+            'timeMetrics': data['time_metrics'],
+          if (data.containsKey('quality_metrics'))
+            'qualityMetrics': data['quality_metrics'],
+          if (data.containsKey('red_flags')) 'redFlags': data['red_flags'],
+        };
+      default:
+        return data;
+    }
   }
 
   /// Get all available skills

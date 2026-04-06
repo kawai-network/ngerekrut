@@ -57,15 +57,22 @@ enum Competency {
 @freezed
 abstract class JobDescription with _$JobDescription {
   const factory JobDescription({
+    @JsonKey(name: 'role_title')
     required String roleTitle,
     required String team,
+    @JsonKey(name: 'about_role')
     required String aboutRole,
     required List<String> responsibilities,
+    @JsonKey(name: 'must_have')
     required List<String> mustHave,
+    @JsonKey(name: 'nice_to_have')
     required List<String> niceToHave,
+    @JsonKey(name: 'interview_steps')
     required List<String> interviewSteps,
+    @JsonKey(name: 'expected_timeline')
     required String expectedTimeline,
     required List<String> benefits,
+    @JsonKey(name: 'compensation_range')
     String? compensationRange,
   }) = _JobDescription;
 
@@ -82,6 +89,7 @@ abstract class ScorecardEntry with _$ScorecardEntry {
     required int weight, // Percentage
     int? score, // 1-5
     String? evidence,
+    @JsonKey(name: 'strong_signals')
     required List<String> strongSignals,
     required List<String> concerns,
   }) = _ScorecardEntry;
@@ -97,11 +105,14 @@ abstract class InterviewScorecard with _$InterviewScorecard {
     required String role,
     required String interviewer,
     required DateTime date,
+    @JsonKey(name: 'interview_type')
     required InterviewType interviewType,
     required List<ScorecardEntry> competencies,
+    @JsonKey(name: 'weighted_score')
     double? weightedScore,
     HiringRecommendation? recommendation,
     String? summary,
+    @JsonKey(name: 'next_steps')
     String? nextSteps,
   }) = _InterviewScorecard;
 
@@ -116,6 +127,7 @@ abstract class STARQuestion with _$STARQuestion {
   const factory STARQuestion({
     required String competency,
     required String question,
+    @JsonKey(name: 'look_for')
     required List<String> lookFor,
   }) = _STARQuestion;
 
@@ -128,6 +140,7 @@ abstract class STARInterviewGuide with _$STARInterviewGuide {
   const factory STARInterviewGuide({
     required String role,
     required List<STARQuestion> questions,
+    @JsonKey(name: 'scoring_guide')
     required String scoringGuide,
   }) = _STARInterviewGuide;
 
@@ -140,10 +153,14 @@ abstract class STARInterviewGuide with _$STARInterviewGuide {
 @freezed
 abstract class HiringMetrics with _$HiringMetrics {
   const factory HiringMetrics({
+    @JsonKey(name: 'funnel_metrics')
     required Map<String, double> funnelMetrics,
+    @JsonKey(name: 'time_metrics')
     required Map<String, String> timeMetrics,
+    @JsonKey(name: 'quality_metrics')
     required Map<String, double> qualityMetrics,
     required Map<String, String> targets,
+    @JsonKey(name: 'red_flags')
     required List<String> redFlags,
   }) = _HiringMetrics;
 
@@ -157,13 +174,20 @@ abstract class HiringMetrics with _$HiringMetrics {
 abstract class HiringPipeline with _$HiringPipeline {
   const factory HiringPipeline({
     required String role,
+    @JsonKey(name: 'role_level')
     required RoleLevel roleLevel,
     required Urgency urgency,
+    @JsonKey(name: 'posted_date')
     required DateTime postedDate,
+    @JsonKey(name: 'applicants_count')
     int? applicantsCount,
+    @JsonKey(name: 'screened_count')
     int? screenedCount,
+    @JsonKey(name: 'interview_count')
     int? interviewCount,
+    @JsonKey(name: 'offer_count')
     int? offerCount,
+    @JsonKey(name: 'hired_count')
     int? hiredCount,
     HiringMetrics? metrics,
   }) = _HiringPipeline;

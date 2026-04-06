@@ -49,12 +49,31 @@ class HiringSkill {
               'items': {'type': 'string'},
               'description': 'Key benefits and perks',
             },
+            'interview_steps': {
+              'type': 'array',
+              'items': {'type': 'string'},
+              'description': 'Interview stages for the role',
+            },
+            'expected_timeline': {
+              'type': 'string',
+              'description': 'Expected hiring timeline',
+            },
             'compensation_range': {
               'type': 'string',
               'description': 'Salary range (optional)',
             },
           },
-          'required': ['role_title', 'team', 'role_level', 'about_role'],
+          'required': [
+            'role_title',
+            'team',
+            'about_role',
+            'responsibilities',
+            'must_have',
+            'nice_to_have',
+            'interview_steps',
+            'expected_timeline',
+            'benefits',
+          ],
         },
       };
 
@@ -76,6 +95,10 @@ class HiringSkill {
             'interviewer': {
               'type': 'string',
               'description': 'Interviewer name (placeholder: "Interviewer Name")',
+            },
+            'date': {
+              'type': 'string',
+              'description': 'Interview date in ISO-8601 format',
             },
             'interview_type': {
               'type': 'string',
@@ -99,11 +122,39 @@ class HiringSkill {
                     ],
                   },
                   'weight': {'type': 'number'},
+                  'score': {'type': 'number'},
+                  'evidence': {'type': 'string'},
+                  'strong_signals': {
+                    'type': 'array',
+                    'items': {'type': 'string'},
+                  },
+                  'concerns': {
+                    'type': 'array',
+                    'items': {'type': 'string'},
+                  },
                 },
+                'required': ['competency', 'weight', 'strong_signals', 'concerns'],
               },
             },
+            'weighted_score': {
+              'type': 'number',
+              'description': 'Weighted overall score',
+            },
+            'recommendation': {
+              'type': 'string',
+              'enum': ['strongNoHire', 'noHire', 'hire', 'strongHire'],
+            },
+            'summary': {'type': 'string'},
+            'next_steps': {'type': 'string'},
           },
-          'required': ['role', 'interview_type'],
+          'required': [
+            'candidate',
+            'role',
+            'interviewer',
+            'date',
+            'interview_type',
+            'competencies',
+          ],
         },
       };
 
@@ -118,17 +169,28 @@ class HiringSkill {
               'type': 'string',
               'description': 'Position title',
             },
-            'competency_focus': {
+            'questions': {
               'type': 'array',
-              'items': {'type': 'string'},
-              'description': 'Competencies to focus on (e.g., "problem_solving", "leadership")',
+              'items': {
+                'type': 'object',
+                'properties': {
+                  'competency': {'type': 'string'},
+                  'question': {'type': 'string'},
+                  'look_for': {
+                    'type': 'array',
+                    'items': {'type': 'string'},
+                  },
+                },
+                'required': ['competency', 'question', 'look_for'],
+              },
+              'description': 'Structured STAR interview questions',
             },
-            'question_count': {
-              'type': 'number',
-              'description': 'Number of questions to generate (default: 5)',
+            'scoring_guide': {
+              'type': 'string',
+              'description': 'Guidance for evaluating answers',
             },
           },
-          'required': ['role'],
+          'required': ['role', 'questions', 'scoring_guide'],
         },
       };
 
@@ -143,17 +205,34 @@ class HiringSkill {
               'type': 'string',
               'description': 'Position title',
             },
-            'team_size': {
-              'type': 'number',
-              'description': 'Current team size',
+            'funnel_metrics': {
+              'type': 'object',
+              'additionalProperties': {'type': 'number'},
             },
-            'urgency': {
-              'type': 'string',
-              'description': 'Hiring urgency level',
-              'enum': ['low', 'medium', 'high', 'critical'],
+            'time_metrics': {
+              'type': 'object',
+              'additionalProperties': {'type': 'string'},
+            },
+            'quality_metrics': {
+              'type': 'object',
+              'additionalProperties': {'type': 'number'},
+            },
+            'targets': {
+              'type': 'object',
+              'additionalProperties': {'type': 'string'},
+            },
+            'red_flags': {
+              'type': 'array',
+              'items': {'type': 'string'},
             },
           },
-          'required': ['role'],
+          'required': [
+            'funnel_metrics',
+            'time_metrics',
+            'quality_metrics',
+            'targets',
+            'red_flags',
+          ],
         },
       };
 
