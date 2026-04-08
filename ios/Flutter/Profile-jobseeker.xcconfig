@@ -1,0 +1,4 @@
+#include "Release.xcconfig"
+FLUTTER_TARGET=lib/main_jobseeker.dart
+APP_DISPLAY_NAME=NgeKerja
+PRODUCT_BUNDLE_IDENTIFIER=com.ngerekrut.jobseeker

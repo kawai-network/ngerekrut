@@ -145,8 +145,9 @@ class _JobSeekerHomeScreenState extends State<JobSeekerHomeScreen> {
               ),
               const Spacer(),
               Text(
-                '🤖 AI-powered job matching dan persiapan karier.\n\n💡 Tambahkan --dart-define=OPENAI_API_KEY=your_key untuk mengaktifkan AI features.'
-                '\n\n📧 Butuh --dart-define=API_BASE_URL=...',
+                'AI-powered job matching dan persiapan karier.\n\n'
+                'API: ${FlavorManager.environment.apiBaseUrl.isEmpty ? 'belum dikonfigurasi' : FlavorManager.environment.apiBaseUrl}'
+                '\n\nTambahkan OPENAI_API_KEY dan FIREBASE_JOBSEEKER_* via --dart-define saat build.',
                 style: TextStyle(color: Colors.grey, fontSize: 12),
                 textAlign: TextAlign.center,
               ),

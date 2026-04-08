@@ -1,102 +1,77 @@
-# 🚀 Quick Start - Multi-Flavor Apps
+# Multi-Flavor Quick Start
 
-## ✅ Setup Complete!
+Status saat ini: wiring flavor dan Firebase default sudah ada, tetapi build release masih butuh signing yang valid dan validasi iOS di mesin dengan full Xcode.
 
-Your project now supports **2 separate apps**:
+## Android
 
-1. **NgeRekrut** (Recruiter) - `com.ngerekrut.recruiter`
-2. **NgeKerja** (Job Seeker) - `com.ngerekrut.jobseeker`
+Debug run:
 
-## 📱 Run Commands
-
-### Android
 ```bash
-# Recruiter App
 flutter run --flavor recruiter -t lib/main_recruiter.dart
-
-# Job Seeker App  
 flutter run --flavor jobseeker -t lib/main_jobseeker.dart
 ```
 
-### Build APK for Release
-```bash
-# Recruiter
-flutter build apk --flavor recruiter -t lib/main_recruiter.dart --release
+Release build:
 
-# Job Seeker
+1. Copy `android/key.properties.example` menjadi `android/key.properties`
+2. Isi path ke keystore dan credential release
+3. Jika ingin override project Firebase default, isi `FIREBASE_*` via `--dart-define`
+4. Jalankan build:
+
+```bash
+flutter build apk --flavor recruiter -t lib/main_recruiter.dart --release
 flutter build apk --flavor jobseeker -t lib/main_jobseeker.dart --release
 ```
 
-## ⚠️ Before Running
+## iOS
 
-You need to configure Firebase for both package names:
+Flavor iOS sekarang memakai build configurations terpisah:
 
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Select your project: `ngerekrut`
-3. Add 2 Android apps with these package names:
-   - `com.ngerekrut.recruiter`
-   - `com.ngerekrut.jobseeker`
-4. Download the updated `google-services.json`
-5. Replace the file at `android/app/google-services.json`
+- `Debug-recruiter`, `Release-recruiter`, `Profile-recruiter`
+- `Debug-jobseeker`, `Release-jobseeker`, `Profile-jobseeker`
 
-**Note:** I've already added placeholder entries in `google-services.json`, but you'll get the proper `mobilesdk_app_id` from Firebase Console.
+Run:
 
-## 📂 What Was Created
-
-```
-lib/
-├── flavors/
-│   ├── app_flavor_config.dart       # ✅ Config for both apps
-│   ├── flavor_environment.dart      # ✅ Environment vars
-│   └── flavor_manager.dart          # ✅ Global flavor access
-├── main_recruiter.dart             # ✅ Recruiter entry point
-├── main_jobseeker.dart             # ✅ Job Seeker entry point
-└── screens/
-    └── job_seeker_home_screen.dart # ✅ Job Seeker UI
-
-android/
-└── app/
-    ├── build.gradle.kts            # ✅ Updated with flavors
-    └── google-services.json        # ✅ Updated with both packages
-
-ios/
-└── Runner.xcodeproj/
-    └── xcshareddata/
-        └── xcschemes/
-            ├── Recruiter.xcscheme   # ✅ iOS scheme
-            └── JobSeeker.xcscheme   # ✅ iOS scheme
-
-FLAVOR_SETUP.md                    # ✅ Full documentation
+```bash
+flutter run --flavor recruiter -t lib/main_recruiter.dart
+flutter run --flavor jobseeker -t lib/main_jobseeker.dart
 ```
 
-## 🎨 Differences Between Apps
+## Firebase
 
-| Feature | Recruiter (NgeRekrut) | Job Seeker (NgeKerja) |
-|---------|----------------------|----------------------|
-| **Color** | Green (#18CD5B) | Purple (#6366F1) |
-| **Features** | Job posting, Screening, Hiring | Job search, Applications, Interview prep |
-| **Target** | Employers | Job seekers |
+Flavor apps sekarang punya default Firebase config yang valid. `--dart-define` hanya dipakai jika Anda ingin override.
 
-## 🔧 Next Steps
+Recruiter:
 
-1. **Test the apps:**
-   ```bash
-   flutter run --flavor recruiter -t lib/main_recruiter.dart
-   flutter run --flavor jobseeker -t lib/main_jobseeker.dart
-   ```
+```bash
+--dart-define=FIREBASE_RECRUITER_API_KEY=...
+--dart-define=FIREBASE_RECRUITER_APP_ID=...
+--dart-define=FIREBASE_RECRUITER_MESSAGING_SENDER_ID=...
+--dart-define=FIREBASE_RECRUITER_PROJECT_ID=...
+--dart-define=FIREBASE_RECRUITER_STORAGE_BUCKET=...
+--dart-define=FIREBASE_RECRUITER_IOS_BUNDLE_ID=com.ngerekrut.recruiter
+```
 
-2. **Customize Job Seeker features:** Edit `lib/screens/job_seeker_home_screen.dart`
+Job seeker:
 
-3. **Set up different app icons** (optional):
-   - Android: Add flavor-specific resources in `android/app/src/recruiter/` and `android/app/src/jobseeker/`
-   - iOS: Configure in Xcode schemes
+```bash
+--dart-define=FIREBASE_JOBSEEKER_API_KEY=...
+--dart-define=FIREBASE_JOBSEEKER_APP_ID=...
+--dart-define=FIREBASE_JOBSEEKER_MESSAGING_SENDER_ID=...
+--dart-define=FIREBASE_JOBSEEKER_PROJECT_ID=...
+--dart-define=FIREBASE_JOBSEEKER_STORAGE_BUCKET=...
+--dart-define=FIREBASE_JOBSEEKER_IOS_BUNDLE_ID=com.ngerekrut.jobseeker
+```
 
-4. **Configure separate APIs:** Use `--dart-define` for different endpoints:
-   ```bash
-   flutter run --flavor recruiter --dart-define=API_URL=https://recruiter.api.com
-   flutter run --flavor jobseeker --dart-define=API_URL=https://jobseeker.api.com
-   ```
+Jika values di atas tidak diisi, flavor akan memakai default config yang sudah ditanam di repo.
 
-## 📖 Full Documentation
+## API / Env
 
-See `FLAVOR_SETUP.md` for detailed setup instructions and troubleshooting.
+Contoh:
+
+```bash
+flutter run --flavor recruiter -t lib/main_recruiter.dart \
+  --dart-define=API_BASE_URL=https://api-recruiter.example.com
+```
+
+Detail lebih lengkap ada di `FLAVOR_SETUP.md`.

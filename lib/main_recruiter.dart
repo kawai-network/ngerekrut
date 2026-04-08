@@ -4,14 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'firebase_options.dart';
 import 'flavors/app_flavor_config.dart';
+import 'flavors/flavor_environment.dart';
+import 'flavors/flavor_firebase_options.dart';
 import 'flavors/flavor_manager.dart';
 import 'main.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  final options = FlavorFirebaseOptions.currentPlatform;
+  if (options == null) {
+    return;
+  }
+  await Firebase.initializeApp(options: options);
   debugPrint('FCM background message: ${message.messageId}');
 }
 
@@ -42,22 +47,29 @@ Future<void> _initializeFirebaseMessaging() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize recruiter flavor
-  FlavorManager.init(AppFlavorConfig.recruiter);
-  
+
+  FlavorManager.init(
+    AppFlavorConfig.recruiter,
+    environment: FlavorEnvironment.fromConfig(),
+  );
+
   await _loadEnv();
   // Only initialize Firebase on supported platforms
   final isSupportedPlatform = kIsWeb ||
       (Platform.isAndroid || Platform.isIOS || Platform.isMacOS);
   if (isSupportedPlatform) {
     try {
-      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-      await _initializeFirebaseMessaging();
-    } on UnsupportedError catch (e) {
-      // Platform not configured in firebase_options.dart
-      debugPrint('Firebase not configured for this platform: $e');
+      final options = FlavorFirebaseOptions.currentPlatform;
+      if (options == null) {
+        debugPrint(
+          'Firebase disabled for recruiter flavor. '
+          'Set FIREBASE_RECRUITER_* dart-defines before release builds.',
+        );
+      } else {
+        await Firebase.initializeApp(options: options);
+        FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+        await _initializeFirebaseMessaging();
+      }
     } on Exception catch (e) {
       debugPrint('Firebase initialization failed: $e');
     }

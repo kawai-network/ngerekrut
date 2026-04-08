@@ -1,0 +1,4 @@
+#include "Release.xcconfig"
+FLUTTER_TARGET=lib/main_recruiter.dart
+APP_DISPLAY_NAME=NgeRekrut
+PRODUCT_BUNDLE_IDENTIFIER=com.ngerekrut.recruiter
