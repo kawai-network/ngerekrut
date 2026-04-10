@@ -97,9 +97,7 @@ jobs:
         with:
           name: android-apk
           retention-days: 30
-          path: |
-            build/app/outputs/flutter-apk/app-jobseeker-*.apk
-            build/app/outputs/flutter-apk/app-recruiter-*.apk
+          path: build/app/outputs/flutter-apk/*.apk
 
   release:
     runs-on: ubuntu-latest
