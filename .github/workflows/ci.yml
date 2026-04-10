@@ -81,6 +81,12 @@ jobs:
           # Decode keystore file
           echo '${{ secrets.ANDROID_KEYSTORE_BASE64 }}' | base64 -d > android/app/release-keystore.jks
 
+          # Verify keystore was created
+          ls -lh android/app/release-keystore.jks
+
+          # Verify keystore password
+          keytool -list -v -keystore android/app/release-keystore.jks -storepass '${{ secrets.KEYSTORE_PASSWORD }}'
+
           # Create key.properties
           cat > android/key.properties << EOF
           storePassword=${{ secrets.KEYSTORE_PASSWORD }}
@@ -88,6 +94,9 @@ jobs:
           keyAlias=${{ secrets.KEY_ALIAS }}
           storeFile=release-keystore.jks
           EOF
+
+          # Verify key.properties
+          cat android/key.properties
 
       - name: Setup environment variables
         shell: bash
