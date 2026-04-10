@@ -87,10 +87,10 @@ jobs:
           EOF
 
       - name: Build Android APK (Jobseeker)
-        run: flutter build apk --release --flavor jobseeker -t lib/main_jobseeker.dart
+        run: flutter build apk --release --flavor jobseeker -t lib/main_jobseeker.dart --split-per-abi
 
       - name: Build Android APK (Recruiter)
-        run: flutter build apk --release --flavor recruiter -t lib/main_recruiter.dart
+        run: flutter build apk --release --flavor recruiter -t lib/main_recruiter.dart --split-per-abi
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
@@ -98,8 +98,8 @@ jobs:
           name: android-apk
           retention-days: 30
           path: |
-            build/app/outputs/flutter-apk/app-jobseeker-release.apk
-            build/app/outputs/flutter-apk/app-recruiter-release.apk
+            build/app/outputs/flutter-apk/app-jobseeker-*.apk
+            build/app/outputs/flutter-apk/app-recruiter-*.apk
 
   release:
     runs-on: ubuntu-latest
