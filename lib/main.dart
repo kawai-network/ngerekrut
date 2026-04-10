@@ -274,12 +274,18 @@ class _HomeScreenState extends State<HomeScreen> {
               // Feature buttons
               ElevatedButton.icon(
                 onPressed: () {
+                  final service =
+                      _hybridService ??
+                      HybridAIService(
+                        cloudApiKey: _readConfig('OPENAI_API_KEY'),
+                      );
+                  _hybridService ??= service;
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const JobPostingChatScreen(
-                        // TODO: Replace with your OpenAI API key
-                        apiKey: String.fromEnvironment('OPENAI_API_KEY'),
+                      builder: (context) => JobPostingChatScreen(
+                        apiKey: _readConfig('OPENAI_API_KEY'),
+                        aiService: service,
                       ),
                     ),
                   );

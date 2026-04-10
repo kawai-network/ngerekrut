@@ -22,8 +22,13 @@ import '../models/job_posting.dart';
 /// Chat screen untuk bikin lowongan sekali prompt.
 class JobPostingChatScreen extends StatefulWidget {
   final String? apiKey;
+  final HybridAIService? aiService;
 
-  const JobPostingChatScreen({super.key, this.apiKey});
+  const JobPostingChatScreen({
+    super.key,
+    this.apiKey,
+    this.aiService,
+  });
 
   @override
   State<JobPostingChatScreen> createState() => _JobPostingChatScreenState();
@@ -62,7 +67,7 @@ class _JobPostingChatScreenState extends State<JobPostingChatScreen> {
     setState(() => _isInitializing = true);
 
     try {
-      _hybridService = HybridAIService(cloudApiKey: apiKey);
+      _hybridService = widget.aiService ?? HybridAIService(cloudApiKey: apiKey);
       final localReady = await _hybridService!.initialize(
         onDownloadProgress: (progress) {
           setState(() => _downloadProgress = progress);
@@ -125,6 +130,29 @@ Setelah job posting jadi, kamu bisa:
 
   Future<void> _handleMessageSend(String text) async {
     if (text.trim().isEmpty || _isGenerating) return;
+
+    if (_isInitializing) {
+      await _sendErrorMessage(
+        'Gemma lokal masih disiapkan. Tunggu sampai inisialisasi selesai lalu coba lagi.',
+      );
+      return;
+    }
+
+    final service = _hybridService;
+    if (service == null) {
+      await _sendErrorMessage('Service AI belum siap.');
+      return;
+    }
+
+    if (!service.isLocalAIReady && !service.hasCloudAI) {
+      final reason = service.localAIErrorMessage;
+      await _sendErrorMessage(
+        reason == null || reason.isEmpty
+            ? 'Gemma lokal belum siap. Coba lagi beberapa saat lagi.'
+            : 'Gemma lokal belum siap: $reason',
+      );
+      return;
+    }
 
     // Save user message
     final userId = _uuid.v4();

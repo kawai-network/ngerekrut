@@ -236,18 +236,30 @@ class HybridAIService {
       systemPrompt: systemPrompt,
     );
 
-    // Parse function call result
-    final functionData = JobPostingTool.parseFunctionCall(response);
-    if (functionData != null) {
+    final parsedFromTool = _parseJobPostingResponse(response);
+    if (parsedFromTool != null) {
       return GenerationResult(
-        jobPosting: JobPosting.fromJson(functionData),
+        jobPosting: parsedFromTool,
         usedMode: AIMode.local,
         rawResponse: response,
       );
     }
 
-    // Fallback: try to extract JSON from response
-    throw LocalAIException('Failed to parse function call from local AI');
+    final fallbackResponse = await generateLocalResponse(
+      prompt: _buildPlainJsonGeneratePrompt(position),
+      systemPrompt: _buildPlainJsonSystemPrompt(),
+    );
+
+    final parsedFromJson = _parseJobPostingResponse(fallbackResponse);
+    if (parsedFromJson != null) {
+      return GenerationResult(
+        jobPosting: parsedFromJson,
+        usedMode: AIMode.local,
+        rawResponse: fallbackResponse,
+      );
+    }
+
+    throw LocalAIException('Failed to parse job posting from local AI response');
   }
 
   /// Refine using local AI.
@@ -264,16 +276,30 @@ class HybridAIService {
       systemPrompt: systemPrompt,
     );
 
-    final functionData = JobPostingTool.parseFunctionCall(response);
-    if (functionData != null) {
+    final parsedFromTool = _parseJobPostingResponse(response);
+    if (parsedFromTool != null) {
       return GenerationResult(
-        jobPosting: JobPosting.fromJson(functionData),
+        jobPosting: parsedFromTool,
         usedMode: AIMode.local,
         rawResponse: response,
       );
     }
 
-    throw LocalAIException('Failed to parse function call from local AI');
+    final fallbackResponse = await generateLocalResponse(
+      prompt: _buildPlainJsonRefinePrompt(current, userRequest),
+      systemPrompt: _buildPlainJsonSystemPrompt(),
+    );
+
+    final parsedFromJson = _parseJobPostingResponse(fallbackResponse);
+    if (parsedFromJson != null) {
+      return GenerationResult(
+        jobPosting: parsedFromJson,
+        usedMode: AIMode.local,
+        rawResponse: fallbackResponse,
+      );
+    }
+
+    throw LocalAIException('Failed to parse job posting from local AI response');
   }
 
   String _buildSystemPrompt() {
@@ -288,8 +314,35 @@ Your task is to generate professional, attractive job postings that:
 Always respond with a function call to generate_job_posting with all required fields.''';
   }
 
+  String _buildPlainJsonSystemPrompt() {
+    return '''You are an expert HR assistant specializing in creating job postings for the Indonesian market.
+
+Respond with JSON only. Do not add markdown, code fences, explanations, or extra text.
+
+The JSON must contain exactly these keys:
+- title
+- location
+- employment_type
+- description
+- requirements
+- responsibilities
+- salary_range
+
+`requirements` and `responsibilities` must be arrays of strings.''';
+  }
+
   String _buildGeneratePrompt(String position) {
     return 'Buat lowongan kerja untuk posisi: $position\n\nPastikan sertakan:\n- Judul yang jelas\n- Lokasi (default: Jakarta jika tidak disebutkan)\n- Tipe employment\n- Deskripsi menarik\n- Requirements yang realistis\n- Responsibilities yang jelas\n- Range gaji yang wajar untuk Indonesia';
+  }
+
+  String _buildPlainJsonGeneratePrompt(String position) {
+    return '''Buat lowongan kerja untuk posisi: $position
+
+Kembalikan JSON valid saja dengan field:
+title, location, employment_type, description, requirements, responsibilities, salary_range.
+
+Lokasi default Jakarta jika tidak disebutkan.
+Gunakan bahasa Indonesia yang profesional.''';
   }
 
   String _buildRefinePrompt(JobPosting current, String userRequest) {
@@ -299,6 +352,65 @@ ${current.toJson()}
 User request: $userRequest
 
 Silakan generate_job_posting dengan data yang sudah diupdate sesuai request.''';
+  }
+
+  String _buildPlainJsonRefinePrompt(JobPosting current, String userRequest) {
+    return '''Berikut job posting saat ini dalam JSON:
+${current.toJson()}
+
+Ubah data di atas sesuai request pengguna berikut:
+$userRequest
+
+Kembalikan JSON valid saja dengan field:
+title, location, employment_type, description, requirements, responsibilities, salary_range.''';
+  }
+
+  JobPosting? _parseJobPostingResponse(String response) {
+    final functionData = JobPostingTool.parseFunctionCall(response);
+    if (functionData != null) {
+      return _tryBuildJobPosting(functionData);
+    }
+
+    final directJson = LocalToolCallParser.extractJson(response);
+    if (directJson != null) {
+      return _tryBuildJobPosting(directJson);
+    }
+
+    return null;
+  }
+
+  JobPosting? _tryBuildJobPosting(Map<String, dynamic> json) {
+    try {
+      return JobPosting.fromJson(_normalizeJobPostingJson(json));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Map<String, dynamic> _normalizeJobPostingJson(Map<String, dynamic> json) {
+    List<String> asStringList(Object? value) {
+      if (value is List) {
+        return value.map((item) => item.toString()).toList();
+      }
+      if (value is String && value.isNotEmpty) {
+        return value
+            .split(RegExp(r'\n|,|;'))
+            .map((item) => item.replaceFirst(RegExp(r'^\s*[-*\d.)]+\s*'), '').trim())
+            .where((item) => item.isNotEmpty)
+            .toList();
+      }
+      return <String>[];
+    }
+
+    return {
+      'title': (json['title'] ?? '').toString(),
+      'location': ((json['location'] ?? 'Jakarta')).toString(),
+      'employment_type': ((json['employment_type'] ?? 'Full-time')).toString(),
+      'description': (json['description'] ?? '').toString(),
+      'requirements': asStringList(json['requirements']),
+      'responsibilities': asStringList(json['responsibilities']),
+      'salary_range': (json['salary_range'] ?? '').toString(),
+    };
   }
 
   String _buildUnavailableMessage() {
