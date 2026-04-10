@@ -75,6 +75,17 @@ jobs:
           mkdir -p android/app
           echo '${{ secrets.GOOGLE_SERVICES_JSON }}' | base64 -d > android/app/google-services.json
 
+      - name: Setup environment variables
+        shell: bash
+        run: |
+          # Create .env file from secrets or use defaults
+          cat > .env << EOF
+          CLOUDFLARE_ACCOUNT_ID=${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_KV_NAMESPACE_ID=${{ secrets.CLOUDFLARE_KV_NAMESPACE_ID }}
+          CLOUDFLARE_API_TOKEN=${{ secrets.CLOUDFLARE_API_TOKEN }}
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          EOF
+
       - name: Build Android APK
         run: flutter build apk --release
 

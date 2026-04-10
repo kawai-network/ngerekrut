@@ -92,7 +92,7 @@ String _readConfig(String key) {
     'OPENAI_API_KEY': String.fromEnvironment('OPENAI_API_KEY'),
   };
 
-  final envValue = dotenv.maybeGet(key);
+  final envValue = dotenv.isInitialized ? dotenv.maybeGet(key) : null;
   if (envValue != null && envValue.isNotEmpty) {
     return envValue;
   }

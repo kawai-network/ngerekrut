@@ -67,7 +67,7 @@ void main() {
       final hybrid = HybridAIService(
         cloudApiKey: 'test-key',
         localAI: _FakeLocalAIClient(
-          '{"candidate":"Candidate Name","role":"Backend Engineer","interviewer":"Interviewer Name","date":"2026-04-06T00:00:00.000","interview_type":"technical","competencies":[{"competency":"technicalSkills","weight":50,"strongSignals":["clean design"],"concerns":["slow debugging"]}]}',
+          '{"candidate":"Candidate Name","role":"Backend Engineer","interviewer":"Interviewer Name","date":"2026-04-06T00:00:00.000","interview_type":"technical","competencies":[{"competency":"technicalSkills","weight":50,"strong_signals":["clean design"],"concerns":["slow debugging"]}]}',
         ),
       );
       final service = HiringService(aiService: hybrid);
