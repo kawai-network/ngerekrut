@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'firebase_options.dart';
@@ -10,6 +11,7 @@ import 'repositories/local_interview_guide_repository.dart';
 import 'repositories/local_scorecard_repository.dart';
 import 'repositories/local_shortlist_repository.dart';
 import 'screens/full_chat_screen.dart';
+import 'screens/gemma_proof_screen.dart';
 import 'screens/job_candidates_screen.dart';
 import 'screens/job_posting_chat_screen.dart';
 import 'screens/hiring_screen.dart';
@@ -55,6 +57,7 @@ Future<void> _initializeFirebaseMessaging() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await FlutterGemma.initialize();
   await _loadEnv();
   // Only initialize Firebase on supported platforms
   final isSupportedPlatform = kIsWeb ||
@@ -326,6 +329,23 @@ class _HomeScreenState extends State<HomeScreen> {
                   textStyle: const TextStyle(fontSize: 16),
                   backgroundColor: const Color(0xFF0F766E),
                   foregroundColor: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const GemmaProofScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.science_outlined),
+                label: const Text('Bukti Gemma Lokal'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  textStyle: const TextStyle(fontSize: 16),
                 ),
               ),
               const SizedBox(height: 12),

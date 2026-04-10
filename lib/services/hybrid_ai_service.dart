@@ -51,6 +51,7 @@ class HybridAIService {
   AIMode get currentMode => _currentMode;
   AIMode get lastUsedMode => _lastUsedMode;
   bool get hasCloudAI => _cloudAI != null;
+  String? get localAIErrorMessage => _localAI.errorMessage;
 
   /// Set the preferred AI mode.
   void setMode(AIMode mode) {
@@ -105,9 +106,7 @@ class HybridAIService {
     // Fallback to cloud AI
     final cloudAI = _cloudAI;
     if (cloudAI == null) {
-      throw LocalAIException(
-        'Gemma lokal belum siap, dan Cloud AI belum dikonfigurasi.',
-      );
+      throw LocalAIException(_buildUnavailableMessage());
     }
     debugPrint('[HybridAIService] Using Cloud AI for: $position');
     final jobPosting = await cloudAI.generate(position);
@@ -143,9 +142,7 @@ class HybridAIService {
 
     final cloudAI = _cloudAI;
     if (cloudAI == null) {
-      throw LocalAIException(
-        'Gemma lokal belum siap, dan Cloud AI belum dikonfigurasi.',
-      );
+      throw LocalAIException(_buildUnavailableMessage());
     }
     debugPrint('[HybridAIService] Refining with Cloud AI');
     final refined = await cloudAI.refine(current, userRequest);
@@ -278,6 +275,14 @@ ${current.toJson()}
 User request: $userRequest
 
 Silakan generate_job_posting dengan data yang sudah diupdate sesuai request.''';
+  }
+
+  String _buildUnavailableMessage() {
+    final localError = _localAI.errorMessage;
+    if (localError != null && localError.isNotEmpty) {
+      return 'Gemma lokal belum siap: $localError. Cloud AI juga belum dikonfigurasi.';
+    }
+    return 'Gemma lokal belum siap, dan Cloud AI belum dikonfigurasi.';
   }
 
   /// Check if local AI is ready.
