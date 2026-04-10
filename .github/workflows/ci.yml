@@ -86,15 +86,20 @@ jobs:
           OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           EOF
 
-      - name: Build Android APK
+      - name: Build Android APK (Jobseeker)
         run: flutter build apk --release --flavor jobseeker -t lib/main_jobseeker.dart
+
+      - name: Build Android APK (Recruiter)
+        run: flutter build apk --release --flavor recruiter -t lib/main_recruiter.dart
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
           retention-days: 30
-          path: build/app/outputs/flutter-apk/app-jobseeker-release.apk
+          path: |
+            build/app/outputs/flutter-apk/app-jobseeker-release.apk
+            build/app/outputs/flutter-apk/app-recruiter-release.apk
 
   release:
     runs-on: ubuntu-latest
