@@ -57,8 +57,10 @@ Future<void> _initializeFirebaseMessaging() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await FlutterGemma.initialize();
   await _loadEnv();
+  await FlutterGemma.initialize(
+    huggingFaceToken: _readConfig('HUGGINGFACE_TOKEN'),
+  );
   // Only initialize Firebase on supported platforms
   final isSupportedPlatform = kIsWeb ||
       (Platform.isAndroid || Platform.isIOS || Platform.isMacOS);
@@ -93,6 +95,7 @@ String _readConfig(String key) {
     ),
     'CLOUDFLARE_API_TOKEN': String.fromEnvironment('CLOUDFLARE_API_TOKEN'),
     'OPENAI_API_KEY': String.fromEnvironment('OPENAI_API_KEY'),
+    'HUGGINGFACE_TOKEN': String.fromEnvironment('HUGGINGFACE_TOKEN'),
   };
 
   final envValue = dotenv.isInitialized ? dotenv.maybeGet(key) : null;
@@ -334,10 +337,18 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 12),
               OutlinedButton.icon(
                 onPressed: () {
+                  final service =
+                      _hybridService ??
+                      HybridAIService(
+                        cloudApiKey: _readConfig('OPENAI_API_KEY'),
+                      );
+                  _hybridService ??= service;
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const GemmaProofScreen(),
+                      builder: (context) => GemmaProofScreen(
+                        aiService: service,
+                      ),
                     ),
                   );
                 },

@@ -39,6 +39,7 @@ class HybridAIService {
 
   AIMode _currentMode = AIMode.auto;
   AIMode _lastUsedMode = AIMode.local;
+  Future<bool>? _initializeFuture;
 
   HybridAIService({
     String? cloudApiKey,
@@ -63,6 +64,29 @@ class HybridAIService {
   ///
   /// Returns true if local AI is ready, false if it failed or is downloading.
   Future<bool> initialize({
+    void Function(double progress)? onDownloadProgress,
+  }) async {
+    if (_localAI.isReady) {
+      return true;
+    }
+
+    final inFlight = _initializeFuture;
+    if (inFlight != null) {
+      return inFlight;
+    }
+
+    final future = _initializeInternal(
+      onDownloadProgress: onDownloadProgress,
+    );
+    _initializeFuture = future;
+    try {
+      return await future;
+    } finally {
+      _initializeFuture = null;
+    }
+  }
+
+  Future<bool> _initializeInternal({
     void Function(double progress)? onDownloadProgress,
   }) async {
     try {

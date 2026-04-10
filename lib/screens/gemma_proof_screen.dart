@@ -2,17 +2,21 @@ library;
 
 import 'package:flutter/material.dart';
 
-import '../langchain_gemma/langchain_gemma.dart';
+import '../services/hybrid_ai_service.dart';
 
 class GemmaProofScreen extends StatefulWidget {
-  const GemmaProofScreen({super.key});
+  final HybridAIService aiService;
+
+  const GemmaProofScreen({
+    super.key,
+    required this.aiService,
+  });
 
   @override
   State<GemmaProofScreen> createState() => _GemmaProofScreenState();
 }
 
 class _GemmaProofScreenState extends State<GemmaProofScreen> {
-  final GemmaLocalAIClient _client = GemmaLocalAIClient();
   final TextEditingController _promptController = TextEditingController(
     text: 'Perkenalkan dirimu singkat dalam bahasa Indonesia dan sebutkan bahwa kamu berjalan lokal di device.',
   );
@@ -27,7 +31,6 @@ class _GemmaProofScreenState extends State<GemmaProofScreen> {
   @override
   void dispose() {
     _promptController.dispose();
-    _client.dispose();
     super.dispose();
   }
 
@@ -40,8 +43,8 @@ class _GemmaProofScreenState extends State<GemmaProofScreen> {
     });
 
     try {
-      await _client.initialize(
-        onProgress: (progress) {
+      final ready = await widget.aiService.initialize(
+        onDownloadProgress: (progress) {
           if (!mounted) return;
           setState(() {
             _downloadProgress = progress;
@@ -53,7 +56,8 @@ class _GemmaProofScreenState extends State<GemmaProofScreen> {
 
       if (!mounted) return;
       setState(() {
-        _statusText = 'Gemma siap dipakai';
+        _errorText = ready ? null : widget.aiService.localAIErrorMessage;
+        _statusText = ready ? 'Gemma siap dipakai' : 'Inisialisasi gagal';
       });
     } catch (e) {
       if (!mounted) return;
@@ -71,7 +75,7 @@ class _GemmaProofScreenState extends State<GemmaProofScreen> {
   }
 
   Future<void> _generateProof() async {
-    if (!_client.isReady) {
+    if (!widget.aiService.isLocalAIReady) {
       setState(() {
         _errorText = 'Gemma belum siap. Jalankan inisialisasi dulu.';
       });
@@ -85,7 +89,7 @@ class _GemmaProofScreenState extends State<GemmaProofScreen> {
     });
 
     try {
-      final response = await _client.generateResponse(
+      final response = await widget.aiService.generateLocalResponse(
         prompt: _promptController.text.trim(),
         systemPrompt:
             'Jawab singkat dan jelas. Jika kamu bisa menjawab prompt ini, berarti inferensi lokal berhasil.',
@@ -110,7 +114,7 @@ class _GemmaProofScreenState extends State<GemmaProofScreen> {
   }
 
   Color _statusColor(ThemeData theme) {
-    if (_client.isReady) return Colors.green.shade700;
+    if (widget.aiService.isLocalAIReady) return Colors.green.shade700;
     if (_errorText != null) return theme.colorScheme.error;
     return Colors.orange.shade800;
   }

@@ -1,4 +1,4 @@
-.PHONY: help pub-get analyze run seed-kv verify-kv emu-start emu-stop emu-status jobseeker recruiter clean
+.PHONY: help pub-get analyze run seed-kv verify-kv emu-start emu-stop emu-status jobseeker recruiter clean logs logs-jobseeker logs-recruiter
 
 help: ## Show this help message
 	@echo "Usage: make [target]"
@@ -50,23 +50,29 @@ emu-status: ## Check emulator status
 # Run on emulator
 jobseeker: emu-start ## Run Jobseeker flavor on emulator
 	@echo "Running Jobseeker flavor..."
-	@flutter run --flavor jobseeker -t lib/main_jobseeker.dart
+	@mkdir -p logs
+	@flutter run --flavor jobseeker -t lib/main_jobseeker.dart 2>&1 | tee logs/jobseeker-$$(date +%Y%m%d-%H%M%S).log
 
 recruiter: emu-start ## Run Recruiter flavor on emulator
 	@echo "Running Recruiter flavor..."
-	@flutter run --flavor recruiter -t lib/main_recruiter.dart
+	@mkdir -p logs
+	@flutter run --flavor recruiter -t lib/main_recruiter.dart 2>&1 | tee logs/recruiter-$$(date +%Y%m%d-%H%M%S).log
 
 jobseeker-debug: ## Run Jobseeker flavor (debug mode)
-	@flutter run --flavor jobseeker -t lib/main_jobseeker.dart --debug
+	@mkdir -p logs
+	@flutter run --flavor jobseeker -t lib/main_jobseeker.dart --debug 2>&1 | tee logs/jobseeker-debug-$$(date +%Y%m%d-%H%M%S).log
 
 recruiter-debug: ## Run Recruiter flavor (debug mode)
-	@flutter run --flavor recruiter -t lib/main_recruiter.dart --debug
+	@mkdir -p logs
+	@flutter run --flavor recruiter -t lib/main_recruiter.dart --debug 2>&1 | tee logs/recruiter-debug-$$(date +%Y%m%d-%H%M%S).log
 
 jobseeker-release: ## Run Jobseeker flavor (release mode)
-	@flutter run --flavor jobseeker -t lib/main_jobseeker.dart --release
+	@mkdir -p logs
+	@flutter run --flavor jobseeker -t lib/main_jobseeker.dart --release 2>&1 | tee logs/jobseeker-release-$$(date +%Y%m%d-%H%M%S).log
 
 recruiter-release: ## Run Recruiter flavor (release mode)
-	@flutter run --flavor recruiter -t lib/main_recruiter.dart --release
+	@mkdir -p logs
+	@flutter run --flavor recruiter -t lib/main_recruiter.dart --release 2>&1 | tee logs/recruiter-release-$$(date +%Y%m%d-%H%M%S).log
 
 # Build APKs
 build-jobseeker: ## Build Jobseeker APK
@@ -86,3 +92,17 @@ install-recruiter: ## Install Recruiter APK to emulator
 
 clean: ## Clean build artifacts
 	@flutter clean
+
+clean-logs: ## Clean log files
+	@rm -rf logs
+	@echo "Logs cleaned"
+
+# View logs
+logs: ## List all log files
+	@ls -lh logs/ 2>/dev/null || echo "No logs directory found"
+
+logs-jobseeker: ## View latest Jobseeker log
+	@tail -f $$(ls -t logs/jobseeker-*.log 2>/dev/null | head -1) 2>/dev/null || echo "No Jobseeker logs found"
+
+logs-recruiter: ## View latest Recruiter log
+	@tail -f $$(ls -t logs/recruiter-*.log 2>/dev/null | head -1) 2>/dev/null || echo "No Recruiter logs found"

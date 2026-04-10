@@ -48,14 +48,15 @@ Future<void> _initializeFirebaseMessaging() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await FlutterGemma.initialize();
+  await _loadEnv();
+  await FlutterGemma.initialize(
+    huggingFaceToken: _readConfig('HUGGINGFACE_TOKEN'),
+  );
 
   FlavorManager.init(
     AppFlavorConfig.jobSeeker,
     environment: FlavorEnvironment.fromConfig(),
   );
-
-  await _loadEnv();
   // Only initialize Firebase on supported platforms
   final isSupportedPlatform = kIsWeb ||
       (Platform.isAndroid || Platform.isIOS || Platform.isMacOS);
@@ -85,6 +86,18 @@ Future<void> _loadEnv() async {
   } catch (_) {
     // Development setup may rely on --dart-define only.
   }
+}
+
+String _readConfig(String key) {
+  const dartDefineValues = {
+    'HUGGINGFACE_TOKEN': String.fromEnvironment('HUGGINGFACE_TOKEN'),
+  };
+
+  final envValue = dotenv.isInitialized ? dotenv.maybeGet(key) : null;
+  if (envValue != null && envValue.isNotEmpty) {
+    return envValue;
+  }
+  return dartDefineValues[key] ?? '';
 }
 
 class MyApp extends StatelessWidget {
