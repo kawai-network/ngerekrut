@@ -18,7 +18,7 @@ This generates `lib/objectbox.g.dart`.
 
 3. Run the app
 ```bash
-flutter run
+flutter run --flavor recruiter -t lib/main_recruiter.dart
 ```
 
 ## ObjectBox Setup

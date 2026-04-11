@@ -12,8 +12,8 @@ pub-get: ## Get Flutter dependencies
 analyze: ## Analyze Flutter code
 	flutter analyze
 
-run: ## Run default Flutter app
-	flutter run
+run: ## Run Recruiter flavor
+	flutter run --flavor recruiter -t lib/main_recruiter.dart
 
 seed-kv: ## Seed Cloudflare KV data
 	bash scripts/seed-cloudflare-kv.sh
