@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:ngerekrut/flutter_chat_core/flutter_chat_core.dart';
 import 'package:ngerekrut/langchain/langchain.dart';
+import 'package:ngerekrut/objectbox.g.dart';
 import 'package:ngerekrut/objectbox_store_provider.dart';
-
 
 /// Simple chat controller yang menggunakan [ChatMessagePersist].
 ///
@@ -26,11 +26,15 @@ class ObjectBoxChatController extends InMemoryChatController {
       await ObjectBoxStoreProvider.initialize();
     }
 
-    // Load messages via ChatMessagePersist
-    final chatMessages = ChatMessageQuery.fromSession(sessionId);
+    final box = ObjectBoxStoreProvider.box<ChatMessageRecord>();
+    final query = box
+        .query(ChatMessageRecord_.sessionId.equals(sessionId))
+        .order(ChatMessageRecord_.createdAt)
+        .build();
+    final records = query.find();
+    query.close();
 
-    // Convert ChatMessage ke Message (flutter_chat_core format)
-    final messages = chatMessages.map(_chatMessageToMessage).toList();
+    final messages = records.map(_recordToMessage).toList();
 
     await setMessages(messages);
   }
@@ -41,12 +45,9 @@ class ObjectBoxChatController extends InMemoryChatController {
     int? index,
     bool animated = true,
   }) async {
-    // Simpan via ChatMessagePersist
-    final content = _extractTextContent(message);
-    final chatMsg = ChatMessage.humanText(content);
+    final chatMsg = _messageToChatMessage(message);
     chatMsg.save(sessionId);
 
-    // Add to in-memory list
     await super.insertMessage(message, index: index, animated: animated);
   }
 
@@ -65,73 +66,60 @@ class ObjectBoxChatController extends InMemoryChatController {
     }
   }
 
-  /// Convert [ChatMessage] (LangChain) ke [Message] (flutter_chat_core).
-  Message _chatMessageToMessage(ChatMessage chatMsg) {
-    final now = DateTime.now();
-    final authorId = switch (chatMsg) {
-      SystemChatMessage() => 'system',
-      HumanChatMessage() => 'user',
-      AIChatMessage() => 'ai',
-      ToolChatMessage() => 'tool',
-      CustomChatMessage(:final role) => role,
-    };
-
-    return switch (chatMsg) {
-      SystemChatMessage(:final content) => Message.system(
-          id: _generateId(),
-          authorId: authorId,
-          createdAt: now,
-          text: content,
+  Message _recordToMessage(ChatMessageRecord record) {
+    final createdAt = DateTime.fromMillisecondsSinceEpoch(record.createdAt);
+    return switch (record.role) {
+      'system' => Message.system(
+          id: record.messageId,
+          authorId: 'system',
+          createdAt: createdAt,
+          text: record.content,
         ),
-
-      HumanChatMessage() => Message.text(
-          id: _generateId(),
-          authorId: authorId,
-          createdAt: now,
-          text: _extractContentText(chatMsg),
+      'ai' => Message.text(
+          id: record.messageId,
+          authorId: 'ai',
+          createdAt: createdAt,
+          text: record.content,
+          status: MessageStatus.sent,
         ),
-
-      AIChatMessage(:final content, :final toolCalls) => Message.text(
-          id: _generateId(),
-          authorId: authorId,
-          createdAt: now,
-          text: content,
-          metadata: toolCalls.isNotEmpty ? {'hasToolCalls': true} : null,
+      'tool' => Message.text(
+          id: record.messageId,
+          authorId: 'tool',
+          createdAt: createdAt,
+          text: record.content,
+          status: MessageStatus.sent,
         ),
-
-      ToolChatMessage(:final content) => Message.text(
-          id: _generateId(),
-          authorId: authorId,
-          createdAt: now,
-          text: content,
+      'custom' => Message.custom(
+          id: record.messageId,
+          authorId: record.customRole ?? 'custom',
+          createdAt: createdAt,
+          metadata: {'role': record.customRole ?? 'custom'},
         ),
-
-      CustomChatMessage(:final role) => Message.custom(
-          id: _generateId(),
-          authorId: role,
-          createdAt: now,
-          metadata: {'role': role},
+      _ => Message.text(
+          id: record.messageId,
+          authorId: 'user',
+          createdAt: createdAt,
+          text: record.content,
+          status: MessageStatus.sent,
         ),
     };
   }
 
-  String _generateId() => DateTime.now().microsecondsSinceEpoch.toString();
-
-  String _extractContentText(ChatMessage chatMsg) {
-    return switch (chatMsg) {
-      HumanChatMessage(:final content) => switch (content) {
-        ChatMessageContentText(:final text) => text,
-        ChatMessageContentImage(:final data) => '[Image: $data]',
-        ChatMessageContentMultiModal(:final parts) => parts
-            .map((p) => switch (p) {
-              ChatMessageContentText(:final text) => text,
-              ChatMessageContentImage(:final data) => '[Image: $data]',
-              ChatMessageContentMultiModal _ => '',
-            })
-            .join('\n'),
-      },
-      _ => chatMsg.contentAsString,
-    };
+  ChatMessage _messageToChatMessage(Message message) {
+    final content = _extractTextContent(message);
+    if (message is SystemMessage || message.authorId == 'system') {
+      return ChatMessage.system(content);
+    }
+    if (message.authorId == 'ai' || message.authorId == 'assistant') {
+      return ChatMessage.ai(content);
+    }
+    if (message.authorId == 'tool') {
+      return ChatMessage.tool(toolCallId: 'tool', content: content);
+    }
+    if (message is CustomMessage) {
+      return ChatMessage.custom(content, role: message.authorId);
+    }
+    return ChatMessage.humanText(content);
   }
 
   String _extractTextContent(Message message) {

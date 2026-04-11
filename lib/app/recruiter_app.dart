@@ -3,10 +3,13 @@ library;
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 
+import '../models/chat_session_record.dart';
+import '../repositories/chat_session_repository.dart';
 import '../repositories/hiring_repository.dart';
 import '../repositories/local_interview_guide_repository.dart';
 import '../repositories/local_scorecard_repository.dart';
 import '../repositories/local_shortlist_repository.dart';
+import '../screens/chat_room_screen.dart';
 import '../screens/full_chat_screen.dart';
 import '../screens/gemma_proof_screen.dart';
 import '../screens/hiring_screen.dart';
@@ -51,20 +54,30 @@ class RecruiterHomeScreen extends StatefulWidget {
 }
 
 class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
-  HybridAIService? _hybridService;
-  HiringRepository? _hiringRepository;
+  final ChatSessionRepository _sessionRepository = ChatSessionRepository();
   final LocalShortlistRepository _localShortlistRepository =
       LocalShortlistRepository();
   final LocalScorecardRepository _localScorecardRepository =
       LocalScorecardRepository();
   final LocalInterviewGuideRepository _localInterviewGuideRepository =
       LocalInterviewGuideRepository();
+
+  HybridAIService? _hybridService;
+  HiringRepository? _hiringRepository;
+  List<ChatSessionRecord> _sessions = const [];
   bool _isInitializingAI = false;
+  bool _isLoadingSessions = true;
   double _downloadProgress = 0.0;
 
   @override
   void initState() {
     super.initState();
+    _configureHiringRepository();
+    _loadSessions();
+    _initHybridService();
+  }
+
+  void _configureHiringRepository() {
     final cloudflareAccountId = readConfig('CLOUDFLARE_ACCOUNT_ID');
     final cloudflareNamespaceId = readConfig('CLOUDFLARE_KV_NAMESPACE_ID');
     final cloudflareApiToken = readConfig('CLOUDFLARE_API_TOKEN');
@@ -83,7 +96,21 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
         screeningsApi: ScreeningsApi(apiClient),
       );
     }
-    _initHybridService();
+  }
+
+  Future<void> _loadSessions() async {
+    try {
+      await _sessionRepository.initialize();
+      final sessions = _sessionRepository.listSessions();
+      if (!mounted) return;
+      setState(() {
+        _sessions = sessions;
+        _isLoadingSessions = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoadingSessions = false);
+    }
   }
 
   Future<void> _initHybridService() async {
@@ -97,6 +124,7 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
           setState(() => _downloadProgress = progress);
         },
       );
+      if (!mounted) return;
       setState(() {});
     } catch (e) {
       debugPrint('Failed to initialize hybrid service: $e');
@@ -109,283 +137,340 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final hasCloudAI = (_hybridService?.hasCloudAI ?? false);
-    final hasLocalAI = (_hybridService?.isLocalAIReady ?? false);
+    final hasCloudAI = _hybridService?.hasCloudAI ?? false;
+    final hasLocalAI = _hybridService?.isLocalAIReady ?? false;
     final hasRecruiterData = _hiringRepository != null;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('NgeRekrut'),
+        actions: [
+          PopupMenuButton<_HomeAction>(
+            onSelected: _handleHomeAction,
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: _HomeAction.jobPosting,
+                child: Text('Buat Lowongan'),
+              ),
+              PopupMenuItem(
+                value: _HomeAction.candidateScreening,
+                enabled: hasRecruiterData,
+                child: const Text('Screening Kandidat'),
+              ),
+              const PopupMenuItem(
+                value: _HomeAction.hiringAssistant,
+                child: Text('Asisten Recruiter'),
+              ),
+              if (kDebugMode)
+                const PopupMenuItem(
+                  value: _HomeAction.gemmaProof,
+                  child: Text('Cek Gemma Lokal'),
+                ),
+              if (kDebugMode)
+                const PopupMenuItem(
+                  value: _HomeAction.legacyChat,
+                  child: Text('Buka Legacy Chat'),
+                ),
+            ],
+          ),
+        ],
       ),
-      body: SafeArea(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _createSession,
+        icon: const Icon(Icons.chat_bubble_outline),
+        label: const Text('Chat Baru'),
+      ),
+      body: RefreshIndicator(
+        onRefresh: _loadSessions,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF18CD5B), Color(0xFF0F766E)],
-                ),
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: const Text(
-                      'Asisten rekrutmen berbasis AI lokal',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Kelola lowongan dan screening kandidat dari satu tempat.',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      height: 1.15,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    'Gunakan Gemma lokal untuk membuat lowongan, menyusun panduan interview, dan membantu proses screening recruiter.',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 15,
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _buildStatusChip(
-                        label: hasLocalAI ? 'Gemma siap' : 'Gemma belum siap',
-                        color: hasLocalAI
-                            ? const Color(0xFFD1FAE5)
-                            : const Color(0xFFFDE68A),
-                        textColor: const Color(0xFF0F172A),
-                      ),
-                      _buildStatusChip(
-                        label: hasCloudAI
-                            ? 'Cloud AI aktif'
-                            : 'Cloud AI opsional',
-                        color: const Color(0xFFE0F2FE),
-                        textColor: const Color(0xFF0F172A),
-                      ),
-                      _buildStatusChip(
-                        label: hasRecruiterData
-                            ? 'Data recruiter aktif'
-                            : 'Data recruiter belum aktif',
-                        color: hasRecruiterData
-                            ? const Color(0xFFDBEAFE)
-                            : const Color(0xFFE5E7EB),
-                        textColor: const Color(0xFF0F172A),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+            _buildStatusCard(
+              hasLocalAI: hasLocalAI,
+              hasCloudAI: hasCloudAI,
+              hasRecruiterData: hasRecruiterData,
             ),
-            if (_isInitializingAI) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            _downloadProgress > 0
-                                ? 'Mengunduh model Gemma... ${(_downloadProgress * 100).toStringAsFixed(0)}%'
-                                : 'Menyiapkan Gemma lokal...',
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (_downloadProgress > 0) ...[
-                      const SizedBox(height: 12),
-                      LinearProgressIndicator(value: _downloadProgress),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-            const SizedBox(height: 24),
-            Text(
-              'Workflow Utama',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 12),
-            _buildPrimaryActionCard(
-              context: context,
-              icon: Icons.edit_note,
-              title: 'Buat Lowongan',
-              description:
-                  'Tulis posisi yang dibutuhkan, lalu biarkan AI menyusun lowongan lengkap dalam bahasa Indonesia.',
-              accentColor: const Color(0xFF18CD5B),
-              actionLabel: 'Mulai Buat Lowongan',
-              onTap: _openJobPostingChat,
-            ),
-            const SizedBox(height: 12),
-            _buildPrimaryActionCard(
-              context: context,
-              icon: Icons.fact_check_outlined,
-              title: 'Screening Kandidat',
-              description:
-                  'Lihat kandidat per lowongan, jalankan shortlist lokal, dan buka hasil screening yang tersimpan.',
-              accentColor: const Color(0xFF0F766E),
-              actionLabel: hasRecruiterData
-                  ? 'Buka Screening Kandidat'
-                  : 'Butuh Integrasi Data Recruiter',
-              onTap: hasRecruiterData ? _openCandidateScreening : null,
-            ),
-            const SizedBox(height: 12),
-            _buildPrimaryActionCard(
-              context: context,
-              icon: Icons.support_agent,
-              title: 'Asisten Recruiter',
-              description:
-                  'Gunakan skill recruiter untuk bantu job description, scorecard interview, pertanyaan STAR, dan analisis kandidat.',
-              accentColor: const Color(0xFF2563EB),
-              actionLabel: 'Buka Asisten Recruiter',
-              onTap: _openHiringAssistant,
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Status Sistem',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(
-                  child: _buildMetricCard(
-                    title: 'Gemma Lokal',
-                    value: hasLocalAI
-                        ? 'Aktif'
-                        : (_isInitializingAI ? 'Menyiapkan' : 'Belum siap'),
-                    hint: hasLocalAI
-                        ? 'Siap dipakai offline'
-                        : 'Dipakai untuk job posting dan bantuan recruiter',
-                  ),
+                Text(
+                  'Percakapan',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildMetricCard(
-                    title: 'Cloud AI',
-                    value: hasCloudAI ? 'Aktif' : 'Nonaktif',
-                    hint: hasCloudAI
-                        ? 'Dipakai sebagai fallback'
-                        : 'Opsional, tidak wajib untuk flow lokal',
-                  ),
+                const Spacer(),
+                Text(
+                  '${_sessions.length} sesi',
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            _buildMetricCard(
-              title: 'Sumber Data Recruiter',
-              value: hasRecruiterData ? 'Terhubung' : 'Belum dikonfigurasi',
-              hint: hasRecruiterData
-                  ? 'Lowongan dan kandidat dibaca dari Cloudflare KV'
-                  : 'Tambahkan konfigurasi Cloudflare agar screening kandidat bisa dipakai',
-              fullWidth: true,
-            ),
-            if (kDebugMode) ...[
-              const SizedBox(height: 24),
-              ExpansionTile(
-                tilePadding: EdgeInsets.zero,
-                childrenPadding: EdgeInsets.zero,
-                title: const Text(
-                  'Tools Debug',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-                subtitle: const Text(
-                  'Dipakai untuk verifikasi internal selama development',
-                ),
-                children: [
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: _openGemmaProof,
-                    icon: const Icon(Icons.science_outlined),
-                    label: const Text('Cek Gemma Lokal'),
-                  ),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const FullChatScreen(
-                            currentUserId: 'user_123',
-                            sessionId: 'session_demo',
-                            currentUserName: 'Demo User',
-                          ),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.chat_bubble_outline),
-                    label: const Text('Buka Legacy Chat'),
-                  ),
-                ],
-              ),
-            ],
-            const SizedBox(height: 24),
-            Text(
-              hasRecruiterData
-                  ? 'Aplikasi siap dipakai untuk alur lowongan dan screening recruiter.'
-                  : 'Aktifkan Cloudflare KV jika ingin memakai data lowongan dan kandidat yang tersimpan.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.grey.shade700,
-                height: 1.5,
-              ),
-            ),
+            if (_isLoadingSessions)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 48),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_sessions.isEmpty)
+              _buildEmptyState()
+            else
+              ..._sessions.map(_buildSessionTile),
           ],
         ),
       ),
     );
   }
 
-  void _openJobPostingChat() {
-    final service =
-        _hybridService ??
-        HybridAIService(
-          cloudApiKey: readConfig('OPENAI_API_KEY'),
+  Widget _buildStatusCard({
+    required bool hasLocalAI,
+    required bool hasCloudAI,
+    required bool hasRecruiterData,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF18CD5B), Color(0xFF0F766E)],
+        ),
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Inbox recruiter',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 24,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Kelola percakapan recruiter dari satu daftar sesi, lalu masuk ke room yang relevan saat dibutuhkan.',
+            style: TextStyle(color: Colors.white70, height: 1.45),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildStatusChip(
+                label: hasLocalAI ? 'Gemma siap' : 'Gemma belum siap',
+              ),
+              _buildStatusChip(
+                label: hasCloudAI ? 'Cloud AI aktif' : 'Cloud AI nonaktif',
+              ),
+              _buildStatusChip(
+                label: hasRecruiterData
+                    ? 'Data recruiter aktif'
+                    : 'Data recruiter belum aktif',
+              ),
+            ],
+          ),
+          if (_isInitializingAI) ...[
+            const SizedBox(height: 14),
+            LinearProgressIndicator(
+              value: _downloadProgress > 0 ? _downloadProgress : null,
+              backgroundColor: Colors.white24,
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _downloadProgress > 0
+                  ? 'Menyiapkan Gemma ${(_downloadProgress * 100).toStringAsFixed(0)}%'
+                  : 'Menyiapkan Gemma lokal...',
+              style: const TextStyle(color: Colors.white70),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusChip({required String label}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.forum_outlined, size: 32),
+          const SizedBox(height: 12),
+          Text(
+            'Belum ada sesi chat',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Buat sesi baru untuk mulai percakapan recruiter. Workflow lain tetap tersedia dari menu kanan atas.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey.shade700,
+                  height: 1.45,
+                ),
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: _createSession,
+            icon: const Icon(Icons.add_comment_outlined),
+            label: const Text('Buat Sesi Pertama'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSessionTile(ChatSessionRecord session) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: const BorderSide(color: Color(0xFFE5E7EB)),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+        onTap: () => _openSession(session),
+        leading: CircleAvatar(
+          backgroundColor: const Color(0xFFE8FFF0),
+          foregroundColor: const Color(0xFF0F766E),
+          child: Text(
+            session.title.isNotEmpty ? session.title[0].toUpperCase() : 'C',
+          ),
+        ),
+        title: Text(
+          session.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Text(
+            session.lastMessagePreview.isNotEmpty
+                ? session.lastMessagePreview
+                : 'Belum ada pesan',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(_formatTime(session.updatedAt)),
+            const SizedBox(height: 4),
+            Text(
+              '${session.messageCount} pesan',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+        onLongPress: () => _confirmDeleteSession(session),
+      ),
+    );
+  }
+
+  Future<void> _createSession() async {
+    await _sessionRepository.initialize();
+    final session = _sessionRepository.createSession();
+    if (!mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatRoomScreen(session: session),
+      ),
+    );
+    await _loadSessions();
+  }
+
+  Future<void> _openSession(ChatSessionRecord session) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatRoomScreen(session: session),
+      ),
+    );
+    await _loadSessions();
+  }
+
+  Future<void> _confirmDeleteSession(ChatSessionRecord session) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hapus sesi?'),
+        content: Text('Percakapan "${session.title}" akan dihapus.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    _sessionRepository.deleteSession(session.sessionId);
+    await _loadSessions();
+  }
+
+  void _handleHomeAction(_HomeAction action) {
+    switch (action) {
+      case _HomeAction.jobPosting:
+        _openJobPostingChat();
+      case _HomeAction.candidateScreening:
+        _openCandidateScreening();
+      case _HomeAction.hiringAssistant:
+        _openHiringAssistant();
+      case _HomeAction.gemmaProof:
+        _openGemmaProof();
+      case _HomeAction.legacyChat:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const FullChatScreen(
+              currentUserId: 'user_123',
+              sessionId: 'session_demo',
+              currentUserName: 'Demo User',
+            ),
+          ),
         );
+    }
+  }
+
+  void _openJobPostingChat() {
+    final service = _hybridService ??
+        HybridAIService(cloudApiKey: readConfig('OPENAI_API_KEY'));
     _hybridService ??= service;
     Navigator.push(
       context,
@@ -402,11 +487,8 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
     final repository = _hiringRepository;
     if (repository == null) return;
 
-    final service =
-        _hybridService ??
-        HybridAIService(
-          cloudApiKey: readConfig('OPENAI_API_KEY'),
-        );
+    final service = _hybridService ??
+        HybridAIService(cloudApiKey: readConfig('OPENAI_API_KEY'));
     _hybridService ??= service;
     Navigator.push(
       context,
@@ -419,9 +501,7 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
           interviewGuideGenerationService: InterviewGuideGenerationService(
             aiService: service,
           ),
-          screeningService: ResumeScreeningService(
-            aiService: service,
-          ),
+          screeningService: ResumeScreeningService(aiService: service),
           scorecardGenerationService: ScorecardGenerationService(
             aiService: service,
           ),
@@ -431,164 +511,46 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
   }
 
   void _openHiringAssistant() {
-    final service =
-        _hybridService ??
-        HybridAIService(
-          cloudApiKey: readConfig('OPENAI_API_KEY'),
-        );
+    final service = _hybridService ??
+        HybridAIService(cloudApiKey: readConfig('OPENAI_API_KEY'));
     _hybridService ??= service;
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => HiringScreen(
-          aiService: service,
-        ),
+        builder: (context) => HiringScreen(aiService: service),
       ),
     );
   }
 
   void _openGemmaProof() {
-    final service =
-        _hybridService ??
-        HybridAIService(
-          cloudApiKey: readConfig('OPENAI_API_KEY'),
-        );
+    final service = _hybridService ??
+        HybridAIService(cloudApiKey: readConfig('OPENAI_API_KEY'));
     _hybridService ??= service;
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => GemmaProofScreen(
-          aiService: service,
-        ),
+        builder: (context) => GemmaProofScreen(aiService: service),
       ),
     );
   }
 
-  Widget _buildPrimaryActionCard({
-    required BuildContext context,
-    required IconData icon,
-    required String title,
-    required String description,
-    required Color accentColor,
-    required String actionLabel,
-    required VoidCallback? onTap,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: accentColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(icon, color: accentColor),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            description,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.grey.shade700,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: onTap,
-              style: FilledButton.styleFrom(
-                backgroundColor: accentColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              child: Text(actionLabel),
-            ),
-          ),
-        ],
-      ),
-    );
+  String _formatTime(int timestamp) {
+    final dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+    if (difference.inDays > 0) {
+      return '${dateTime.day}/${dateTime.month}';
+    }
+    final hour = dateTime.hour.toString().padLeft(2, '0');
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
   }
+}
 
-  Widget _buildMetricCard({
-    required String title,
-    required String value,
-    required String hint,
-    bool fullWidth = false,
-  }) {
-    return Container(
-      width: fullWidth ? double.infinity : null,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: Color(0xFF475569),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            hint,
-            style: TextStyle(
-              color: Colors.grey.shade700,
-              height: 1.4,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusChip({
-    required String label,
-    required Color color,
-    required Color textColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: textColor,
-          fontWeight: FontWeight.w700,
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
+enum _HomeAction {
+  jobPosting,
+  candidateScreening,
+  hiringAssistant,
+  gemmaProof,
+  legacyChat,
 }

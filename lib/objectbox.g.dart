@@ -16,6 +16,7 @@ import 'package:objectbox_flutter_libs/objectbox_flutter_libs.dart';
 
 import 'langchain/chat_models/chat_message_record.dart';
 import 'models/candidate_scorecard_record.dart';
+import 'models/chat_session_record.dart';
 import 'models/interview_guide_record.dart';
 import 'models/recruiter_shortlist_record.dart';
 
@@ -260,6 +261,58 @@ final _entities = <obx_int.ModelEntity>[
     relations: <obx_int.ModelRelation>[],
     backlinks: <obx_int.ModelBacklink>[],
   ),
+  obx_int.ModelEntity(
+    id: const obx_int.IdUid(9, 8967607260130020246),
+    name: 'ChatSessionRecord',
+    lastPropertyId: const obx_int.IdUid(7, 5541984059238343795),
+    flags: 0,
+    properties: <obx_int.ModelProperty>[
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(1, 506659056169323933),
+        name: 'id',
+        type: 6,
+        flags: 1,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(2, 2898677325535726695),
+        name: 'sessionId',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(3, 7713108390552819652),
+        name: 'title',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(4, 1512756073934161880),
+        name: 'lastMessagePreview',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(5, 5077906503839657356),
+        name: 'messageCount',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(6, 6782708655578119262),
+        name: 'createdAt',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(7, 5541984059238343795),
+        name: 'updatedAt',
+        type: 6,
+        flags: 0,
+      ),
+    ],
+    relations: <obx_int.ModelRelation>[],
+    backlinks: <obx_int.ModelBacklink>[],
+  ),
 ];
 
 /// Shortcut for [obx.Store.new] that passes [getObjectBoxModel] and for Flutter
@@ -305,7 +358,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
     // Typically, this is done with `dart run build_runner build`.
     generatorVersion: obx_int.GeneratorVersion.v2025_12_16,
     entities: _entities,
-    lastEntityId: const obx_int.IdUid(8, 5701768094403887080),
+    lastEntityId: const obx_int.IdUid(9, 8967607260130020246),
     lastIndexId: const obx_int.IdUid(10, 8502198300901827169),
     lastRelationId: const obx_int.IdUid(0, 0),
     lastSequenceId: const obx_int.IdUid(0, 0),
@@ -702,6 +755,80 @@ obx_int.ModelDefinition getObjectBoxModel() {
         return object;
       },
     ),
+    ChatSessionRecord: obx_int.EntityDefinition<ChatSessionRecord>(
+      model: _entities[4],
+      toOneRelations: (ChatSessionRecord object) => [],
+      toManyRelations: (ChatSessionRecord object) => {},
+      getId: (ChatSessionRecord object) => object.id,
+      setId: (ChatSessionRecord object, int id) {
+        object.id = id;
+      },
+      objectToFB: (ChatSessionRecord object, fb.Builder fbb) {
+        final sessionIdOffset = fbb.writeString(object.sessionId);
+        final titleOffset = fbb.writeString(object.title);
+        final lastMessagePreviewOffset = fbb.writeString(
+          object.lastMessagePreview,
+        );
+        fbb.startTable(8);
+        fbb.addInt64(0, object.id);
+        fbb.addOffset(1, sessionIdOffset);
+        fbb.addOffset(2, titleOffset);
+        fbb.addOffset(3, lastMessagePreviewOffset);
+        fbb.addInt64(4, object.messageCount);
+        fbb.addInt64(5, object.createdAt);
+        fbb.addInt64(6, object.updatedAt);
+        fbb.finish(fbb.endTable());
+        return object.id;
+      },
+      objectFromFB: (obx.Store store, ByteData fbData) {
+        final buffer = fb.BufferContext(fbData);
+        final rootOffset = buffer.derefObject(0);
+        final idParam = const fb.Int64Reader().vTableGet(
+          buffer,
+          rootOffset,
+          4,
+          0,
+        );
+        final sessionIdParam = const fb.StringReader(
+          asciiOptimization: true,
+        ).vTableGet(buffer, rootOffset, 6, '');
+        final titleParam = const fb.StringReader(
+          asciiOptimization: true,
+        ).vTableGet(buffer, rootOffset, 8, '');
+        final lastMessagePreviewParam = const fb.StringReader(
+          asciiOptimization: true,
+        ).vTableGet(buffer, rootOffset, 10, '');
+        final messageCountParam = const fb.Int64Reader().vTableGet(
+          buffer,
+          rootOffset,
+          12,
+          0,
+        );
+        final createdAtParam = const fb.Int64Reader().vTableGet(
+          buffer,
+          rootOffset,
+          14,
+          0,
+        );
+        final updatedAtParam = const fb.Int64Reader().vTableGet(
+          buffer,
+          rootOffset,
+          16,
+          0,
+        );
+        final object = ChatSessionRecord(
+          id: idParam,
+          sessionId: sessionIdParam,
+          title: titleParam,
+          lastMessagePreview: lastMessagePreviewParam,
+          messageCount: messageCountParam,
+          createdAt: createdAtParam,
+          updatedAt: updatedAtParam,
+        );
+
+        return object;
+      },
+    ),
   };
 
   return obx_int.ModelDefinition(model, bindings);
@@ -886,5 +1013,43 @@ class InterviewGuideRecord_ {
   /// See [InterviewGuideRecord.createdAt].
   static final createdAt = obx.QueryIntegerProperty<InterviewGuideRecord>(
     _entities[3].properties[6],
+  );
+}
+
+/// [ChatSessionRecord] entity fields to define ObjectBox queries.
+class ChatSessionRecord_ {
+  /// See [ChatSessionRecord.id].
+  static final id = obx.QueryIntegerProperty<ChatSessionRecord>(
+    _entities[4].properties[0],
+  );
+
+  /// See [ChatSessionRecord.sessionId].
+  static final sessionId = obx.QueryStringProperty<ChatSessionRecord>(
+    _entities[4].properties[1],
+  );
+
+  /// See [ChatSessionRecord.title].
+  static final title = obx.QueryStringProperty<ChatSessionRecord>(
+    _entities[4].properties[2],
+  );
+
+  /// See [ChatSessionRecord.lastMessagePreview].
+  static final lastMessagePreview = obx.QueryStringProperty<ChatSessionRecord>(
+    _entities[4].properties[3],
+  );
+
+  /// See [ChatSessionRecord.messageCount].
+  static final messageCount = obx.QueryIntegerProperty<ChatSessionRecord>(
+    _entities[4].properties[4],
+  );
+
+  /// See [ChatSessionRecord.createdAt].
+  static final createdAt = obx.QueryIntegerProperty<ChatSessionRecord>(
+    _entities[4].properties[5],
+  );
+
+  /// See [ChatSessionRecord.updatedAt].
+  static final updatedAt = obx.QueryIntegerProperty<ChatSessionRecord>(
+    _entities[4].properties[6],
   );
 }
