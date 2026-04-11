@@ -12,8 +12,8 @@ void main() {
     await tester.pumpWidget(const RecruiterApp());
 
     expect(find.text('NgeRekrut'), findsOneWidget);
-    expect(find.text('Workflow Utama'), findsOneWidget);
-    expect(find.text('Buat Lowongan'), findsAtLeastNWidgets(1));
-    expect(find.text('Asisten Recruiter'), findsAtLeastNWidgets(1));
+    expect(find.text('Percakapan'), findsOneWidget);
+    expect(find.text('Daftar Sesi'), findsOneWidget);
+    expect(find.text('Chat Baru'), findsOneWidget);
   });
 }
