@@ -1,10 +1,10 @@
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'app/runtime_config.dart';
 import 'flavors/app_flavor_config.dart';
 import 'flavors/flavor_environment.dart';
 import 'flavors/flavor_firebase_options.dart';
@@ -48,9 +48,9 @@ Future<void> _initializeFirebaseMessaging() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await _loadEnv();
+  await loadEnv();
   await FlutterGemma.initialize(
-    huggingFaceToken: _readConfig('HUGGINGFACE_TOKEN'),
+    huggingFaceToken: readConfig('HUGGINGFACE_TOKEN'),
   );
 
   FlavorManager.init(
@@ -78,26 +78,6 @@ void main() async {
     }
   }
   runApp(const MyApp());
-}
-
-Future<void> _loadEnv() async {
-  try {
-    await dotenv.load(fileName: '.env');
-  } catch (_) {
-    // Development setup may rely on --dart-define only.
-  }
-}
-
-String _readConfig(String key) {
-  const dartDefineValues = {
-    'HUGGINGFACE_TOKEN': String.fromEnvironment('HUGGINGFACE_TOKEN'),
-  };
-
-  final envValue = dotenv.isInitialized ? dotenv.maybeGet(key) : null;
-  if (envValue != null && envValue.isNotEmpty) {
-    return envValue;
-  }
-  return dartDefineValues[key] ?? '';
 }
 
 class MyApp extends StatelessWidget {
