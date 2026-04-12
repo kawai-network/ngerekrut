@@ -27,10 +27,12 @@ import 'runtime_config.dart';
 
 class RecruiterApp extends StatelessWidget {
   final String title;
+  final bool enableAIInitialization;
 
   const RecruiterApp({
     super.key,
     this.title = 'NgeRekrut',
+    this.enableAIInitialization = true,
   });
 
   @override
@@ -41,13 +43,20 @@ class RecruiterApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF18CD5B)),
         useMaterial3: true,
       ),
-      home: const RecruiterHomeScreen(),
+      home: RecruiterHomeScreen(
+        enableAIInitialization: enableAIInitialization,
+      ),
     );
   }
 }
 
 class RecruiterHomeScreen extends StatefulWidget {
-  const RecruiterHomeScreen({super.key});
+  const RecruiterHomeScreen({
+    super.key,
+    this.enableAIInitialization = true,
+  });
+
+  final bool enableAIInitialization;
 
   @override
   State<RecruiterHomeScreen> createState() => _RecruiterHomeScreenState();
@@ -74,7 +83,9 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
     super.initState();
     _configureHiringRepository();
     _loadSessions();
-    _initHybridService();
+    if (widget.enableAIInitialization) {
+      _initHybridService();
+    }
   }
 
   void _configureHiringRepository() {
@@ -400,21 +411,33 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
   Future<void> _createSession() async {
     await _sessionRepository.initialize();
     final session = _sessionRepository.createSession();
+    final service = _hybridService ??
+        HybridAIService(cloudApiKey: readConfig('OPENAI_API_KEY'));
+    _hybridService ??= service;
     if (!mounted) return;
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ChatRoomScreen(session: session),
+        builder: (context) => ChatRoomScreen(
+          session: session,
+          aiService: service,
+        ),
       ),
     );
     await _loadSessions();
   }
 
   Future<void> _openSession(ChatSessionRecord session) async {
+    final service = _hybridService ??
+        HybridAIService(cloudApiKey: readConfig('OPENAI_API_KEY'));
+    _hybridService ??= service;
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ChatRoomScreen(session: session),
+        builder: (context) => ChatRoomScreen(
+          session: session,
+          aiService: service,
+        ),
       ),
     );
     await _loadSessions();

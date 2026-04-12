@@ -82,6 +82,18 @@ class ChatSessionRepository {
     return session;
   }
 
+  ChatSessionRecord setTitle(String sessionId, String title) {
+    final session = ensureSession(sessionId);
+    final normalized = title.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (normalized.isNotEmpty) {
+      session.title = normalized;
+      session.updatedAt = DateTime.now().millisecondsSinceEpoch;
+      final box = ObjectBoxStoreProvider.box<ChatSessionRecord>();
+      session.id = box.put(session);
+    }
+    return session;
+  }
+
   void deleteSession(String sessionId) {
     final box = ObjectBoxStoreProvider.box<ChatSessionRecord>();
     final query = box

@@ -9,7 +9,9 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1440, 2000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(const RecruiterApp());
+    await tester.pumpWidget(
+      const RecruiterApp(enableAIInitialization: false),
+    );
     await tester.pump();
 
     expect(find.text('NgeRekrut'), findsOneWidget);
