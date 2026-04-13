@@ -3,6 +3,7 @@ library;
 import 'package:flutter/material.dart';
 
 import '../models/recruiter_job.dart';
+import '../models/recruiter_shortlist.dart';
 import '../repositories/local_interview_guide_repository.dart';
 import '../repositories/local_job_post_repository.dart';
 import '../repositories/local_scorecard_repository.dart';
@@ -29,6 +30,7 @@ class LocalJobPostListScreen extends StatefulWidget {
 class _LocalJobPostListScreenState extends State<LocalJobPostListScreen> {
   bool _isLoading = true;
   List<_LocalJobPostSummary> _items = const [];
+  String _statusFilter = 'all';
 
   @override
   void initState() {
@@ -49,6 +51,7 @@ class _LocalJobPostListScreenState extends State<LocalJobPostListScreen> {
       summaries.add(
         _LocalJobPostSummary(
           job: job,
+          shortlist: shortlist,
           shortlistCount: shortlist?.rankedCandidates.length ?? 0,
           topCandidateCount: shortlist?.topCandidates.length ?? 0,
           scorecardCount: scorecards.length,
@@ -91,19 +94,37 @@ class _LocalJobPostListScreenState extends State<LocalJobPostListScreen> {
                   ),
             ),
             const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _buildFilterChip('all', 'Semua'),
+                _buildFilterChip('active', 'Aktif'),
+                _buildFilterChip('draft', 'Draft'),
+                _buildFilterChip('closed', 'Ditutup'),
+              ],
+            ),
+            const SizedBox(height: 16),
             if (_isLoading)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 48),
                 child: Center(child: CircularProgressIndicator()),
               )
-            else if (_items.isEmpty)
+            else if (_filteredItems.isEmpty)
               _buildEmptyState(context)
             else
-              ..._items.map((item) => _buildJobCard(context, item)),
+              ..._filteredItems.map((item) => _buildJobCard(context, item)),
           ],
         ),
       ),
     );
+  }
+
+  List<_LocalJobPostSummary> get _filteredItems {
+    if (_statusFilter == 'all') return _items;
+    return _items
+        .where((item) => item.job.status.toLowerCase() == _statusFilter)
+        .toList();
   }
 
   Widget _buildEmptyState(BuildContext context) {
@@ -206,6 +227,45 @@ class _LocalJobPostListScreenState extends State<LocalJobPostListScreen> {
                   _buildMetricChip('Guide', '${item.guideCount}'),
                 ],
               ),
+              if (item.shortlist?.topCandidates.isNotEmpty == true) ...[
+                const SizedBox(height: 14),
+                Text(
+                  'Top Kandidat',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                ...item.shortlist!.topCandidates.take(2).map(
+                  (candidate) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 14,
+                          backgroundColor: const Color(0xFFE2E8F0),
+                          child: Text(
+                            candidate.rank.toString(),
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            candidate.candidateName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Text(
+                          candidate.totalScore.toStringAsFixed(0),
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
               if ((item.latestScreeningSummary ?? '').isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Text(
@@ -234,6 +294,14 @@ class _LocalJobPostListScreenState extends State<LocalJobPostListScreen> {
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Text('$label $value'),
+    );
+  }
+
+  Widget _buildFilterChip(String value, String label) {
+    return ChoiceChip(
+      selected: _statusFilter == value,
+      label: Text(label),
+      onSelected: (_) => setState(() => _statusFilter = value),
     );
   }
 
@@ -336,6 +404,60 @@ class _LocalJobPostDetailScreen extends StatelessWidget {
               ],
             ),
           ),
+          if (item.shortlist?.rankedCandidates.isNotEmpty == true) ...[
+            const SizedBox(height: 16),
+            _buildSection(
+              context,
+              title: 'Kandidat Teratas',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: item.shortlist!.rankedCandidates.take(3).map(
+                  (candidate) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                '#${candidate.rank}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  candidate.candidateName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              Text(candidate.totalScore.toStringAsFixed(0)),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(candidate.rationale),
+                          if (candidate.strengths.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              'Kekuatan: ${candidate.strengths.join(', ')}',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(color: Colors.grey.shade700),
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  },
+                ).toList(),
+              ),
+            ),
+          ],
           if ((item.latestScreeningSummary ?? '').isNotEmpty) ...[
             const SizedBox(height: 16),
             _buildSection(
@@ -412,6 +534,7 @@ class _LocalJobPostDetailScreen extends StatelessWidget {
 class _LocalJobPostSummary {
   const _LocalJobPostSummary({
     required this.job,
+    required this.shortlist,
     required this.shortlistCount,
     required this.topCandidateCount,
     required this.scorecardCount,
@@ -420,6 +543,7 @@ class _LocalJobPostSummary {
   });
 
   final RecruiterJob job;
+  final RecruiterShortlistResult? shortlist;
   final int shortlistCount;
   final int topCandidateCount;
   final int scorecardCount;

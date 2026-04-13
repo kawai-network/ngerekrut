@@ -126,6 +126,71 @@ class _LocalScreeningListScreenState extends State<LocalScreeningListScreen> {
                 _chip('Status', shortlist.status),
               ],
             ),
+            if (shortlist.rankedCandidates.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              ...shortlist.rankedCandidates.take(3).map(
+                (candidate) => Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            '#${candidate.rank}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              candidate.candidateName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          Text(candidate.totalScore.toStringAsFixed(0)),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        candidate.recommendation,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.grey.shade700,
+                            ),
+                      ),
+                      if (candidate.strengths.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          'Kekuatan: ${candidate.strengths.join(', ')}',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.grey.shade700,
+                                  ),
+                        ),
+                      ],
+                      if (candidate.redFlags.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          'Red flags: ${candidate.redFlags.join(', ')}',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.red.shade700,
+                                  ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
