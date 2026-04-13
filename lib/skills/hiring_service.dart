@@ -342,9 +342,10 @@ class HiringService {
       prompt: prompt,
       tools: tools,
       systemPrompt: systemPrompt,
-      parser: (response) => LocalToolCallParser.parse(
+      parser: (response) => LocalToolCallParser.parseArguments(
         response,
-        (json) => json,
+        expectedFunction: skill,
+        directValidator: (json) => json.isNotEmpty,
       ),
       errorBuilder: (_) => errorMessage,
     );

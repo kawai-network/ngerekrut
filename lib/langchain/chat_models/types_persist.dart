@@ -67,7 +67,8 @@ extension ChatMessageQuery on ChatMessage {
     final store = ObjectBoxStoreProvider.store;
     final box = store.box<ChatMessageRecord>();
 
-    final builder = box.query(ChatMessageRecord_.sessionId.equals(sessionId));
+    final builder = box.query(ChatMessageRecord_.sessionId.equals(sessionId))
+      ..order(ChatMessageRecord_.createdAt);
     final query = builder.build();
     final records = query.find();
     query.close();
@@ -80,13 +81,12 @@ extension ChatMessageQuery on ChatMessage {
     final store = ObjectBoxStoreProvider.store;
     final box = store.box<ChatMessageRecord>();
 
-    final builder = box.query(ChatMessageRecord_.sessionId.equals(sessionId));
+    final builder = box.query(ChatMessageRecord_.sessionId.equals(sessionId))
+      ..order(ChatMessageRecord_.createdAt, flags: Order.descending);
     final query = builder.build();
     final records = query.find();
     query.close();
-
-    final limited = records.take(count).toList();
-    return limited.map(_toChatMessage).toList();
+    return records.take(count).toList().reversed.map(_toChatMessage).toList();
   }
 
   /// Hapus session.

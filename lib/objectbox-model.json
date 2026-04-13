@@ -203,9 +203,112 @@
         }
       ],
       "relations": []
+    },
+    {
+      "id": "9:8967607260130020246",
+      "lastPropertyId": "7:5541984059238343795",
+      "name": "ChatSessionRecord",
+      "properties": [
+        {
+          "id": "1:506659056169323933",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:2898677325535726695",
+          "name": "sessionId",
+          "type": 9
+        },
+        {
+          "id": "3:7713108390552819652",
+          "name": "title",
+          "type": 9
+        },
+        {
+          "id": "4:1512756073934161880",
+          "name": "lastMessagePreview",
+          "type": 9
+        },
+        {
+          "id": "5:5077906503839657356",
+          "name": "messageCount",
+          "type": 6
+        },
+        {
+          "id": "6:6782708655578119262",
+          "name": "createdAt",
+          "type": 6
+        },
+        {
+          "id": "7:5541984059238343795",
+          "name": "updatedAt",
+          "type": 6
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "10:8969959986745170977",
+      "lastPropertyId": "10:5809072660839361631",
+      "name": "JobPostRecord",
+      "properties": [
+        {
+          "id": "1:800037097158100694",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:3061842719188420887",
+          "name": "jobId",
+          "type": 9
+        },
+        {
+          "id": "3:2754621188149784392",
+          "name": "title",
+          "type": 9
+        },
+        {
+          "id": "4:624823159226967746",
+          "name": "department",
+          "type": 9
+        },
+        {
+          "id": "5:6639824955790379300",
+          "name": "location",
+          "type": 9
+        },
+        {
+          "id": "6:509033731412474970",
+          "name": "description",
+          "type": 9
+        },
+        {
+          "id": "7:862298806667932958",
+          "name": "requirementsJson",
+          "type": 9
+        },
+        {
+          "id": "8:236271528955060177",
+          "name": "status",
+          "type": 9
+        },
+        {
+          "id": "9:7906702866460494364",
+          "name": "createdAt",
+          "type": 6
+        },
+        {
+          "id": "10:5809072660839361631",
+          "name": "updatedAt",
+          "type": 6
+        }
+      ],
+      "relations": []
     }
   ],
-  "lastEntityId": "8:5701768094403887080",
+  "lastEntityId": "10:8969959986745170977",
   "lastIndexId": "10:8502198300901827169",
   "lastRelationId": "0:0",
   "lastSequenceId": "0:0",

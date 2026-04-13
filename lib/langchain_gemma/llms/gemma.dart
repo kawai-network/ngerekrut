@@ -8,9 +8,14 @@ import 'types.dart';
 
 /// Default local AI client powered by `flutter_gemma`.
 class GemmaLocalAIClient implements LocalAIClient {
+  static const _modelId = 'gemma-4-E2B-it.litertlm';
+  static const _modelUrl =
+      'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm';
+
   InferenceModel? _model;
   LocalAIStatus _status = LocalAIStatus.notInitialized;
   String? _errorMessage;
+  PreferredBackend _backend = PreferredBackend.gpu;
 
   @override
   LocalAIStatus get status => _status;
@@ -28,16 +33,15 @@ class GemmaLocalAIClient implements LocalAIClient {
     try {
       _setStatus(LocalAIStatus.downloading);
 
-      const modelId = 'gemma-4-4b-it-gpu-int4';
-      final isInstalled = await FlutterGemma.isModelInstalled(modelId);
+      final isInstalled = await FlutterGemma.isModelInstalled(_modelId);
 
       if (!isInstalled) {
-        debugPrint('[GemmaLocalAIClient] Installing Gemma 4 E4B model...');
+        debugPrint('[GemmaLocalAIClient] Installing Gemma 4 E2B LiteRT-LM model...');
 
         await FlutterGemma.installModel(
           modelType: ModelType.gemmaIt,
         ).fromNetwork(
-          'https://huggingface.co/google/gemma-4-4b-it-gpu-int4/resolve/main/model.task',
+          _modelUrl,
         ).withProgress((progress) {
           final percentage = progress / 100.0;
           debugPrint('[GemmaLocalAIClient] Download: $progress%');
@@ -47,14 +51,10 @@ class GemmaLocalAIClient implements LocalAIClient {
         debugPrint('[GemmaLocalAIClient] Model installed successfully');
       }
 
-      _model = await FlutterGemma.getActiveModel(
-        maxTokens: 4096,
-        preferredBackend: PreferredBackend.gpu,
-        supportImage: false,
-      );
+      await _loadModel(preferredBackend: _backend);
 
       _setStatus(LocalAIStatus.ready);
-      debugPrint('[GemmaLocalAIClient] Ready for inference');
+      debugPrint('[GemmaLocalAIClient] Ready for inference using $_backend');
 
       return LocalAIStatus.ready;
     } catch (e) {
@@ -70,30 +70,32 @@ class GemmaLocalAIClient implements LocalAIClient {
     required String prompt,
     String? systemPrompt,
   }) async {
-    final model = _model;
-    if (model == null) {
-      throw StateError('Model not initialized. Call initialize() first.');
-    }
-
-    final session = await model.createSession();
-
-    try {
-      if (systemPrompt != null && systemPrompt.isNotEmpty) {
-        await session.addQueryChunk(Message(
-          text: systemPrompt,
-          isUser: false,
-        ));
+    return _withBackendRecovery(() async {
+      final model = _model;
+      if (model == null) {
+        throw StateError('Model not initialized. Call initialize() first.');
       }
 
-      await session.addQueryChunk(Message(
-        text: prompt,
-        isUser: true,
-      ));
+      final session = await model.createSession();
 
-      return await session.getResponse();
-    } finally {
-      await session.close();
-    }
+      try {
+        if (systemPrompt != null && systemPrompt.isNotEmpty) {
+          await session.addQueryChunk(Message(
+            text: systemPrompt,
+            isUser: false,
+          ));
+        }
+
+        await session.addQueryChunk(Message(
+          text: prompt,
+          isUser: true,
+        ));
+
+        return await session.getResponse();
+      } finally {
+        await session.close();
+      }
+    });
   }
 
   @override
@@ -102,28 +104,63 @@ class GemmaLocalAIClient implements LocalAIClient {
     required List<Map<String, dynamic>> tools,
     String? systemPrompt,
   }) async {
-    final model = _model;
-    if (model == null) {
-      throw StateError('Model not initialized. Call initialize() first.');
-    }
+    return _withBackendRecovery(() async {
+      final model = _model;
+      if (model == null) {
+        throw StateError('Model not initialized. Call initialize() first.');
+      }
 
-    final session = await model.createSession();
+      final session = await model.createSession();
 
+      try {
+        final toolsPrompt = _buildToolsPrompt(tools);
+        final fullPrompt = systemPrompt != null
+            ? '$systemPrompt\n\n$toolsPrompt\n\nUser: $prompt'
+            : '$toolsPrompt\n\nUser: $prompt';
+
+        await session.addQueryChunk(Message(
+          text: fullPrompt,
+          isUser: true,
+        ));
+
+        return await session.getResponse();
+      } finally {
+        await session.close();
+      }
+    });
+  }
+
+  Future<void> _loadModel({
+    required PreferredBackend preferredBackend,
+  }) async {
+    await _model?.close();
+    _model = await FlutterGemma.getActiveModel(
+      maxTokens: 4096,
+      preferredBackend: preferredBackend,
+      supportImage: false,
+    );
+    _backend = preferredBackend;
+  }
+
+  Future<String> _withBackendRecovery(
+    Future<String> Function() action,
+  ) async {
     try {
-      final toolsPrompt = _buildToolsPrompt(tools);
-      final fullPrompt = systemPrompt != null
-          ? '$systemPrompt\n\n$toolsPrompt\n\nUser: $prompt'
-          : '$toolsPrompt\n\nUser: $prompt';
-
-      await session.addQueryChunk(Message(
-        text: fullPrompt,
-        isUser: true,
-      ));
-
-      return await session.getResponse();
-    } finally {
-      await session.close();
+      return await action();
+    } catch (e) {
+      if (_shouldFallbackToCpu(e)) {
+        debugPrint('[GemmaLocalAIClient] GPU backend unavailable, retrying with CPU');
+        await _loadModel(preferredBackend: PreferredBackend.cpu);
+        return action();
+      }
+      rethrow;
     }
+  }
+
+  bool _shouldFallbackToCpu(Object error) {
+    final message = error.toString().toLowerCase();
+    return _backend != PreferredBackend.cpu &&
+        (message.contains('opencl') || message.contains('gpu'));
   }
 
   String _buildToolsPrompt(List<Map<String, dynamic>> tools) {

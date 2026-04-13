@@ -1,1 +1,2 @@
 #include "Generated.xcconfig"
+GOOGLE_SERVICE_INFO_PLIST=Runner/GoogleService-Info.plist
