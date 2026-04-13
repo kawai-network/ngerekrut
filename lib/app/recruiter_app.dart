@@ -3,6 +3,7 @@ library;
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 
+import '../dev/mock_recruiter_data_seed.dart';
 import '../models/chat_session_record.dart';
 import '../repositories/chat_session_repository.dart';
 import '../repositories/hiring_repository.dart';
@@ -176,6 +177,11 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
                 const PopupMenuItem(
                   value: _HomeAction.gemmaProof,
                   child: Text('Cek Gemma Lokal'),
+                ),
+              if (kDebugMode)
+                const PopupMenuItem(
+                  value: _HomeAction.seedMockData,
+                  child: Text('Seed Mock Data'),
                 ),
               if (kDebugMode)
                 const PopupMenuItem(
@@ -477,6 +483,8 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
         _openHiringAssistant();
       case _HomeAction.gemmaProof:
         _openGemmaProof();
+      case _HomeAction.seedMockData:
+        _seedMockData();
       case _HomeAction.legacyChat:
         Navigator.push(
           context,
@@ -557,6 +565,17 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
     );
   }
 
+  Future<void> _seedMockData() async {
+    await MockRecruiterDataSeed.seed();
+    await _loadSessions();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Mock recruiter data berhasil diisi ke ObjectBox.'),
+      ),
+    );
+  }
+
   String _formatTime(int timestamp) {
     final dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
     final now = DateTime.now();
@@ -575,5 +594,6 @@ enum _HomeAction {
   candidateScreening,
   hiringAssistant,
   gemmaProof,
+  seedMockData,
   legacyChat,
 }

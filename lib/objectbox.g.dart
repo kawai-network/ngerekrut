@@ -18,6 +18,7 @@ import 'langchain/chat_models/chat_message_record.dart';
 import 'models/candidate_scorecard_record.dart';
 import 'models/chat_session_record.dart';
 import 'models/interview_guide_record.dart';
+import 'models/job_post_record.dart';
 import 'models/recruiter_shortlist_record.dart';
 
 export 'package:objectbox/objectbox.dart'; // so that callers only have to import this file
@@ -313,6 +314,76 @@ final _entities = <obx_int.ModelEntity>[
     relations: <obx_int.ModelRelation>[],
     backlinks: <obx_int.ModelBacklink>[],
   ),
+  obx_int.ModelEntity(
+    id: const obx_int.IdUid(10, 8969959986745170977),
+    name: 'JobPostRecord',
+    lastPropertyId: const obx_int.IdUid(10, 5809072660839361631),
+    flags: 0,
+    properties: <obx_int.ModelProperty>[
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(1, 800037097158100694),
+        name: 'id',
+        type: 6,
+        flags: 1,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(2, 3061842719188420887),
+        name: 'jobId',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(3, 2754621188149784392),
+        name: 'title',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(4, 624823159226967746),
+        name: 'department',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(5, 6639824955790379300),
+        name: 'location',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(6, 509033731412474970),
+        name: 'description',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(7, 862298806667932958),
+        name: 'requirementsJson',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(8, 236271528955060177),
+        name: 'status',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(9, 7906702866460494364),
+        name: 'createdAt',
+        type: 6,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(10, 5809072660839361631),
+        name: 'updatedAt',
+        type: 6,
+        flags: 0,
+      ),
+    ],
+    relations: <obx_int.ModelRelation>[],
+    backlinks: <obx_int.ModelBacklink>[],
+  ),
 ];
 
 /// Shortcut for [obx.Store.new] that passes [getObjectBoxModel] and for Flutter
@@ -358,7 +429,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
     // Typically, this is done with `dart run build_runner build`.
     generatorVersion: obx_int.GeneratorVersion.v2025_12_16,
     entities: _entities,
-    lastEntityId: const obx_int.IdUid(9, 8967607260130020246),
+    lastEntityId: const obx_int.IdUid(10, 8969959986745170977),
     lastIndexId: const obx_int.IdUid(10, 8502198300901827169),
     lastRelationId: const obx_int.IdUid(0, 0),
     lastSequenceId: const obx_int.IdUid(0, 0),
@@ -829,6 +900,100 @@ obx_int.ModelDefinition getObjectBoxModel() {
         return object;
       },
     ),
+    JobPostRecord: obx_int.EntityDefinition<JobPostRecord>(
+      model: _entities[5],
+      toOneRelations: (JobPostRecord object) => [],
+      toManyRelations: (JobPostRecord object) => {},
+      getId: (JobPostRecord object) => object.id,
+      setId: (JobPostRecord object, int id) {
+        object.id = id;
+      },
+      objectToFB: (JobPostRecord object, fb.Builder fbb) {
+        final jobIdOffset = fbb.writeString(object.jobId);
+        final titleOffset = fbb.writeString(object.title);
+        final departmentOffset = object.department == null
+            ? null
+            : fbb.writeString(object.department!);
+        final locationOffset = object.location == null
+            ? null
+            : fbb.writeString(object.location!);
+        final descriptionOffset = object.description == null
+            ? null
+            : fbb.writeString(object.description!);
+        final requirementsJsonOffset = fbb.writeString(object.requirementsJson);
+        final statusOffset = fbb.writeString(object.status);
+        fbb.startTable(11);
+        fbb.addInt64(0, object.id);
+        fbb.addOffset(1, jobIdOffset);
+        fbb.addOffset(2, titleOffset);
+        fbb.addOffset(3, departmentOffset);
+        fbb.addOffset(4, locationOffset);
+        fbb.addOffset(5, descriptionOffset);
+        fbb.addOffset(6, requirementsJsonOffset);
+        fbb.addOffset(7, statusOffset);
+        fbb.addInt64(8, object.createdAt);
+        fbb.addInt64(9, object.updatedAt);
+        fbb.finish(fbb.endTable());
+        return object.id;
+      },
+      objectFromFB: (obx.Store store, ByteData fbData) {
+        final buffer = fb.BufferContext(fbData);
+        final rootOffset = buffer.derefObject(0);
+        final idParam = const fb.Int64Reader().vTableGet(
+          buffer,
+          rootOffset,
+          4,
+          0,
+        );
+        final jobIdParam = const fb.StringReader(
+          asciiOptimization: true,
+        ).vTableGet(buffer, rootOffset, 6, '');
+        final titleParam = const fb.StringReader(
+          asciiOptimization: true,
+        ).vTableGet(buffer, rootOffset, 8, '');
+        final departmentParam = const fb.StringReader(
+          asciiOptimization: true,
+        ).vTableGetNullable(buffer, rootOffset, 10);
+        final locationParam = const fb.StringReader(
+          asciiOptimization: true,
+        ).vTableGetNullable(buffer, rootOffset, 12);
+        final descriptionParam = const fb.StringReader(
+          asciiOptimization: true,
+        ).vTableGetNullable(buffer, rootOffset, 14);
+        final requirementsJsonParam = const fb.StringReader(
+          asciiOptimization: true,
+        ).vTableGet(buffer, rootOffset, 16, '');
+        final statusParam = const fb.StringReader(
+          asciiOptimization: true,
+        ).vTableGet(buffer, rootOffset, 18, '');
+        final createdAtParam = const fb.Int64Reader().vTableGet(
+          buffer,
+          rootOffset,
+          20,
+          0,
+        );
+        final updatedAtParam = const fb.Int64Reader().vTableGet(
+          buffer,
+          rootOffset,
+          22,
+          0,
+        );
+        final object = JobPostRecord(
+          id: idParam,
+          jobId: jobIdParam,
+          title: titleParam,
+          department: departmentParam,
+          location: locationParam,
+          description: descriptionParam,
+          requirementsJson: requirementsJsonParam,
+          status: statusParam,
+          createdAt: createdAtParam,
+          updatedAt: updatedAtParam,
+        );
+
+        return object;
+      },
+    ),
   };
 
   return obx_int.ModelDefinition(model, bindings);
@@ -1051,5 +1216,58 @@ class ChatSessionRecord_ {
   /// See [ChatSessionRecord.updatedAt].
   static final updatedAt = obx.QueryIntegerProperty<ChatSessionRecord>(
     _entities[4].properties[6],
+  );
+}
+
+/// [JobPostRecord] entity fields to define ObjectBox queries.
+class JobPostRecord_ {
+  /// See [JobPostRecord.id].
+  static final id = obx.QueryIntegerProperty<JobPostRecord>(
+    _entities[5].properties[0],
+  );
+
+  /// See [JobPostRecord.jobId].
+  static final jobId = obx.QueryStringProperty<JobPostRecord>(
+    _entities[5].properties[1],
+  );
+
+  /// See [JobPostRecord.title].
+  static final title = obx.QueryStringProperty<JobPostRecord>(
+    _entities[5].properties[2],
+  );
+
+  /// See [JobPostRecord.department].
+  static final department = obx.QueryStringProperty<JobPostRecord>(
+    _entities[5].properties[3],
+  );
+
+  /// See [JobPostRecord.location].
+  static final location = obx.QueryStringProperty<JobPostRecord>(
+    _entities[5].properties[4],
+  );
+
+  /// See [JobPostRecord.description].
+  static final description = obx.QueryStringProperty<JobPostRecord>(
+    _entities[5].properties[5],
+  );
+
+  /// See [JobPostRecord.requirementsJson].
+  static final requirementsJson = obx.QueryStringProperty<JobPostRecord>(
+    _entities[5].properties[6],
+  );
+
+  /// See [JobPostRecord.status].
+  static final status = obx.QueryStringProperty<JobPostRecord>(
+    _entities[5].properties[7],
+  );
+
+  /// See [JobPostRecord.createdAt].
+  static final createdAt = obx.QueryIntegerProperty<JobPostRecord>(
+    _entities[5].properties[8],
+  );
+
+  /// See [JobPostRecord.updatedAt].
+  static final updatedAt = obx.QueryIntegerProperty<JobPostRecord>(
+    _entities[5].properties[9],
   );
 }
