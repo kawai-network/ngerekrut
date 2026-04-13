@@ -8,6 +8,7 @@ import '../models/chat_session_record.dart';
 import '../repositories/chat_session_repository.dart';
 import '../repositories/hiring_repository.dart';
 import '../repositories/local_interview_guide_repository.dart';
+import '../repositories/local_job_post_repository.dart';
 import '../repositories/local_scorecard_repository.dart';
 import '../repositories/local_shortlist_repository.dart';
 import '../screens/chat_room_screen.dart';
@@ -15,6 +16,10 @@ import '../screens/full_chat_screen.dart';
 import '../screens/gemma_proof_screen.dart';
 import '../screens/hiring_screen.dart';
 import '../screens/job_candidates_screen.dart';
+import '../screens/local_assessment_list_screen.dart';
+import '../screens/local_interview_list_screen.dart';
+import '../screens/local_job_post_list_screen.dart';
+import '../screens/local_screening_list_screen.dart';
 import '../screens/job_posting_chat_screen.dart';
 import '../services/api/candidates_api.dart';
 import '../services/api/cloudflare_kv_api_client.dart';
@@ -67,6 +72,8 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
   final ChatSessionRepository _sessionRepository = ChatSessionRepository();
   final LocalShortlistRepository _localShortlistRepository =
       LocalShortlistRepository();
+  final LocalJobPostRepository _localJobPostRepository =
+      LocalJobPostRepository();
   final LocalScorecardRepository _localScorecardRepository =
       LocalScorecardRepository();
   final LocalInterviewGuideRepository _localInterviewGuideRepository =
@@ -75,6 +82,7 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
   HybridAIService? _hybridService;
   HiringRepository? _hiringRepository;
   List<ChatSessionRecord> _sessions = const [];
+  int _selectedIndex = 0;
   bool _isInitializingAI = false;
   bool _isLoadingSessions = true;
   double _downloadProgress = 0.0;
@@ -152,6 +160,27 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
     final hasCloudAI = _hybridService?.hasCloudAI ?? false;
     final hasLocalAI = _hybridService?.isLocalAIReady ?? false;
     final hasRecruiterData = _hiringRepository != null;
+    final body = [
+      LocalJobPostListScreen(
+        jobPostRepository: _localJobPostRepository,
+        shortlistRepository: _localShortlistRepository,
+        scorecardRepository: _localScorecardRepository,
+        interviewGuideRepository: _localInterviewGuideRepository,
+      ),
+      LocalScreeningListScreen(
+        jobPostRepository: _localJobPostRepository,
+        shortlistRepository: _localShortlistRepository,
+      ),
+      LocalAssessmentListScreen(
+        jobPostRepository: _localJobPostRepository,
+        shortlistRepository: _localShortlistRepository,
+      ),
+      LocalInterviewListScreen(
+        jobPostRepository: _localJobPostRepository,
+        scorecardRepository: _localScorecardRepository,
+        interviewGuideRepository: _localInterviewGuideRepository,
+      ),
+    ][_selectedIndex];
 
     return Scaffold(
       appBar: AppBar(
@@ -167,7 +196,7 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
               PopupMenuItem(
                 value: _HomeAction.candidateScreening,
                 enabled: hasRecruiterData,
-                child: const Text('Screening Kandidat'),
+                child: const Text('Screening Kandidat API'),
               ),
               const PopupMenuItem(
                 value: _HomeAction.hiringAssistant,
@@ -192,49 +221,50 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _createSession,
-        icon: const Icon(Icons.chat_bubble_outline),
-        label: const Text('Chat Baru'),
-      ),
-      body: RefreshIndicator(
-        onRefresh: _loadSessions,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _buildStatusCard(
+      floatingActionButton: _selectedIndex == 0
+          ? FloatingActionButton.extended(
+              onPressed: _openJobPostingChat,
+              icon: const Icon(Icons.add),
+              label: const Text('Buat Lowongan'),
+            )
+          : null,
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: _buildStatusCard(
               hasLocalAI: hasLocalAI,
               hasCloudAI: hasCloudAI,
               hasRecruiterData: hasRecruiterData,
             ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Text(
-                  'Percakapan',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-                const Spacer(),
-                Text(
-                  '${_sessions.length} sesi',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            if (_isLoadingSessions)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 48),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (_sessions.isEmpty)
-              _buildEmptyState()
-            else
-              ..._sessions.map(_buildSessionTile),
-          ],
-        ),
+          ),
+          const SizedBox(height: 8),
+          Expanded(child: body),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: (index) {
+          setState(() => _selectedIndex = index);
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.work_outline),
+            label: 'Lowongan',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.fact_check_outlined),
+            label: 'Screening',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.quiz_outlined),
+            label: 'Tes',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.record_voice_over_outlined),
+            label: 'Interview',
+          ),
+        ],
       ),
     );
   }
@@ -477,6 +507,8 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
     switch (action) {
       case _HomeAction.jobPosting:
         _openJobPostingChat();
+      case _HomeAction.localJobPosts:
+        _openLocalJobPosts();
       case _HomeAction.candidateScreening:
         _openCandidateScreening();
       case _HomeAction.hiringAssistant:
@@ -509,6 +541,20 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
         builder: (context) => JobPostingChatScreen(
           apiKey: readConfig('OPENAI_API_KEY'),
           aiService: service,
+        ),
+      ),
+    );
+  }
+
+  void _openLocalJobPosts() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LocalJobPostListScreen(
+          jobPostRepository: _localJobPostRepository,
+          shortlistRepository: _localShortlistRepository,
+          scorecardRepository: _localScorecardRepository,
+          interviewGuideRepository: _localInterviewGuideRepository,
         ),
       ),
     );
