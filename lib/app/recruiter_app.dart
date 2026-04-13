@@ -4,14 +4,11 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 
 import '../dev/mock_recruiter_data_seed.dart';
-import '../models/chat_session_record.dart';
-import '../repositories/chat_session_repository.dart';
 import '../repositories/hiring_repository.dart';
 import '../repositories/local_interview_guide_repository.dart';
 import '../repositories/local_job_post_repository.dart';
 import '../repositories/local_scorecard_repository.dart';
 import '../repositories/local_shortlist_repository.dart';
-import '../screens/chat_room_screen.dart';
 import '../screens/full_chat_screen.dart';
 import '../screens/gemma_proof_screen.dart';
 import '../screens/hiring_screen.dart';
@@ -69,7 +66,6 @@ class RecruiterHomeScreen extends StatefulWidget {
 }
 
 class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
-  final ChatSessionRepository _sessionRepository = ChatSessionRepository();
   final LocalShortlistRepository _localShortlistRepository =
       LocalShortlistRepository();
   final LocalJobPostRepository _localJobPostRepository =
@@ -81,17 +77,14 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
 
   HybridAIService? _hybridService;
   HiringRepository? _hiringRepository;
-  List<ChatSessionRecord> _sessions = const [];
   int _selectedIndex = 0;
   bool _isInitializingAI = false;
-  bool _isLoadingSessions = true;
   double _downloadProgress = 0.0;
 
   @override
   void initState() {
     super.initState();
     _configureHiringRepository();
-    _loadSessions();
     if (widget.enableAIInitialization) {
       _initHybridService();
     }
@@ -115,21 +108,6 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
         candidatesApi: CandidatesApi(apiClient),
         screeningsApi: ScreeningsApi(apiClient),
       );
-    }
-  }
-
-  Future<void> _loadSessions() async {
-    try {
-      await _sessionRepository.initialize();
-      final sessions = _sessionRepository.listSessions();
-      if (!mounted) return;
-      setState(() {
-        _sessions = sessions;
-        _isLoadingSessions = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _isLoadingSessions = false);
     }
   }
 
@@ -355,160 +333,10 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.forum_outlined, size: 32),
-          const SizedBox(height: 12),
-          Text(
-            'Belum ada sesi chat',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Buat sesi baru untuk mulai percakapan recruiter. Workflow lain tetap tersedia dari menu kanan atas.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey.shade700,
-                  height: 1.45,
-                ),
-          ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: _createSession,
-            icon: const Icon(Icons.add_comment_outlined),
-            label: const Text('Buat Sesi Pertama'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSessionTile(ChatSessionRecord session) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: const BorderSide(color: Color(0xFFE5E7EB)),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-        onTap: () => _openSession(session),
-        leading: CircleAvatar(
-          backgroundColor: const Color(0xFFE8FFF0),
-          foregroundColor: const Color(0xFF0F766E),
-          child: Text(
-            session.title.isNotEmpty ? session.title[0].toUpperCase() : 'C',
-          ),
-        ),
-        title: Text(
-          session.title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontWeight: FontWeight.w700),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Text(
-            session.lastMessagePreview.isNotEmpty
-                ? session.lastMessagePreview
-                : 'Belum ada pesan',
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(_formatTime(session.updatedAt)),
-            const SizedBox(height: 4),
-            Text(
-              '${session.messageCount} pesan',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
-        ),
-        onLongPress: () => _confirmDeleteSession(session),
-      ),
-    );
-  }
-
-  Future<void> _createSession() async {
-    await _sessionRepository.initialize();
-    final session = _sessionRepository.createSession();
-    final service = _hybridService ??
-        HybridAIService(cloudApiKey: readConfig('OPENAI_API_KEY'));
-    _hybridService ??= service;
-    if (!mounted) return;
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ChatRoomScreen(
-          session: session,
-          aiService: service,
-        ),
-      ),
-    );
-    await _loadSessions();
-  }
-
-  Future<void> _openSession(ChatSessionRecord session) async {
-    final service = _hybridService ??
-        HybridAIService(cloudApiKey: readConfig('OPENAI_API_KEY'));
-    _hybridService ??= service;
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ChatRoomScreen(
-          session: session,
-          aiService: service,
-        ),
-      ),
-    );
-    await _loadSessions();
-  }
-
-  Future<void> _confirmDeleteSession(ChatSessionRecord session) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Hapus sesi?'),
-        content: Text('Percakapan "${session.title}" akan dihapus.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Batal'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Hapus'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-    _sessionRepository.deleteSession(session.sessionId);
-    await _loadSessions();
-  }
-
   void _handleHomeAction(_HomeAction action) {
     switch (action) {
       case _HomeAction.jobPosting:
         _openJobPostingChat();
-      case _HomeAction.localJobPosts:
-        _openLocalJobPosts();
       case _HomeAction.candidateScreening:
         _openCandidateScreening();
       case _HomeAction.hiringAssistant:
@@ -541,20 +369,6 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
         builder: (context) => JobPostingChatScreen(
           apiKey: readConfig('OPENAI_API_KEY'),
           aiService: service,
-        ),
-      ),
-    );
-  }
-
-  void _openLocalJobPosts() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => LocalJobPostListScreen(
-          jobPostRepository: _localJobPostRepository,
-          shortlistRepository: _localShortlistRepository,
-          scorecardRepository: _localScorecardRepository,
-          interviewGuideRepository: _localInterviewGuideRepository,
         ),
       ),
     );
@@ -613,25 +427,12 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
 
   Future<void> _seedMockData() async {
     await MockRecruiterDataSeed.seed();
-    await _loadSessions();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Mock recruiter data berhasil diisi ke ObjectBox.'),
       ),
     );
-  }
-
-  String _formatTime(int timestamp) {
-    final dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-    if (difference.inDays > 0) {
-      return '${dateTime.day}/${dateTime.month}';
-    }
-    final hour = dateTime.hour.toString().padLeft(2, '0');
-    final minute = dateTime.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
   }
 }
 
