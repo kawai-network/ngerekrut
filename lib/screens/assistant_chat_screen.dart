@@ -41,13 +41,16 @@ class AssistantChatScreen extends StatefulWidget {
 }
 
 class _AssistantChatScreenState extends State<AssistantChatScreen> {
-  late final InMemoryChatController _chatController;
-  late final AssistantConfig _assistant;
-  late final AssistantContext? _assistantContext;
+  late InMemoryChatController _chatController;
+  late AssistantConfig _assistant;
+  late AssistantContext? _assistantContext;
 
   // LangChain components
-  late final HybridChatModel _chatModel;
-  late final ConversationBufferMemory _memory;
+  late HybridChatModel _chatModel;
+  late ConversationBufferMemory _memory;
+
+  // Whether this screen owns the AI service (should dispose on close)
+  late bool _ownsService;
 
   bool _isProcessing = false;
   bool _isInitializing = false;
@@ -60,6 +63,7 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
     super.initState();
     _assistant = widget.assistant;
     _assistantContext = widget.context;
+    _ownsService = widget.aiService == null;
 
     // Initialize LangChain components
     final service = widget.aiService ??
@@ -182,20 +186,18 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
       await for (final chunk in stream) {
         accumulatedResponse += chunk;
 
-        // Update the streaming message with accumulated content
-        final streamingMsg = Message.textStream(
+        // Update streaming message with accumulated content
+        final updatedStreamMsg = Message.textStream(
           id: streamId,
           authorId: 'ai',
           streamId: streamId,
           createdAt: streamMsg.createdAt,
           status: MessageStatus.sending,
         );
-
-        // Update chat controller with new content (via state update)
-        // The FlyerChatTextStreamMessage will display the accumulated text
+        await _chatController.updateMessage(streamMsg, updatedStreamMsg);
       }
 
-      // Final message
+      // Final message (replace streaming with complete text)
       final finalMsg = Message.text(
         id: streamId,
         authorId: 'ai',
@@ -203,14 +205,21 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
         createdAt: streamMsg.createdAt,
         status: MessageStatus.seen,
       );
-      await _chatController.updateMessage(streamMsg, finalMsg);
+      await _chatController.updateMessage(
+        Message.textStream(
+          id: streamId,
+          authorId: 'ai',
+          streamId: streamId,
+          createdAt: streamMsg.createdAt,
+          status: MessageStatus.sending,
+        ),
+        finalMsg,
+      );
 
-      // Save to LangChain memory
+      // FIX #2: Use correct LangChain memory keys (input/output, not history)
       await _memory.saveContext(
-        {BaseMemory.defaultMemoryKey: HumanChatMessage(
-          content: ChatMessageContent.text(userMessage),
-        )},
-        {BaseMemory.defaultMemoryKey: AIChatMessage(content: accumulatedResponse)},
+        {'input': userMessage},
+        {'output': accumulatedResponse},
       );
     } catch (e) {
       final errorMsg = Message.text(
@@ -243,7 +252,10 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
   @override
   void dispose() {
     _chatController.dispose();
-    _chatModel.service.dispose();
+    // FIX #5: Only dispose service if we created it here (not shared from home screen)
+    if (_ownsService) {
+      _chatModel.service.dispose();
+    }
     super.dispose();
   }
 
@@ -329,22 +341,13 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
     );
   }
 
+  // FIX #1: Reset chat without reassigning final fields
+  // Instead of recreating components, just clear memory and reload
   Future<void> _resetChat() async {
     await _memory.clear();
     _chatController.dispose();
-    // Reinitialize components
-    final service = widget.aiService ??
-        HybridAIService(cloudApiKey: null);
-    _chatModel = HybridChatModel(
-      service: service,
-      defaultSystemPrompt: _buildFullSystemPrompt(),
-    );
-    _memory = ConversationBufferMemory(
-      memoryKey: 'history',
-      returnMessages: true,
-    );
     _chatController = InMemoryChatController();
-    _sendWelcomeMessage();
+    unawaited(_sendWelcomeMessage());
   }
 }
 
