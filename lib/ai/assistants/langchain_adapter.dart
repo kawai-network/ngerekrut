@@ -4,6 +4,7 @@
 /// so it can be used with LLMChain, ConversationBufferMemory, and PromptTemplate.
 library;
 
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../../langchain/chat_models/chat_models.dart';
@@ -71,14 +72,12 @@ class HybridChatModel extends BaseChatModel<HybridChatModelOptions> {
         case HumanChatMessage(content: ChatMessageContentText(:final text)):
           humanMessages.add(text);
         case AIChatMessage(:final content):
-          // AI messages are part of history, skip for now
           break;
         default:
           break;
       }
     }
 
-    // Build the prompt
     final fullPrompt = humanMessages.join('\n');
     final effectiveSystemPrompt =
         systemPrompt ?? defaultSystemPrompt ?? 'You are a helpful assistant.';
@@ -108,6 +107,72 @@ class HybridChatModel extends BaseChatModel<HybridChatModelOptions> {
     }
   }
 
+  /// Generate response with streaming simulation.
+  ///
+  /// Since flutter_gemma doesn't expose token-level streaming in this version,
+  /// we simulate streaming by polling the future and emitting chunks.
+  Stream<String> invokeWithStreaming({
+    required String prompt,
+    String? systemPrompt,
+  }) {
+    final effectiveSystemPrompt =
+        systemPrompt ?? this.defaultSystemPrompt ?? 'You are a helpful assistant.';
+
+    final controller = StreamController<String>();
+
+    // Start the AI request
+    final responseFuture = service.generateLocalResponse(
+      prompt: prompt,
+      systemPrompt: effectiveSystemPrompt,
+    );
+
+    // Poll and emit chunks
+    _pollAndStream(responseFuture, controller);
+
+    return controller.stream;
+  }
+
+  Future<void> _pollAndStream(
+    Future<String> responseFuture,
+    StreamController<String> controller,
+  ) async {
+    String? finalResponse;
+
+    // Poll the future until it completes
+    while (finalResponse == null) {
+      try {
+        finalResponse = await responseFuture.timeout(
+          const Duration(milliseconds: 50),
+        );
+      } on TimeoutException {
+        // Not ready yet, wait a bit and try again
+        await Future.delayed(const Duration(milliseconds: 50));
+      } catch (e) {
+        controller.addError(e);
+        await controller.close();
+        return;
+      }
+    }
+
+    // Emit the full response in chunks to simulate streaming
+    final chunks = _splitIntoChunks(finalResponse, chunkSize: 5);
+    for (final chunk in chunks) {
+      controller.add(chunk);
+      await Future.delayed(const Duration(milliseconds: 20));
+    }
+
+    await controller.close();
+  }
+
+  List<String> _splitIntoChunks(String text, {int chunkSize = 5}) {
+    final chunks = <String>[];
+    for (int i = 0; i < text.length; i += chunkSize) {
+      chunks.add(text.substring(i, (i + chunkSize).clamp(0, text.length)));
+    }
+    return chunks;
+  }
+
   @override
   HybridChatModelOptions get defaultOptions => const HybridChatModelOptions();
 }
+

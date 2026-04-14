@@ -12,6 +12,7 @@ class AssistantCandidateContext {
   final String? recommendation;
   final List<String>? strengths;
   final List<String>? redFlags;
+  final String? summary;
 
   const AssistantCandidateContext({
     required this.id,
@@ -21,6 +22,7 @@ class AssistantCandidateContext {
     this.recommendation,
     this.strengths,
     this.redFlags,
+    this.summary,
   });
 
   String toSummary() {
@@ -35,6 +37,7 @@ class AssistantCandidateContext {
     if (redFlags != null && redFlags!.isNotEmpty) {
       buffer.writeln('Red Flags: ${redFlags!.join(", ")}');
     }
+    if (summary != null) buffer.writeln('Ringkasan: $summary');
     return buffer.toString();
   }
 }
@@ -50,6 +53,8 @@ class AssistantJobContext {
   final String? status;
   final int? candidateCount;
   final int? shortlistCount;
+  final int? scorecardCount;
+  final int? interviewGuideCount;
 
   const AssistantJobContext({
     required this.id,
@@ -61,6 +66,8 @@ class AssistantJobContext {
     this.status,
     this.candidateCount,
     this.shortlistCount,
+    this.scorecardCount,
+    this.interviewGuideCount,
   });
 
   String toSummary() {
@@ -71,9 +78,11 @@ class AssistantJobContext {
     if (status != null) buffer.writeln('Status: $status');
     if (candidateCount != null) buffer.writeln('Total Kandidat: $candidateCount');
     if (shortlistCount != null) buffer.writeln('Shortlist: $shortlistCount');
-    if (description != null) buffer.writeln('Deskripsi: $description');
+    if (scorecardCount != null) buffer.writeln('Scorecard: $scorecardCount');
+    if (interviewGuideCount != null) buffer.writeln('Interview Guide: $interviewGuideCount');
+    if (description != null) buffer.writeln('Deskripsi: ${description!.length > 100 ? '${description!.substring(0, 100)}...' : description}');
     if (requirements != null && requirements!.isNotEmpty) {
-      buffer.writeln('Requirements: ${requirements!.join(", ")}');
+      buffer.writeln('Requirements: ${requirements!.take(5).join(", ")}');
     }
     return buffer.toString();
   }
@@ -111,7 +120,7 @@ class AssistantContext {
     }
 
     if (candidates.isNotEmpty) {
-      buffer.writeln('\nKandidat Relevan:');
+      buffer.writeln('\nKandidat Relevan (${candidates.length}):');
       for (final candidate in candidates.take(5)) {
         buffer.writeln('---');
         buffer.writeln(candidate.toSummary());
@@ -129,3 +138,4 @@ class AssistantContext {
     return buffer.toString();
   }
 }
+
