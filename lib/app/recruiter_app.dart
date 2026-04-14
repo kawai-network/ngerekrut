@@ -15,6 +15,7 @@ import '../screens/hiring_screen.dart';
 import '../screens/job_candidates_screen.dart';
 import '../ai/assistants/assistant_manager.dart';
 import '../ai/assistants/assistant_base.dart';
+import '../ai/assistants/assistant_context.dart';
 import '../screens/assistant_chat_screen.dart';
 import '../screens/local_assessment_list_screen.dart';
 import '../screens/local_interview_list_screen.dart';
@@ -392,15 +393,43 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
         HybridAIService(cloudApiKey: readConfig('OPENAI_API_KEY'));
     _hybridService ??= service;
 
+    // Build context based on current tab
+    final assistantContext = _buildAssistantContext();
+
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => AssistantChatScreen(
           assistant: assistant,
           aiService: service,
+          context: assistantContext,
         ),
       ),
     );
+  }
+
+  /// Build assistant context based on the current tab.
+  AssistantContext _buildAssistantContext() {
+    switch (_selectedIndex) {
+      case 0: // Lowongan
+        return const AssistantContext(
+          extraData: {'tab': 'lowongan', 'hint': 'Pengguna sedang melihat daftar lowongan'},
+        );
+      case 1: // Screening
+        return const AssistantContext(
+          extraData: {'tab': 'screening', 'hint': 'Pengguna sedang melihat hasil screening kandidat'},
+        );
+      case 2: // Tes
+        return const AssistantContext(
+          extraData: {'tab': 'assessment', 'hint': 'Pengguna sedang melihat asesmen yang siap untuk kandidat'},
+        );
+      case 3: // Interview
+        return const AssistantContext(
+          extraData: {'tab': 'interview', 'hint': 'Pengguna sedang melihat panduan interview dan scorecard'},
+        );
+      default:
+        return const AssistantContext();
+    }
   }
 
   void _handleHomeAction(_HomeAction action) {

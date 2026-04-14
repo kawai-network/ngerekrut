@@ -15,16 +15,22 @@ import '../flyer_chat_text_stream_message/flyer_chat_text_stream_message.dart';
 import '../services/hybrid_ai_service.dart';
 import 'assistants/assistant_base.dart';
 import 'assistants/assistant_manager.dart';
+import 'assistants/assistant_context.dart';
+import 'assistants/assistant_memory.dart';
 
 /// Chat screen for a specific tab's assistant.
 class AssistantChatScreen extends StatefulWidget {
   final AssistantConfig assistant;
   final HybridAIService? aiService;
 
+  /// Context data for the assistant (selected job, candidates, etc.)
+  final AssistantContext? context;
+
   const AssistantChatScreen({
     super.key,
     required this.assistant,
     this.aiService,
+    this.context,
   });
 
   @override
@@ -34,6 +40,8 @@ class AssistantChatScreen extends StatefulWidget {
 class _AssistantChatScreenState extends State<AssistantChatScreen> {
   late final InMemoryChatController _chatController;
   late final AssistantConfig _assistant;
+  late final AssistantContext? _assistantContext;
+  late final AssistantMemory _memory;
   HybridAIService? _hybridService;
   bool _isProcessing = false;
   bool _isInitializing = false;
@@ -45,9 +53,29 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
   void initState() {
     super.initState();
     _assistant = widget.assistant;
+    _assistantContext = widget.context;
+    _memory = AssistantMemory();
     _chatController = InMemoryChatController();
     _initService();
+    unawaited(_loadHistory());
     unawaited(_sendWelcomeMessage());
+  }
+
+  Future<void> _loadHistory() async {
+    final history = _memory.getHistory(_assistant.id);
+    if (history.isEmpty) return;
+
+    // Load recent history into chat UI
+    for (final msg in history.take(10)) {
+      final chatMsg = Message.text(
+        id: _uuid.v4(),
+        authorId: msg.role == 'user' ? 'user' : 'ai',
+        text: msg.content,
+        createdAt: msg.timestamp,
+        status: MessageStatus.seen,
+      );
+      await _chatController.insertMessage(chatMsg);
+    }
   }
 
   Future<void> _initService() async {
@@ -114,6 +142,16 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
     );
     await _chatController.insertMessage(userMsg);
 
+    // Save to memory
+    _memory.addMessage(
+      _assistant.id,
+      ConversationMessage(
+        role: 'user',
+        content: text.trim(),
+        timestamp: DateTime.now(),
+      ),
+    );
+
     await _generateResponse(text.trim());
   }
 
@@ -124,6 +162,9 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
     }
 
     setState(() => _isProcessing = true);
+
+    // Build context-aware system prompt with conversation history
+    final systemPrompt = _buildContextAwareSystemPrompt();
 
     final streamId = _uuid.v4();
     final streamMsg = Message.textStream(
@@ -138,7 +179,7 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
     try {
       final response = await _hybridService!.generateLocalResponse(
         prompt: userMessage,
-        systemPrompt: _assistant.systemPrompt,
+        systemPrompt: systemPrompt,
       );
 
       final finalMsg = Message.text(
@@ -149,6 +190,16 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
         status: MessageStatus.seen,
       );
       await _chatController.updateMessage(streamMsg, finalMsg);
+
+      // Save AI response to memory
+      _memory.addMessage(
+        _assistant.id,
+        ConversationMessage(
+          role: 'assistant',
+          content: response,
+          timestamp: DateTime.now(),
+        ),
+      );
     } catch (e) {
       final errorMsg = Message.text(
         id: streamId,
@@ -163,6 +214,30 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
         setState(() => _isProcessing = false);
       }
     }
+  }
+
+  String _buildContextAwareSystemPrompt() {
+    final buffer = StringBuffer();
+    buffer.writeln(_assistant.systemPrompt);
+
+    // Add conversation history
+    final historyContext = _memory.getRecentContext(_assistant.id);
+    if (historyContext.isNotEmpty) {
+      buffer.writeln(historyContext);
+    }
+
+    // Add tab context
+    if (_assistantContext != null) {
+      buffer.writeln(_assistantContext!.toSystemContext());
+    }
+
+    buffer.writeln('\nInstruksi tambahan:');
+    buffer.writeln('- Gunakan konteks di atas untuk memberikan jawaban yang relevan dan spesifik.');
+    buffer.writeln('- Jika ada data kandidat atau lowongan, referensi data tersebut dalam jawaban.');
+    buffer.writeln('- Berikan saran yang actionable berdasarkan konteks yang ada.');
+    buffer.writeln('- Ingat percakapan sebelumnya dan lanjutkan dari sana.');
+
+    return buffer.toString();
   }
 
   Future<void> _sendErrorMessage(String error) async {
@@ -267,6 +342,7 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
   }
 
   void _resetChat() {
+    _memory.clearHistory(_assistant.id);
     _chatController.dispose();
     _chatController = InMemoryChatController();
     _sendWelcomeMessage();
@@ -278,6 +354,7 @@ void openAssistantChat({
   required BuildContext context,
   required int tabIndex,
   HybridAIService? aiService,
+  AssistantContext? assistantContext,
 }) {
   final assistant = AssistantManager.getAssistantForTab(tabIndex);
   if (assistant == null) return;
@@ -288,6 +365,7 @@ void openAssistantChat({
       builder: (context) => AssistantChatScreen(
         assistant: assistant,
         aiService: aiService,
+        context: assistantContext,
       ),
     ),
   );
