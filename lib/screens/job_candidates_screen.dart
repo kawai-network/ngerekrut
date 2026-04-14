@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../models/recruiter_candidate.dart';
+import '../models/candidate.dart';
 import '../models/recruiter_job.dart';
 import '../models/recruiter_shortlist.dart';
 import '../repositories/hiring_repository.dart';

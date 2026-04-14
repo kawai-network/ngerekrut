@@ -3,7 +3,7 @@ library;
 import 'dart:math';
 
 import '../langchain_gemma/langchain_gemma.dart';
-import '../models/recruiter_candidate.dart';
+import '../models/candidate.dart';
 import '../models/recruiter_job.dart';
 import '../models/recruiter_shortlist.dart';
 import 'hybrid_ai_service.dart';

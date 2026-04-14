@@ -1,4 +1,4 @@
-import '../../models/recruiter_candidate.dart';
+import '../../models/candidate.dart';
 import '../../models/recruiter_job.dart';
 import 'api_client.dart';
 
