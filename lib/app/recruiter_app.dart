@@ -13,6 +13,9 @@ import '../screens/full_chat_screen.dart';
 import '../screens/gemma_proof_screen.dart';
 import '../screens/hiring_screen.dart';
 import '../screens/job_candidates_screen.dart';
+import '../ai/assistants/assistant_manager.dart';
+import '../ai/assistants/assistant_base.dart';
+import '../screens/assistant_chat_screen.dart';
 import '../screens/local_assessment_list_screen.dart';
 import '../screens/local_interview_list_screen.dart';
 import '../screens/local_job_post_list_screen.dart';
@@ -199,13 +202,7 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
           ),
         ],
       ),
-      floatingActionButton: _selectedIndex == 0
-          ? FloatingActionButton.extended(
-              onPressed: _openJobPostingChat,
-              icon: const Icon(Icons.add),
-              label: const Text('Buat Lowongan'),
-            )
-          : null,
+      floatingActionButton: _buildFab(),
       body: Column(
         children: [
           Padding(
@@ -216,6 +213,9 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
               hasRecruiterData: hasRecruiterData,
             ),
           ),
+          const SizedBox(height: 8),
+          // Assistant hint card
+          if (_hybridService != null) _buildAssistantHint(hasLocalAI, hasCloudAI),
           const SizedBox(height: 8),
           Expanded(child: body),
         ],
@@ -328,6 +328,76 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
         style: const TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFab() {
+    final assistant = AssistantManager.getAssistantForTab(_selectedIndex);
+    if (assistant == null) return const SizedBox.shrink();
+
+    return FloatingActionButton.extended(
+      onPressed: () => _openAssistantChat(),
+      icon: Icon(assistant.icon),
+      label: Text('${assistant.fabLabel}'),
+      backgroundColor: assistant.themeColor,
+    );
+  }
+
+  Widget _buildAssistantHint(bool hasLocalAI, bool hasCloudAI) {
+    final assistant = AssistantManager.getAssistantForTab(_selectedIndex);
+    if (assistant == null) return const SizedBox.shrink();
+
+    final aiStatus = hasLocalAI
+        ? '🧠 Local AI siap'
+        : hasCloudAI
+            ? '☁️ Cloud AI aktif'
+            : 'AI belum siap';
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: assistant.themeColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: assistant.themeColor.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(assistant.icon, size: 18, color: assistant.themeColor),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '${assistant.name} siap membantu • $aiStatus',
+              style: TextStyle(
+                color: assistant.themeColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openAssistantChat() {
+    final assistant = AssistantManager.getAssistantForTab(_selectedIndex);
+    if (assistant == null) return;
+
+    final service = _hybridService ??
+        HybridAIService(cloudApiKey: readConfig('OPENAI_API_KEY'));
+    _hybridService ??= service;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AssistantChatScreen(
+          assistant: assistant,
+          aiService: service,
         ),
       ),
     );
