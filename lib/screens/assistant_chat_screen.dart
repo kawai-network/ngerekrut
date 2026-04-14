@@ -16,6 +16,7 @@ import '../flyer_chat_text_stream_message/flyer_chat_text_stream_message.dart';
 import '../services/hybrid_ai_service.dart';
 import '../langchain/chat_models/chat_models.dart';
 import '../langchain/memory/memory.dart';
+import '../langchain/chat_history/objectbox_chat_history.dart';
 import 'assistants/assistant_base.dart';
 import 'assistants/assistant_manager.dart';
 import 'assistants/assistant_context.dart';
@@ -29,11 +30,16 @@ class AssistantChatScreen extends StatefulWidget {
   /// Context data for the assistant (selected job, candidates, etc.)
   final AssistantContext? context;
 
+  /// Optional session ID for persistent history.
+  /// If null, a new session will be created.
+  final String? sessionId;
+
   const AssistantChatScreen({
     super.key,
     required this.assistant,
     this.aiService,
     this.context,
+    this.sessionId,
   });
 
   @override
@@ -65,7 +71,11 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
     _assistantContext = widget.context;
     _ownsService = widget.aiService == null;
 
-    // Initialize LangChain components
+    // Generate session ID if not provided
+    final effectiveSessionId = widget.sessionId ??
+        'assistant_${widget.assistant.id}_${DateTime.now().millisecondsSinceEpoch}';
+
+    // Initialize LangChain components with persistent history
     final service = widget.aiService ??
         HybridAIService(cloudApiKey: null);
     _chatModel = HybridChatModel(
@@ -73,13 +83,33 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
       defaultSystemPrompt: _buildFullSystemPrompt(),
     );
     _memory = ConversationBufferMemory(
+      chatHistory: ObjectBoxChatHistory(sessionId: effectiveSessionId),
       memoryKey: 'history',
       returnMessages: true,
     );
 
     _chatController = InMemoryChatController();
     _initService();
+    unawaited(_loadPersistentHistory());
     unawaited(_sendWelcomeMessage());
+  }
+
+  /// Load existing conversation history from ObjectBox.
+  Future<void> _loadPersistentHistory() async {
+    final historyVars = await _memory.loadMemoryVariables();
+    final historyMessages = historyVars['history'] as List<ChatMessage>? ?? [];
+
+    // Load messages into chat UI
+    for (final msg in historyMessages) {
+      final chatMsg = Message.text(
+        id: _uuid.v4(),
+        authorId: msg is HumanChatMessage ? 'user' : 'ai',
+        text: msg.contentAsString,
+        createdAt: DateTime.now(),
+        status: MessageStatus.seen,
+      );
+      await _chatController.insertMessage(chatMsg);
+    }
   }
 
   String _buildFullSystemPrompt() {
@@ -357,6 +387,7 @@ void openAssistantChat({
   required int tabIndex,
   HybridAIService? aiService,
   AssistantContext? assistantContext,
+  String? sessionId,
 }) {
   final assistant = AssistantManager.getAssistantForTab(tabIndex);
   if (assistant == null) return;
@@ -368,6 +399,7 @@ void openAssistantChat({
         assistant: assistant,
         aiService: aiService,
         context: assistantContext,
+        sessionId: sessionId,
       ),
     ),
   );

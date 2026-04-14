@@ -83,7 +83,8 @@ class HybridChatModel extends BaseChatModel<HybridChatModelOptions> {
         systemPrompt ?? defaultSystemPrompt ?? 'You are a helpful assistant.';
 
     try {
-      final response = await service.generateLocalResponse(
+      // Use hybrid response with cloud fallback
+      final response = await service.generateHybridResponse(
         prompt: fullPrompt,
         systemPrompt: effectiveSystemPrompt,
       );
@@ -94,7 +95,7 @@ class HybridChatModel extends BaseChatModel<HybridChatModelOptions> {
         finishReason: FinishReason.stop,
         metadata: {
           'mode': service.lastUsedMode.name,
-          'usedLocalAI': service.isLocalAIReady,
+          'usedLocalAI': service.lastUsedMode == AIMode.local,
         },
         usage: const LanguageModelUsage(
           promptTokens: 0,
@@ -109,8 +110,8 @@ class HybridChatModel extends BaseChatModel<HybridChatModelOptions> {
 
   /// Generate response with streaming simulation.
   ///
-  /// Since flutter_gemma doesn't expose token-level streaming in this version,
-  /// we simulate streaming by polling the future and emitting chunks.
+  /// Uses hybrid AI (local first, cloud fallback) and simulates streaming
+  /// by polling the future and emitting chunks.
   Stream<String> invokeWithStreaming({
     required String prompt,
     String? systemPrompt,
@@ -120,8 +121,8 @@ class HybridChatModel extends BaseChatModel<HybridChatModelOptions> {
 
     final controller = StreamController<String>();
 
-    // Start the AI request
-    final responseFuture = service.generateLocalResponse(
+    // Start the AI request using hybrid (local + cloud fallback)
+    final responseFuture = service.generateHybridResponse(
       prompt: prompt,
       systemPrompt: effectiveSystemPrompt,
     );

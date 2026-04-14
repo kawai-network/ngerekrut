@@ -3,6 +3,10 @@ library;
 
 import 'package:flutter/foundation.dart';
 import '../langchain_gemma/langchain_gemma.dart';
+import '../langchain_openai/chat_models/chat_openai.dart';
+import '../langchain_openai/chat_models/types.dart';
+import '../langchain/chat_models/chat_models.dart';
+import '../langchain/prompts/prompts.dart';
 import 'job_posting_generator.dart';
 import 'tools/job_posting_tool.dart';
 import '../models/job_posting.dart';
@@ -36,6 +40,7 @@ class GenerationResult {
 class HybridAIService {
   final LocalAIClient _localAI;
   final JobPostingGenerator? _cloudAI;
+  final ChatOpenAI? _cloudChat;
 
   AIMode _currentMode = AIMode.auto;
   AIMode _lastUsedMode = AIMode.local;
@@ -47,6 +52,15 @@ class HybridAIService {
   }) : _localAI = localAI ?? GemmaLocalAIClient(),
        _cloudAI = cloudApiKey != null && cloudApiKey.isNotEmpty
            ? JobPostingGenerator(apiKey: cloudApiKey)
+           : null,
+       _cloudChat = cloudApiKey != null && cloudApiKey.isNotEmpty
+           ? ChatOpenAI(
+               apiKey: cloudApiKey,
+               defaultOptions: const ChatOpenAIOptions(
+                 model: 'gpt-4o-mini',
+                 temperature: 0.7,
+               ),
+             )
            : null;
 
   AIMode get currentMode => _currentMode;
@@ -188,6 +202,70 @@ class HybridAIService {
     );
     _lastUsedMode = AIMode.local;
     return response;
+  }
+
+  /// Generate text using cloud AI.
+  ///
+  /// Throws if cloud AI is not configured.
+  Future<String> generateCloudResponse({
+    required String prompt,
+    String? systemPrompt,
+  }) async {
+    final cloudChat = _cloudChat;
+    if (cloudChat == null) {
+      throw const LocalAIException('Cloud AI is not configured');
+    }
+
+    final messages = <ChatMessage>[
+      if (systemPrompt != null && systemPrompt.isNotEmpty)
+        ChatMessage.system(systemPrompt),
+      ChatMessage.humanText(prompt),
+    ];
+
+    final result = await cloudChat.invoke(PromptValue.chat(messages));
+    _lastUsedMode = AIMode.cloud;
+    return result.outputAsString;
+  }
+
+  /// Generate text with hybrid AI (local first, cloud fallback).
+  ///
+  /// Automatically tries local AI first. If local fails or is unavailable,
+  /// falls back to cloud AI.
+  Future<String> generateHybridResponse({
+    required String prompt,
+    String? systemPrompt,
+  }) async {
+    // Try local first if available and mode allows
+    final shouldTryLocal = _currentMode == AIMode.local ||
+        (_currentMode == AIMode.auto && _localAI.isReady);
+
+    if (shouldTryLocal) {
+      try {
+        debugPrint('[HybridAIService] Using Local AI for response');
+        return await generateLocalResponse(
+          prompt: prompt,
+          systemPrompt: systemPrompt,
+        );
+      } catch (e) {
+        if (_currentMode == AIMode.local) {
+          rethrow;
+        }
+        debugPrint('[HybridAIService] Local AI failed, falling back to cloud: $e');
+      }
+    }
+
+    // Fallback to cloud
+    if (_cloudChat != null) {
+      debugPrint('[HybridAIService] Using Cloud AI for response');
+      return await generateCloudResponse(
+        prompt: prompt,
+        systemPrompt: systemPrompt,
+      );
+    }
+
+    throw const LocalAIException(
+      'No AI backend available. Local AI not ready and cloud AI not configured.',
+    );
   }
 
   /// Generate tool-call output with the configured local provider.
