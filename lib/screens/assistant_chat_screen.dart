@@ -17,10 +17,10 @@ import '../services/hybrid_ai_service.dart';
 import '../langchain/chat_models/chat_models.dart';
 import '../langchain/memory/memory.dart';
 import '../langchain/chat_history/objectbox_chat_history.dart';
-import 'assistants/assistant_base.dart';
-import 'assistants/assistant_manager.dart';
-import 'assistants/assistant_context.dart';
-import 'assistants/langchain_adapter.dart';
+import '../ai/assistants/assistant_base.dart';
+import '../ai/assistants/assistant_manager.dart';
+import '../ai/assistants/assistant_context.dart';
+import '../ai/assistants/langchain_adapter.dart';
 
 /// Chat screen for a specific tab's assistant.
 class AssistantChatScreen extends StatefulWidget {

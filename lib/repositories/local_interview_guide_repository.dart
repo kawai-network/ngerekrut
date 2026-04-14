@@ -83,6 +83,21 @@ class LocalInterviewGuideRepository {
     return records.map(_toStoredGuide).toList();
   }
 
+  Future<List<StoredInterviewGuide>> listAll() async {
+    if (!ObjectBoxStoreProvider.isInitialized) {
+      await ObjectBoxStoreProvider.initialize();
+    }
+
+    final box = ObjectBoxStoreProvider.box<InterviewGuideRecord>();
+    final records = box
+        .query()
+        .order(InterviewGuideRecord_.createdAt, flags: Order.descending)
+        .build()
+        .find();
+
+    return records.map(_toStoredGuide).toList();
+  }
+
   StoredInterviewGuide _toStoredGuide(InterviewGuideRecord record) {
     final json = jsonDecode(record.guideJson) as Map<String, dynamic>;
     return StoredInterviewGuide(

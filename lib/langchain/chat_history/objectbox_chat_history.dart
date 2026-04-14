@@ -11,7 +11,7 @@ import '../chat_models/types_persist.dart';
 ///
 /// Uses existing [ChatMessage.save] and [ChatMessage.fromSession] methods
 /// to persist and retrieve messages.
-class ObjectBoxChatHistory extends BaseChatMessageHistory {
+base class ObjectBoxChatHistory extends BaseChatMessageHistory {
   /// Unique session identifier.
   final String sessionId;
 

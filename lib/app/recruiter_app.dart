@@ -464,14 +464,14 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
           final topShortlist = screenings.first.shortlist;
           for (final entry in topShortlist.topCandidates.take(3)) {
             candidates.add(AssistantCandidateContext(
-              id: entry.id,
-              name: entry.name,
+              id: entry.candidateId,
+              name: entry.candidateName,
               title: screenings.first.job.title,
-              score: entry.totalScore,
+              score: entry.totalScore.toInt(),
               recommendation: entry.recommendation,
               strengths: entry.strengths,
               redFlags: entry.redFlags,
-              summary: entry.summary,
+              summary: entry.rationale,
             ));
           }
         }

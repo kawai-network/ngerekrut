@@ -84,6 +84,21 @@ class LocalScorecardRepository {
     return records.map(_toStoredScorecard).toList();
   }
 
+  Future<List<StoredInterviewScorecard>> listAll() async {
+    if (!ObjectBoxStoreProvider.isInitialized) {
+      await ObjectBoxStoreProvider.initialize();
+    }
+
+    final box = ObjectBoxStoreProvider.box<CandidateScorecardRecord>();
+    final records = box
+        .query()
+        .order(CandidateScorecardRecord_.createdAt, flags: Order.descending)
+        .build()
+        .find();
+
+    return records.map(_toStoredScorecard).toList();
+  }
+
   StoredInterviewScorecard _toStoredScorecard(CandidateScorecardRecord record) {
     final json = jsonDecode(record.scorecardJson) as Map<String, dynamic>;
     return StoredInterviewScorecard(
