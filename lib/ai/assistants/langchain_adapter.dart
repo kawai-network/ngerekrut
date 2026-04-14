@@ -9,7 +9,9 @@ import 'package:flutter/foundation.dart';
 
 import '../../langchain/chat_models/chat_models.dart';
 import '../../langchain/language_models/language_models.dart';
+import '../../langchain/prompts/types.dart';
 import '../../langchain/exceptions/exceptions.dart';
+import '../../langchain/tools/types.dart';
 import '../../services/hybrid_ai_service.dart';
 
 /// LangChain-compatible chat model options.
@@ -24,13 +26,13 @@ class HybridChatModelOptions extends ChatModelOptions {
   @override
   ChatModelOptions copyWith({
     String? model,
-    List<dynamic>? tools,
+    List<ToolSpec>? tools,
     ChatToolChoice? toolChoice,
     int? concurrencyLimit,
   }) {
     return HybridChatModelOptions(
       model: model ?? this.model,
-      tools: tools ?? this.tools,
+      tools: tools ?? (this.tools as List<ToolSpec>?),
       toolChoice: toolChoice ?? this.toolChoice,
       concurrencyLimit: concurrencyLimit ?? this.concurrencyLimit,
     );
@@ -99,7 +101,7 @@ class HybridChatModel extends BaseChatModel<HybridChatModelOptions> {
         },
         usage: const LanguageModelUsage(
           promptTokens: 0,
-          completionTokens: 0,
+          responseTokens: 0,
           totalTokens: 0,
         ),
       );
@@ -171,6 +173,20 @@ class HybridChatModel extends BaseChatModel<HybridChatModelOptions> {
       chunks.add(text.substring(i, (i + chunkSize).clamp(0, text.length)));
     }
     return chunks;
+  }
+
+  @override
+  String get modelType => 'hybrid';
+
+  @override
+  Future<List<int>> tokenize(
+    final PromptValue promptValue, {
+    final HybridChatModelOptions? options,
+  }) async {
+    // Simple tokenization by splitting on whitespace and counting words
+    // This is a rough estimate since we don't have access to the actual tokenizer
+    final text = promptValue.toString();
+    return text.split(RegExp(r'\s+')).map((word) => word.hashCode).toList();
   }
 
   @override

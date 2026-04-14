@@ -14,7 +14,7 @@ import '../flutter_chat_ui/flutter_chat_ui.dart';
 import '../flyer_chat_text_message/flyer_chat_text_message.dart';
 import '../flyer_chat_text_stream_message/flyer_chat_text_stream_message.dart';
 import '../services/hybrid_ai_service.dart';
-import '../langchain/chat_models/chat_models.dart';
+import '../langchain/chat_models/chat_models.dart' as lc;
 import '../langchain/memory/memory.dart';
 import '../langchain/chat_history/objectbox_chat_history.dart';
 import '../ai/assistants/assistant_base.dart';
@@ -97,13 +97,13 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
   /// Load existing conversation history from ObjectBox.
   Future<void> _loadPersistentHistory() async {
     final historyVars = await _memory.loadMemoryVariables();
-    final historyMessages = historyVars['history'] as List<ChatMessage>? ?? [];
+    final historyMessages = historyVars['history'] as List<lc.ChatMessage>? ?? [];
 
     // Load messages into chat UI
     for (final msg in historyMessages) {
       final chatMsg = Message.text(
         id: _uuid.v4(),
-        authorId: msg is HumanChatMessage ? 'user' : 'ai',
+        authorId: msg is lc.HumanChatMessage ? 'user' : 'ai',
         text: msg.contentAsString,
         createdAt: DateTime.now(),
         status: MessageStatus.seen,
