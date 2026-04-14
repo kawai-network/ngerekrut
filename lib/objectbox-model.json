@@ -306,10 +306,162 @@
         }
       ],
       "relations": []
+    },
+    {
+      "id": "11:8753400415785169320",
+      "lastPropertyId": "18:3652278966804255296",
+      "name": "JobApplicationRecord",
+      "properties": [
+        {
+          "id": "1:4320094933041828729",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:3674675340156147041",
+          "name": "applicationId",
+          "indexId": "11:5754318438675131230",
+          "type": 9,
+          "flags": 2080
+        },
+        {
+          "id": "3:7580896115287597358",
+          "name": "jobId",
+          "type": 9
+        },
+        {
+          "id": "4:5118288345900404187",
+          "name": "candidateId",
+          "type": 9
+        },
+        {
+          "id": "5:3187979907996451211",
+          "name": "jobTitle",
+          "type": 9
+        },
+        {
+          "id": "6:2790596112990012937",
+          "name": "company",
+          "type": 9
+        },
+        {
+          "id": "7:7257436624273006870",
+          "name": "location",
+          "type": 9
+        },
+        {
+          "id": "8:2695716536462774063",
+          "name": "status",
+          "type": 9
+        },
+        {
+          "id": "9:5258418491862326362",
+          "name": "appliedAt",
+          "type": 6
+        },
+        {
+          "id": "10:6329393264935253279",
+          "name": "updatedAt",
+          "type": 6
+        },
+        {
+          "id": "11:5152481043438295402",
+          "name": "expectedSalary",
+          "type": 9
+        },
+        {
+          "id": "12:9055945966930220219",
+          "name": "coverLetter",
+          "type": 9
+        },
+        {
+          "id": "13:4322597041198398981",
+          "name": "resumeId",
+          "type": 9
+        },
+        {
+          "id": "14:5890547551757405320",
+          "name": "interviewDatesJson",
+          "type": 9
+        },
+        {
+          "id": "15:5842069332054825669",
+          "name": "rejectionReason",
+          "type": 9
+        },
+        {
+          "id": "16:1396507116796187068",
+          "name": "recruiterNotes",
+          "type": 9
+        },
+        {
+          "id": "17:5131794101142368024",
+          "name": "internalRating",
+          "type": 6
+        },
+        {
+          "id": "18:3652278966804255296",
+          "name": "source",
+          "type": 9
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "12:2524636071846182983",
+      "lastPropertyId": "8:5532119103100925571",
+      "name": "SavedJobRecord",
+      "properties": [
+        {
+          "id": "1:8548167051006347926",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:5820056660641976416",
+          "name": "jobId",
+          "indexId": "12:1239497679865358941",
+          "type": 9,
+          "flags": 2080
+        },
+        {
+          "id": "3:6554302879829573653",
+          "name": "title",
+          "type": 9
+        },
+        {
+          "id": "4:6333612683802961927",
+          "name": "company",
+          "type": 9
+        },
+        {
+          "id": "5:7899017750668495203",
+          "name": "location",
+          "type": 9
+        },
+        {
+          "id": "6:1500937975424690641",
+          "name": "savedAt",
+          "type": 6
+        },
+        {
+          "id": "7:6945899579934900314",
+          "name": "notes",
+          "type": 9
+        },
+        {
+          "id": "8:5532119103100925571",
+          "name": "isActive",
+          "type": 1
+        }
+      ],
+      "relations": []
     }
   ],
-  "lastEntityId": "10:8969959986745170977",
-  "lastIndexId": "10:8502198300901827169",
+  "lastEntityId": "12:2524636071846182983",
+  "lastIndexId": "12:1239497679865358941",
   "lastRelationId": "0:0",
   "lastSequenceId": "0:0",
   "modelVersion": 5,
