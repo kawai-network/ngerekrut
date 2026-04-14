@@ -5,8 +5,6 @@ library;
 
 import '../chat_history/chat_history.dart';
 import '../chat_models/chat_models.dart';
-import '../chat_models/types_persist.dart';
-import 'chat_message_record.dart';
 import '../../objectbox.g.dart';
 import '../../objectbox_store_provider.dart';
 

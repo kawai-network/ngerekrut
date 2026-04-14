@@ -248,8 +248,8 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
 
       // FIX #2: Use correct LangChain memory keys (input/output, not history)
       await _memory.saveContext(
-        {'input': userMessage},
-        {'output': accumulatedResponse},
+        inputValues: {'input': userMessage},
+        outputValues: {'output': accumulatedResponse},
       );
     } catch (e) {
       final errorMsg = Message.text(

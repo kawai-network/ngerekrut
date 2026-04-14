@@ -5,13 +5,12 @@
 library;
 
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 
 import '../../langchain/chat_models/chat_models.dart';
 import '../../langchain/language_models/language_models.dart';
 import '../../langchain/prompts/types.dart';
 import '../../langchain/exceptions/exceptions.dart';
-import '../../langchain/tools/types.dart';
+import '../../langchain/tools/base.dart';
 import '../../services/hybrid_ai_service.dart';
 
 /// LangChain-compatible chat model options.
@@ -32,7 +31,7 @@ class HybridChatModelOptions extends ChatModelOptions {
   }) {
     return HybridChatModelOptions(
       model: model ?? this.model,
-      tools: tools ?? (this.tools as List<ToolSpec>?),
+      tools: tools ?? this.tools,
       toolChoice: toolChoice ?? this.toolChoice,
       concurrencyLimit: concurrencyLimit ?? this.concurrencyLimit,
     );
@@ -73,7 +72,7 @@ class HybridChatModel extends BaseChatModel<HybridChatModelOptions> {
           systemPrompt = content;
         case HumanChatMessage(content: ChatMessageContentText(:final text)):
           humanMessages.add(text);
-        case AIChatMessage(:final content):
+        case AIChatMessage():
           break;
         default:
           break;
@@ -119,7 +118,7 @@ class HybridChatModel extends BaseChatModel<HybridChatModelOptions> {
     String? systemPrompt,
   }) {
     final effectiveSystemPrompt =
-        systemPrompt ?? this.defaultSystemPrompt ?? 'You are a helpful assistant.';
+        systemPrompt ?? defaultSystemPrompt ?? 'You are a helpful assistant.';
 
     final controller = StreamController<String>();
 
@@ -169,7 +168,7 @@ class HybridChatModel extends BaseChatModel<HybridChatModelOptions> {
 
   List<String> _splitIntoChunks(String text, {int chunkSize = 5}) {
     final chunks = <String>[];
-    for (int i = 0; i < text.length; i += chunkSize) {
+    for (var i = 0; i < text.length; i += chunkSize) {
       chunks.add(text.substring(i, (i + chunkSize).clamp(0, text.length)));
     }
     return chunks;
@@ -192,4 +191,3 @@ class HybridChatModel extends BaseChatModel<HybridChatModelOptions> {
   @override
   HybridChatModelOptions get defaultOptions => const HybridChatModelOptions();
 }
-
