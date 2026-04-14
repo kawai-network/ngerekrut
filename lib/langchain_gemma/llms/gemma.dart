@@ -11,11 +11,13 @@ class GemmaLocalAIClient implements LocalAIClient {
   static const _modelId = 'gemma-4-E2B-it.litertlm';
   static const _modelUrl =
       'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm';
+  static const _modelLoadTimeout = Duration(minutes: 2);
 
   InferenceModel? _model;
   LocalAIStatus _status = LocalAIStatus.notInitialized;
   String? _errorMessage;
   PreferredBackend _backend = PreferredBackend.gpu;
+  Future<LocalAIStatus>? _initializeFuture;
 
   @override
   LocalAIStatus get status => _status;
@@ -29,13 +31,36 @@ class GemmaLocalAIClient implements LocalAIClient {
   @override
   Future<LocalAIStatus> initialize({
     void Function(double progress)? onProgress,
+  }) {
+    if (isReady) {
+      return Future.value(LocalAIStatus.ready);
+    }
+
+    final inFlight = _initializeFuture;
+    if (inFlight != null) {
+      return inFlight;
+    }
+
+    final future = _initializeInternal(
+      onProgress: onProgress,
+    );
+    _initializeFuture = future;
+    return future.whenComplete(() {
+      _initializeFuture = null;
+    });
+  }
+
+  Future<LocalAIStatus> _initializeInternal({
+    void Function(double progress)? onProgress,
   }) async {
     try {
-      _setStatus(LocalAIStatus.downloading);
+      _errorMessage = null;
+      _setStatus(LocalAIStatus.checking);
 
       final isInstalled = await FlutterGemma.isModelInstalled(_modelId);
 
       if (!isInstalled) {
+        _setStatus(LocalAIStatus.downloading);
         debugPrint('[GemmaLocalAIClient] Installing Gemma 4 E2B LiteRT-LM model...');
 
         await FlutterGemma.installModel(
@@ -51,7 +76,10 @@ class GemmaLocalAIClient implements LocalAIClient {
         debugPrint('[GemmaLocalAIClient] Model installed successfully');
       }
 
-      await _loadModel(preferredBackend: _backend);
+      _setStatus(LocalAIStatus.initializing);
+      await _loadModel(
+        preferredBackend: _backend,
+      ).timeout(_modelLoadTimeout);
 
       _setStatus(LocalAIStatus.ready);
       debugPrint('[GemmaLocalAIClient] Ready for inference using $_backend');
@@ -134,12 +162,17 @@ class GemmaLocalAIClient implements LocalAIClient {
     required PreferredBackend preferredBackend,
   }) async {
     await _model?.close();
-    _model = await FlutterGemma.getActiveModel(
-      maxTokens: 4096,
-      preferredBackend: preferredBackend,
-      supportImage: false,
-    );
-    _backend = preferredBackend;
+    try {
+      _model = await FlutterGemma.getActiveModel(
+        maxTokens: 4096,
+        preferredBackend: preferredBackend,
+        supportImage: false,
+      );
+      _backend = preferredBackend;
+    } catch (e) {
+      _model = null;
+      rethrow;
+    }
   }
 
   Future<String> _withBackendRecovery(

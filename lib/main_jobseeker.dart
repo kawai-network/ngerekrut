@@ -1,9 +1,9 @@
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'app/gemma_bootstrap.dart';
 import 'app/runtime_config.dart';
 import 'flavors/app_flavor_config.dart';
 import 'flavors/flavor_environment.dart';
@@ -49,9 +49,7 @@ Future<void> _initializeFirebaseMessaging() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await loadEnv();
-  await FlutterGemma.initialize(
-    huggingFaceToken: readConfig('HUGGINGFACE_TOKEN'),
-  );
+  await bootstrapGemma();
 
   FlavorManager.init(
     AppFlavorConfig.jobSeeker,

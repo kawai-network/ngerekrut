@@ -6,8 +6,14 @@ enum LocalAIStatus {
   /// Not initialized.
   notInitialized,
 
+  /// Validating environment and local state before install/load.
+  checking,
+
   /// Model downloading.
   downloading,
+
+  /// Loading the model into the inference backend.
+  initializing,
 
   /// Ready to use.
   ready,
