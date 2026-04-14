@@ -17,6 +17,8 @@ import '../ai/assistants/assistant_manager.dart';
 import '../ai/assistants/assistant_base.dart';
 import '../ai/assistants/assistant_context.dart';
 import '../screens/assistant_chat_screen.dart';
+import '../models/recruiter_job.dart';
+import '../models/recruiter_shortlist.dart';
 import '../screens/local_assessment_list_screen.dart';
 import '../screens/local_interview_list_screen.dart';
 import '../screens/local_job_post_list_screen.dart';
@@ -393,40 +395,127 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
         HybridAIService(cloudApiKey: readConfig('OPENAI_API_KEY'));
     _hybridService ??= service;
 
-    // Build context based on current tab
-    final assistantContext = _buildAssistantContext();
+    // Build context (async to fetch actual data)
+    _buildAssistantContext().then((assistantContext) {
+      if (!mounted) return;
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AssistantChatScreen(
-          assistant: assistant,
-          aiService: service,
-          context: assistantContext,
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AssistantChatScreen(
+            assistant: assistant,
+            aiService: service,
+            context: assistantContext,
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 
   /// Build assistant context based on the current tab.
-  AssistantContext _buildAssistantContext() {
+  Future<AssistantContext> _buildAssistantContext() async {
     switch (_selectedIndex) {
       case 0: // Lowongan
-        return const AssistantContext(
-          extraData: {'tab': 'lowongan', 'hint': 'Pengguna sedang melihat daftar lowongan'},
+        final jobs = await _localJobPostRepository.list();
+        final firstJob = jobs.isNotEmpty ? jobs.first : null;
+
+        if (firstJob == null) {
+          return const AssistantContext(
+            extraData: {
+              'tab': 'lowongan',
+              'hint': 'Belum ada lowongan. Pengguna bisa membuat lowongan baru.',
+            },
+          );
+        }
+
+        final shortlist = await _localShortlistRepository.getLatestForJob(firstJob.id);
+
+        return AssistantContext(
+          selectedJob: AssistantJobContext(
+            id: firstJob.id,
+            title: firstJob.title,
+            department: firstJob.department,
+            location: firstJob.location,
+            description: firstJob.description,
+            requirements: firstJob.requirements,
+            status: firstJob.status,
+            shortlistCount: shortlist?.rankedCandidates.length ?? 0,
+          ),
+          extraData: {
+            'tab': 'lowongan',
+            'totalJobs': jobs.length,
+            'hint': 'Pengguna sedang melihat daftar lowongan. Lowongan pertama: ${firstJob.title}',
+          },
         );
+
       case 1: // Screening
-        return const AssistantContext(
-          extraData: {'tab': 'screening', 'hint': 'Pengguna sedang melihat hasil screening kandidat'},
+        final jobs = await _localJobPostRepository.list();
+        final screenings = <_ScreeningData>[];
+
+        for (final job in jobs) {
+          final shortlist = await _localShortlistRepository.getLatestForJob(job.id);
+          if (shortlist != null && shortlist.rankedCandidates.isNotEmpty) {
+            screenings.add(_ScreeningData(job: job, shortlist: shortlist));
+          }
+        }
+
+        final candidates = <AssistantCandidateContext>[];
+        if (screenings.isNotEmpty) {
+          final topShortlist = screenings.first.shortlist;
+          for (final entry in topShortlist.topCandidates.take(3)) {
+            candidates.add(AssistantCandidateContext(
+              id: entry.id,
+              name: entry.name,
+              title: screenings.first.job.title,
+              score: entry.totalScore,
+              recommendation: entry.recommendation,
+              strengths: entry.strengths,
+              redFlags: entry.redFlags,
+              summary: entry.summary,
+            ));
+          }
+        }
+
+        return AssistantContext(
+          candidates: candidates,
+          extraData: {
+            'tab': 'screening',
+            'totalScreenings': screenings.length,
+            'hint': 'Pengguna sedang melihat hasil screening kandidat. ${screenings.length} lowongan memiliki screening.',
+          },
         );
+
       case 2: // Tes
+        final jobs = await _localJobPostRepository.list();
+        int readyForTest = 0;
+
+        for (final job in jobs) {
+          final shortlist = await _localShortlistRepository.getLatestForJob(job.id);
+          if (shortlist != null) {
+            readyForTest += shortlist.rankedCandidates.length;
+          }
+        }
+
         return const AssistantContext(
-          extraData: {'tab': 'assessment', 'hint': 'Pengguna sedang melihat asesmen yang siap untuk kandidat'},
+          extraData: {
+            'tab': 'assessment',
+            'hint': 'Pengguna sedang melihat asesmen yang siap untuk kandidat.',
+          },
         );
+
       case 3: // Interview
-        return const AssistantContext(
-          extraData: {'tab': 'interview', 'hint': 'Pengguna sedang melihat panduan interview dan scorecard'},
+        final guides = await _localInterviewGuideRepository.listAll();
+        final scorecards = await _localScorecardRepository.listAll();
+
+        return AssistantContext(
+          extraData: {
+            'tab': 'interview',
+            'totalGuides': guides.length,
+            'totalScorecards': scorecards.length,
+            'hint': 'Pengguna sedang melihat panduan interview dan scorecard. ${guides.length} guides, ${scorecards.length} scorecards.',
+          },
         );
+
       default:
         return const AssistantContext();
     }
@@ -533,6 +622,14 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
       ),
     );
   }
+}
+
+/// Helper class to hold job + shortlist data for screening context.
+class _ScreeningData {
+  final RecruiterJob job;
+  final RecruiterShortlistResult shortlist;
+
+  const _ScreeningData({required this.job, required this.shortlist});
 }
 
 enum _HomeAction {

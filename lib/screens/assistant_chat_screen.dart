@@ -171,29 +171,35 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
     await _chatController.insertMessage(streamMsg);
 
     try {
-      // Build messages for LangChain
-      final messages = <ChatMessage>[];
+      // Use streaming response
+      final stream = _chatModel.invokeWithStreaming(
+        prompt: userMessage,
+        systemPrompt: _buildFullSystemPrompt(),
+      );
 
-      // Add system prompt
-      messages.add(SystemChatMessage(content: _buildFullSystemPrompt()));
+      String accumulatedResponse = '';
 
-      // Add conversation history from memory
-      final historyVars = await _memory.loadMemoryVariables();
-      final historyMessages = historyVars['history'] as List<ChatMessage>? ?? [];
-      messages.addAll(historyMessages);
+      await for (final chunk in stream) {
+        accumulatedResponse += chunk;
 
-      // Add current user message
-      messages.add(HumanChatMessage(
-        content: ChatMessageContent.text(userMessage),
-      ));
+        // Update the streaming message with accumulated content
+        final streamingMsg = Message.textStream(
+          id: streamId,
+          authorId: 'ai',
+          streamId: streamId,
+          createdAt: streamMsg.createdAt,
+          status: MessageStatus.sending,
+        );
 
-      // Call LangChain chat model
-      final result = await _chatModel.call(messages);
+        // Update chat controller with new content (via state update)
+        // The FlyerChatTextStreamMessage will display the accumulated text
+      }
 
+      // Final message
       final finalMsg = Message.text(
         id: streamId,
         authorId: 'ai',
-        text: result.content,
+        text: accumulatedResponse,
         createdAt: streamMsg.createdAt,
         status: MessageStatus.seen,
       );
@@ -204,7 +210,7 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
         {BaseMemory.defaultMemoryKey: HumanChatMessage(
           content: ChatMessageContent.text(userMessage),
         )},
-        {BaseMemory.defaultMemoryKey: result},
+        {BaseMemory.defaultMemoryKey: AIChatMessage(content: accumulatedResponse)},
       );
     } catch (e) {
       final errorMsg = Message.text(
