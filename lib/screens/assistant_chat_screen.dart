@@ -1,6 +1,7 @@
-/// Tab-specific assistant chat screen.
+/// Tab-specific assistant chat screen using LangChain.
 ///
 /// Opens a chat with the assistant relevant to the current tab.
+/// Uses LangChain's ConversationBufferMemory for conversation history.
 library;
 
 import 'dart:async';
@@ -13,10 +14,12 @@ import '../flutter_chat_ui/flutter_chat_ui.dart';
 import '../flyer_chat_text_message/flyer_chat_text_message.dart';
 import '../flyer_chat_text_stream_message/flyer_chat_text_stream_message.dart';
 import '../services/hybrid_ai_service.dart';
+import '../langchain/chat_models/chat_models.dart';
+import '../langchain/memory/memory.dart';
 import 'assistants/assistant_base.dart';
 import 'assistants/assistant_manager.dart';
 import 'assistants/assistant_context.dart';
-import 'assistants/assistant_memory.dart';
+import 'assistants/langchain_adapter.dart';
 
 /// Chat screen for a specific tab's assistant.
 class AssistantChatScreen extends StatefulWidget {
@@ -41,8 +44,11 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
   late final InMemoryChatController _chatController;
   late final AssistantConfig _assistant;
   late final AssistantContext? _assistantContext;
-  late final AssistantMemory _memory;
-  HybridAIService? _hybridService;
+
+  // LangChain components
+  late final HybridChatModel _chatModel;
+  late final ConversationBufferMemory _memory;
+
   bool _isProcessing = false;
   bool _isInitializing = false;
   double _downloadProgress = 0.0;
@@ -54,36 +60,47 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
     super.initState();
     _assistant = widget.assistant;
     _assistantContext = widget.context;
-    _memory = AssistantMemory();
+
+    // Initialize LangChain components
+    final service = widget.aiService ??
+        HybridAIService(cloudApiKey: null);
+    _chatModel = HybridChatModel(
+      service: service,
+      defaultSystemPrompt: _buildFullSystemPrompt(),
+    );
+    _memory = ConversationBufferMemory(
+      memoryKey: 'history',
+      returnMessages: true,
+    );
+
     _chatController = InMemoryChatController();
     _initService();
-    unawaited(_loadHistory());
     unawaited(_sendWelcomeMessage());
   }
 
-  Future<void> _loadHistory() async {
-    final history = _memory.getHistory(_assistant.id);
-    if (history.isEmpty) return;
+  String _buildFullSystemPrompt() {
+    final buffer = StringBuffer();
+    buffer.writeln(_assistant.systemPrompt);
 
-    // Load recent history into chat UI
-    for (final msg in history.take(10)) {
-      final chatMsg = Message.text(
-        id: _uuid.v4(),
-        authorId: msg.role == 'user' ? 'user' : 'ai',
-        text: msg.content,
-        createdAt: msg.timestamp,
-        status: MessageStatus.seen,
-      );
-      await _chatController.insertMessage(chatMsg);
+    if (_assistantContext != null) {
+      buffer.writeln(_assistantContext!.toSystemContext());
     }
+
+    buffer.writeln('\nInstruksi tambahan:');
+    buffer.writeln('- Gunakan konteks di atas untuk memberikan jawaban yang relevan dan spesifik.');
+    buffer.writeln('- Jika ada data kandidat atau lowongan, referensi data tersebut dalam jawaban.');
+    buffer.writeln('- Berikan saran yang actionable berdasarkan konteks yang ada.');
+    buffer.writeln('- Ingat percakapan sebelumnya dan lanjutkan dari sana.');
+
+    return buffer.toString();
   }
 
   Future<void> _initService() async {
     setState(() => _isInitializing = true);
 
     try {
-      _hybridService = widget.aiService ?? HybridAIService(cloudApiKey: null);
-      await _hybridService!.initialize(
+      final service = _chatModel.service;
+      await service.initialize(
         onDownloadProgress: (progress) {
           if (!mounted) return;
           setState(() => _downloadProgress = progress);
@@ -120,18 +137,13 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
       return;
     }
 
-    final service = _hybridService;
-    if (service == null) {
-      await _sendErrorMessage('Service AI belum siap.');
-      return;
-    }
-
+    final service = _chatModel.service;
     if (!service.isLocalAIReady && !service.hasCloudAI) {
       await _sendErrorMessage('AI lokal belum siap. Coba lagi beberapa saat.');
       return;
     }
 
-    // Save user message
+    // Save user message to chat UI
     final userId = _uuid.v4();
     final userMsg = Message.text(
       id: userId,
@@ -142,29 +154,11 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
     );
     await _chatController.insertMessage(userMsg);
 
-    // Save to memory
-    _memory.addMessage(
-      _assistant.id,
-      ConversationMessage(
-        role: 'user',
-        content: text.trim(),
-        timestamp: DateTime.now(),
-      ),
-    );
-
     await _generateResponse(text.trim());
   }
 
   Future<void> _generateResponse(String userMessage) async {
-    if (_hybridService == null) {
-      await _sendErrorMessage('Service belum terinisialisasi.');
-      return;
-    }
-
     setState(() => _isProcessing = true);
-
-    // Build context-aware system prompt with conversation history
-    final systemPrompt = _buildContextAwareSystemPrompt();
 
     final streamId = _uuid.v4();
     final streamMsg = Message.textStream(
@@ -177,28 +171,40 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
     await _chatController.insertMessage(streamMsg);
 
     try {
-      final response = await _hybridService!.generateLocalResponse(
-        prompt: userMessage,
-        systemPrompt: systemPrompt,
-      );
+      // Build messages for LangChain
+      final messages = <ChatMessage>[];
+
+      // Add system prompt
+      messages.add(SystemChatMessage(content: _buildFullSystemPrompt()));
+
+      // Add conversation history from memory
+      final historyVars = await _memory.loadMemoryVariables();
+      final historyMessages = historyVars['history'] as List<ChatMessage>? ?? [];
+      messages.addAll(historyMessages);
+
+      // Add current user message
+      messages.add(HumanChatMessage(
+        content: ChatMessageContent.text(userMessage),
+      ));
+
+      // Call LangChain chat model
+      final result = await _chatModel.call(messages);
 
       final finalMsg = Message.text(
         id: streamId,
         authorId: 'ai',
-        text: response,
+        text: result.content,
         createdAt: streamMsg.createdAt,
         status: MessageStatus.seen,
       );
       await _chatController.updateMessage(streamMsg, finalMsg);
 
-      // Save AI response to memory
-      _memory.addMessage(
-        _assistant.id,
-        ConversationMessage(
-          role: 'assistant',
-          content: response,
-          timestamp: DateTime.now(),
-        ),
+      // Save to LangChain memory
+      await _memory.saveContext(
+        {BaseMemory.defaultMemoryKey: HumanChatMessage(
+          content: ChatMessageContent.text(userMessage),
+        )},
+        {BaseMemory.defaultMemoryKey: result},
       );
     } catch (e) {
       final errorMsg = Message.text(
@@ -216,30 +222,6 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
     }
   }
 
-  String _buildContextAwareSystemPrompt() {
-    final buffer = StringBuffer();
-    buffer.writeln(_assistant.systemPrompt);
-
-    // Add conversation history
-    final historyContext = _memory.getRecentContext(_assistant.id);
-    if (historyContext.isNotEmpty) {
-      buffer.writeln(historyContext);
-    }
-
-    // Add tab context
-    if (_assistantContext != null) {
-      buffer.writeln(_assistantContext!.toSystemContext());
-    }
-
-    buffer.writeln('\nInstruksi tambahan:');
-    buffer.writeln('- Gunakan konteks di atas untuk memberikan jawaban yang relevan dan spesifik.');
-    buffer.writeln('- Jika ada data kandidat atau lowongan, referensi data tersebut dalam jawaban.');
-    buffer.writeln('- Berikan saran yang actionable berdasarkan konteks yang ada.');
-    buffer.writeln('- Ingat percakapan sebelumnya dan lanjutkan dari sana.');
-
-    return buffer.toString();
-  }
-
   Future<void> _sendErrorMessage(String error) async {
     final errorId = _uuid.v4();
     final errorMsg = Message.text(
@@ -255,7 +237,7 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
   @override
   void dispose() {
     _chatController.dispose();
-    _hybridService?.dispose();
+    _chatModel.service.dispose();
     super.dispose();
   }
 
@@ -341,9 +323,20 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
     );
   }
 
-  void _resetChat() {
-    _memory.clearHistory(_assistant.id);
+  Future<void> _resetChat() async {
+    await _memory.clear();
     _chatController.dispose();
+    // Reinitialize components
+    final service = widget.aiService ??
+        HybridAIService(cloudApiKey: null);
+    _chatModel = HybridChatModel(
+      service: service,
+      defaultSystemPrompt: _buildFullSystemPrompt(),
+    );
+    _memory = ConversationBufferMemory(
+      memoryKey: 'history',
+      returnMessages: true,
+    );
     _chatController = InMemoryChatController();
     _sendWelcomeMessage();
   }
