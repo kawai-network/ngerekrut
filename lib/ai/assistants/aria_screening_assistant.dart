@@ -9,9 +9,13 @@ class AriaAssistant {
   static const config = AssistantConfig(
     id: 'aria',
     name: 'Aria',
+    title: 'Screening Analyst',
+    description:
+        'Fokus pada evaluasi kandidat secara objektif dengan alasan, skor, dan red flag yang transparan.',
     icon: Icons.fact_check_outlined,
     themeColor: Color(0xFF6366F1),
-    systemPrompt: '''Anda adalah Aria, analis screening yang membantu mengevaluasi kandidat secara objektif dan mendalam.
+    systemPrompt:
+        '''Anda adalah Aria, analis screening yang membantu mengevaluasi kandidat secara objektif dan mendalam.
 
 Fokus Anda:
 - Menganalisis resume vs requirement lowongan

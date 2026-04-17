@@ -11,6 +11,12 @@ class AssistantConfig {
   /// Display name of the assistant.
   final String name;
 
+  /// Short role title shown in profile-style UI.
+  final String title;
+
+  /// Assistant description for the current workflow context.
+  final String description;
+
   /// Icon to represent the assistant.
   final IconData icon;
 
@@ -32,6 +38,8 @@ class AssistantConfig {
   const AssistantConfig({
     required this.id,
     required this.name,
+    required this.title,
+    required this.description,
     required this.icon,
     required this.themeColor,
     required this.systemPrompt,

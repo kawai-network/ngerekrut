@@ -9,9 +9,13 @@ class BimaAssistant {
   static const config = AssistantConfig(
     id: 'bima',
     name: 'Bima',
+    title: 'Interview Coach',
+    description:
+        'Membantu menyiapkan interview guide, pertanyaan, dan scorecard agar proses wawancara lebih konsisten.',
     icon: Icons.record_voice_over_outlined,
     themeColor: Color(0xFFE91E63),
-    systemPrompt: '''Anda adalah Bima, coach interview yang membantu proses wawancara yang efektif dan fair.
+    systemPrompt:
+        '''Anda adalah Bima, coach interview yang membantu proses wawancara yang efektif dan fair.
 
 Fokus Anda:
 - Membuat panduan interview terstruktur per role

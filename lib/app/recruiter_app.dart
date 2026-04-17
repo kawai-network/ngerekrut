@@ -14,7 +14,6 @@ import '../screens/gemma_proof_screen.dart';
 import '../screens/hiring_screen.dart';
 import '../screens/job_candidates_screen.dart';
 import '../ai/assistants/assistant_manager.dart';
-import '../ai/assistants/assistant_base.dart';
 import '../ai/assistants/assistant_context.dart';
 import '../screens/assistant_chat_screen.dart';
 import '../models/recruiter_job.dart';
@@ -52,18 +51,13 @@ class RecruiterApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF18CD5B)),
         useMaterial3: true,
       ),
-      home: RecruiterHomeScreen(
-        enableAIInitialization: enableAIInitialization,
-      ),
+      home: RecruiterHomeScreen(enableAIInitialization: enableAIInitialization),
     );
   }
 }
 
 class RecruiterHomeScreen extends StatefulWidget {
-  const RecruiterHomeScreen({
-    super.key,
-    this.enableAIInitialization = true,
-  });
+  const RecruiterHomeScreen({super.key, this.enableAIInitialization = true});
 
   final bool enableAIInitialization;
 
@@ -217,8 +211,7 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          // Assistant hint card
-          if (_hybridService != null) _buildAssistantHint(hasLocalAI, hasCloudAI),
+          _buildAssistantProfileCard(hasLocalAI, hasCloudAI),
           const SizedBox(height: 8),
           Expanded(child: body),
         ],
@@ -237,10 +230,7 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
             icon: Icon(Icons.fact_check_outlined),
             label: 'Screening',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.quiz_outlined),
-            label: 'Tes',
-          ),
+          NavigationDestination(icon: Icon(Icons.quiz_outlined), label: 'Tes'),
           NavigationDestination(
             icon: Icon(Icons.record_voice_over_outlined),
             label: 'Interview',
@@ -343,46 +333,147 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
     return FloatingActionButton.extended(
       onPressed: () => _openAssistantChat(),
       icon: Icon(assistant.icon),
-      label: Text('${assistant.fabLabel}'),
+      label: Text(assistant.fabLabel),
       backgroundColor: assistant.themeColor,
     );
   }
 
-  Widget _buildAssistantHint(bool hasLocalAI, bool hasCloudAI) {
+  Widget _buildAssistantProfileCard(bool hasLocalAI, bool hasCloudAI) {
     final assistant = AssistantManager.getAssistantForTab(_selectedIndex);
     if (assistant == null) return const SizedBox.shrink();
 
+    final colorScheme = Theme.of(context).colorScheme;
     final aiStatus = hasLocalAI
-        ? '🧠 Local AI siap'
+        ? 'Local AI siap'
         : hasCloudAI
-            ? '☁️ Cloud AI aktif'
-            : 'AI belum siap';
+        ? 'Cloud AI aktif'
+        : 'AI belum siap';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: assistant.themeColor.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: assistant.themeColor.withValues(alpha: 0.2),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            assistant.themeColor.withValues(alpha: 0.18),
+            assistant.themeColor.withValues(alpha: 0.06),
+          ],
         ),
-      ),
-      child: Row(
-        children: [
-          Icon(assistant.icon, size: 18, color: assistant.themeColor),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              '${assistant.name} siap membantu • $aiStatus',
-              style: TextStyle(
-                color: assistant.themeColor,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: assistant.themeColor.withValues(alpha: 0.16)),
+        boxShadow: [
+          BoxShadow(
+            color: assistant.themeColor.withValues(alpha: 0.12),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
           ),
         ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      assistant.themeColor,
+                      assistant.themeColor.withValues(alpha: 0.72),
+                    ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: assistant.themeColor.withValues(alpha: 0.28),
+                      blurRadius: 14,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Icon(assistant.icon, color: Colors.white, size: 30),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      assistant.name,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      assistant.title,
+                      style: TextStyle(
+                        color: assistant.themeColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      assistant.description,
+                      style: TextStyle(
+                        color: colorScheme.onSurface.withValues(alpha: 0.72),
+                        height: 1.45,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildAssistantMetaChip(
+                label: aiStatus,
+                color: assistant.themeColor,
+              ),
+              _buildAssistantMetaChip(
+                label: assistant.fabLabel.replaceFirst('💬 ', ''),
+                color: assistant.themeColor,
+              ),
+              _buildAssistantMetaChip(
+                label: '${assistant.quickActions.length} quick prompts',
+                color: assistant.themeColor,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAssistantMetaChip({
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -391,7 +482,8 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
     final assistant = AssistantManager.getAssistantForTab(_selectedIndex);
     if (assistant == null) return;
 
-    final service = _hybridService ??
+    final service =
+        _hybridService ??
         HybridAIService(cloudApiKey: readConfig('OPENAI_API_KEY'));
     _hybridService ??= service;
 
@@ -423,12 +515,15 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
           return const AssistantContext(
             extraData: {
               'tab': 'lowongan',
-              'hint': 'Belum ada lowongan. Pengguna bisa membuat lowongan baru.',
+              'hint':
+                  'Belum ada lowongan. Pengguna bisa membuat lowongan baru.',
             },
           );
         }
 
-        final shortlist = await _localShortlistRepository.getLatestForJob(firstJob.id);
+        final shortlist = await _localShortlistRepository.getLatestForJob(
+          firstJob.id,
+        );
 
         return AssistantContext(
           selectedJob: AssistantJobContext(
@@ -444,7 +539,8 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
           extraData: {
             'tab': 'lowongan',
             'totalJobs': jobs.length,
-            'hint': 'Pengguna sedang melihat daftar lowongan. Lowongan pertama: ${firstJob.title}',
+            'hint':
+                'Pengguna sedang melihat daftar lowongan. Lowongan pertama: ${firstJob.title}',
           },
         );
 
@@ -453,7 +549,9 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
         final screenings = <_ScreeningData>[];
 
         for (final job in jobs) {
-          final shortlist = await _localShortlistRepository.getLatestForJob(job.id);
+          final shortlist = await _localShortlistRepository.getLatestForJob(
+            job.id,
+          );
           if (shortlist != null && shortlist.rankedCandidates.isNotEmpty) {
             screenings.add(_ScreeningData(job: job, shortlist: shortlist));
           }
@@ -463,16 +561,18 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
         if (screenings.isNotEmpty) {
           final topShortlist = screenings.first.shortlist;
           for (final entry in topShortlist.topCandidates.take(3)) {
-            candidates.add(AssistantCandidateContext(
-              id: entry.candidateId,
-              name: entry.candidateName,
-              title: screenings.first.job.title,
-              score: entry.totalScore.toInt(),
-              recommendation: entry.recommendation,
-              strengths: entry.strengths,
-              redFlags: entry.redFlags,
-              summary: entry.rationale,
-            ));
+            candidates.add(
+              AssistantCandidateContext(
+                id: entry.candidateId,
+                name: entry.candidateName,
+                title: screenings.first.job.title,
+                score: entry.totalScore.toInt(),
+                recommendation: entry.recommendation,
+                strengths: entry.strengths,
+                redFlags: entry.redFlags,
+                summary: entry.rationale,
+              ),
+            );
           }
         }
 
@@ -481,24 +581,28 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
           extraData: {
             'tab': 'screening',
             'totalScreenings': screenings.length,
-            'hint': 'Pengguna sedang melihat hasil screening kandidat. ${screenings.length} lowongan memiliki screening.',
+            'hint':
+                'Pengguna sedang melihat hasil screening kandidat. ${screenings.length} lowongan memiliki screening.',
           },
         );
 
       case 2: // Tes
         final jobs = await _localJobPostRepository.list();
-        int readyForTest = 0;
+        var readyForTest = 0;
 
         for (final job in jobs) {
-          final shortlist = await _localShortlistRepository.getLatestForJob(job.id);
+          final shortlist = await _localShortlistRepository.getLatestForJob(
+            job.id,
+          );
           if (shortlist != null) {
             readyForTest += shortlist.rankedCandidates.length;
           }
         }
 
-        return const AssistantContext(
+        return AssistantContext(
           extraData: {
             'tab': 'assessment',
+            'readyForTest': readyForTest,
             'hint': 'Pengguna sedang melihat asesmen yang siap untuk kandidat.',
           },
         );
@@ -512,7 +616,8 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
             'tab': 'interview',
             'totalGuides': guides.length,
             'totalScorecards': scorecards.length,
-            'hint': 'Pengguna sedang melihat panduan interview dan scorecard. ${guides.length} guides, ${scorecards.length} scorecards.',
+            'hint':
+                'Pengguna sedang melihat panduan interview dan scorecard. ${guides.length} guides, ${scorecards.length} scorecards.',
           },
         );
 
@@ -548,7 +653,8 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
   }
 
   void _openJobPostingChat() {
-    final service = _hybridService ??
+    final service =
+        _hybridService ??
         HybridAIService(cloudApiKey: readConfig('OPENAI_API_KEY'));
     _hybridService ??= service;
     Navigator.push(
@@ -566,7 +672,8 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
     final repository = _hiringRepository;
     if (repository == null) return;
 
-    final service = _hybridService ??
+    final service =
+        _hybridService ??
         HybridAIService(cloudApiKey: readConfig('OPENAI_API_KEY'));
     _hybridService ??= service;
     Navigator.push(
@@ -590,19 +697,19 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
   }
 
   void _openHiringAssistant() {
-    final service = _hybridService ??
+    final service =
+        _hybridService ??
         HybridAIService(cloudApiKey: readConfig('OPENAI_API_KEY'));
     _hybridService ??= service;
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => HiringScreen(aiService: service),
-      ),
+      MaterialPageRoute(builder: (context) => HiringScreen(aiService: service)),
     );
   }
 
   void _openGemmaProof() {
-    final service = _hybridService ??
+    final service =
+        _hybridService ??
         HybridAIService(cloudApiKey: readConfig('OPENAI_API_KEY'));
     _hybridService ??= service;
     Navigator.push(

@@ -9,9 +9,13 @@ class RakaAssistant {
   static const config = AssistantConfig(
     id: 'raka',
     name: 'Raka',
+    title: 'Job Posting Strategist',
+    description:
+        'Membantu menyusun lowongan yang tajam, relevan, dan lebih menarik untuk kandidat yang tepat.',
     icon: Icons.work_outline,
     themeColor: Color(0xFF18CD5B),
-    systemPrompt: '''Anda adalah Raka, asisten rekrutmen yang membantu membuat, mengoptimalkan, dan mengelola lowongan kerja.
+    systemPrompt:
+        '''Anda adalah Raka, asisten rekrutmen yang membantu membuat, mengoptimalkan, dan mengelola lowongan kerja.
 
 Fokus Anda:
 - Membuat deskripsi lowongan yang menarik & inklusif

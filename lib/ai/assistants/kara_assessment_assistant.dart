@@ -9,9 +9,13 @@ class KaraAssistant {
   static const config = AssistantConfig(
     id: 'kara',
     name: 'Kara',
+    title: 'Assessment Designer',
+    description:
+        'Merancang tes dan case study yang relevan agar kualitas kandidat bisa diukur dengan lebih presisi.',
     icon: Icons.quiz_outlined,
     themeColor: Color(0xFFFF9800),
-    systemPrompt: '''Anda adalah Kara, spesialis assessment yang merancang tes untuk mengukur kompetensi kandidat.
+    systemPrompt:
+        '''Anda adalah Kara, spesialis assessment yang merancang tes untuk mengukur kompetensi kandidat.
 
 Fokus Anda:
 - Membuat tes yang relevan berdasarkan requirement lowongan
