@@ -12,6 +12,7 @@ class RakaAssistant {
     title: 'Job Posting Strategist',
     description:
         'Membantu menyusun lowongan yang tajam, relevan, dan lebih menarik untuk kandidat yang tepat.',
+    avatarAsset: 'assets/rekrutmen.png',
     icon: Icons.work_outline,
     themeColor: Color(0xFF18CD5B),
     systemPrompt:

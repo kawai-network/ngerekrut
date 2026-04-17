@@ -135,6 +135,8 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.sizeOf(context);
+    final isCompactLayout = screenSize.height < 700 || screenSize.width < 360;
     final hasCloudAI = _hybridService?.hasCloudAI ?? false;
     final hasLocalAI = _hybridService?.isLocalAIReady ?? false;
     final hasRecruiterData = _hiringRepository != null;
@@ -208,10 +210,15 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
               hasLocalAI: hasLocalAI,
               hasCloudAI: hasCloudAI,
               hasRecruiterData: hasRecruiterData,
+              compact: isCompactLayout,
             ),
           ),
           const SizedBox(height: 8),
-          _buildAssistantProfileCard(hasLocalAI, hasCloudAI),
+          _buildAssistantProfileCard(
+            hasLocalAI,
+            hasCloudAI,
+            compact: isCompactLayout,
+          ),
           const SizedBox(height: 8),
           Expanded(child: body),
         ],
@@ -244,9 +251,10 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
     required bool hasLocalAI,
     required bool hasCloudAI,
     required bool hasRecruiterData,
+    required bool compact,
   }) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(compact ? 14 : 18),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
@@ -258,20 +266,24 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Inbox recruiter',
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w700,
-              fontSize: 24,
+              fontSize: compact ? 20 : 24,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Kelola percakapan recruiter dari satu daftar sesi, lalu masuk ke room yang relevan saat dibutuhkan.',
-            style: TextStyle(color: Colors.white70, height: 1.45),
+          Text(
+            compact
+                ? 'Kelola sesi recruiter dan buka room yang relevan saat dibutuhkan.'
+                : 'Kelola percakapan recruiter dari satu daftar sesi, lalu masuk ke room yang relevan saat dibutuhkan.',
+            style: const TextStyle(color: Colors.white70, height: 1.45),
+            maxLines: compact ? 2 : null,
+            overflow: compact ? TextOverflow.ellipsis : null,
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: compact ? 10 : 14),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -290,7 +302,7 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
             ],
           ),
           if (_isInitializingAI) ...[
-            const SizedBox(height: 14),
+            SizedBox(height: compact ? 10 : 14),
             LinearProgressIndicator(
               value: _downloadProgress > 0 ? _downloadProgress : null,
               backgroundColor: Colors.white24,
@@ -338,7 +350,11 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
     );
   }
 
-  Widget _buildAssistantProfileCard(bool hasLocalAI, bool hasCloudAI) {
+  Widget _buildAssistantProfileCard(
+    bool hasLocalAI,
+    bool hasCloudAI, {
+    required bool compact,
+  }) {
     final assistant = AssistantManager.getAssistantForTab(_selectedIndex);
     if (assistant == null) return const SizedBox.shrink();
 
@@ -351,7 +367,7 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(compact ? 14 : 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -378,8 +394,8 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 60,
-                height: 60,
+                width: compact ? 48 : 60,
+                height: compact ? 48 : 60,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
@@ -398,42 +414,58 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
                     ),
                   ],
                 ),
-                child: Icon(assistant.icon, color: Colors.white, size: 30),
+                child: ClipOval(
+                  child: Image.asset(
+                    assistant.avatarAsset,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Icon(
+                      assistant.icon,
+                      color: Colors.white,
+                      size: compact ? 24 : 30,
+                    ),
+                  ),
+                ),
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: compact ? 12 : 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       assistant.name,
-                      style: const TextStyle(
-                        fontSize: 20,
+                      style: TextStyle(
+                        fontSize: compact ? 18 : 20,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       assistant.title,
                       style: TextStyle(
                         color: assistant.themeColor,
                         fontWeight: FontWeight.w700,
+                        fontSize: compact ? 13 : 14,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: compact ? 6 : 8),
                     Text(
                       assistant.description,
                       style: TextStyle(
                         color: colorScheme.onSurface.withValues(alpha: 0.72),
                         height: 1.45,
+                        fontSize: compact ? 12.5 : 14,
                       ),
+                      maxLines: compact ? 2 : 3,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: compact ? 10 : 14),
           Wrap(
             spacing: 8,
             runSpacing: 8,

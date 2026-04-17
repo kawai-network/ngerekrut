@@ -12,6 +12,7 @@ class BimaAssistant {
     title: 'Interview Coach',
     description:
         'Membantu menyiapkan interview guide, pertanyaan, dan scorecard agar proses wawancara lebih konsisten.',
+    avatarAsset: 'assets/interview.png',
     icon: Icons.record_voice_over_outlined,
     themeColor: Color(0xFFE91E63),
     systemPrompt:

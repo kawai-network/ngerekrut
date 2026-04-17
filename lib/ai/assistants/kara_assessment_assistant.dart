@@ -12,6 +12,7 @@ class KaraAssistant {
     title: 'Assessment Designer',
     description:
         'Merancang tes dan case study yang relevan agar kualitas kandidat bisa diukur dengan lebih presisi.',
+    avatarAsset: 'assets/hrd.png',
     icon: Icons.quiz_outlined,
     themeColor: Color(0xFFFF9800),
     systemPrompt:

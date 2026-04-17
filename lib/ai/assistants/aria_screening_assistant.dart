@@ -12,6 +12,7 @@ class AriaAssistant {
     title: 'Screening Analyst',
     description:
         'Fokus pada evaluasi kandidat secara objektif dengan alasan, skor, dan red flag yang transparan.',
+    avatarAsset: 'assets/hrd.png',
     icon: Icons.fact_check_outlined,
     themeColor: Color(0xFF6366F1),
     systemPrompt:

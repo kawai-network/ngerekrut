@@ -17,6 +17,9 @@ class AssistantConfig {
   /// Assistant description for the current workflow context.
   final String description;
 
+  /// Local avatar asset for profile-style UI.
+  final String avatarAsset;
+
   /// Icon to represent the assistant.
   final IconData icon;
 
@@ -40,6 +43,7 @@ class AssistantConfig {
     required this.name,
     required this.title,
     required this.description,
+    required this.avatarAsset,
     required this.icon,
     required this.themeColor,
     required this.systemPrompt,
