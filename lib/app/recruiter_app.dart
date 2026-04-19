@@ -213,10 +213,8 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
               compact: isCompactLayout,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           _buildAssistantProfileCard(
-            hasLocalAI,
-            hasCloudAI,
             compact: isCompactLayout,
           ),
           const SizedBox(height: 8),
@@ -253,67 +251,123 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
     required bool hasRecruiterData,
     required bool compact,
   }) {
+    // Determine if AI is ready (either local or cloud)
+    final isAIReady = hasLocalAI || hasCloudAI;
+
     return Container(
       padding: EdgeInsets.all(compact ? 14 : 18),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF18CD5B), Color(0xFF0F766E)],
+          colors: isAIReady
+              ? [const Color(0xFF18CD5B), const Color(0xFF0F766E)]
+              : [const Color(0xFF6B7280), const Color(0xFF4B5563)],
         ),
         borderRadius: BorderRadius.circular(22),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Inbox recruiter',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-              fontSize: compact ? 20 : 24,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            compact
-                ? 'Kelola sesi recruiter dan buka room yang relevan saat dibutuhkan.'
-                : 'Kelola percakapan recruiter dari satu daftar sesi, lalu masuk ke room yang relevan saat dibutuhkan.',
-            style: const TextStyle(color: Colors.white70, height: 1.45),
-            maxLines: compact ? 2 : null,
-            overflow: compact ? TextOverflow.ellipsis : null,
-          ),
-          SizedBox(height: compact ? 10 : 14),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildStatusChip(
-                label: hasLocalAI ? 'Gemma siap' : 'Gemma belum siap',
+              Text(
+                'Ringkasan',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: compact ? 18 : 22,
+                ),
               ),
-              _buildStatusChip(
-                label: hasCloudAI ? 'Cloud AI aktif' : 'Cloud AI nonaktif',
-              ),
-              _buildStatusChip(
-                label: hasRecruiterData
-                    ? 'Data recruiter aktif'
-                    : 'Data recruiter belum aktif',
-              ),
+              if (!isAIReady)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'AI offline',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
             ],
           ),
+          const SizedBox(height: 12),
+          FutureBuilder<_RecruiterSummary>(
+            future: _buildRecruiterSummary(),
+            builder: (context, snapshot) {
+              final summary = snapshot.data;
+              if (summary == null) {
+                return const Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                    ),
+                  ),
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(
+                    child: _buildSummaryItem(
+                      label: 'Lowongan',
+                      value: '${summary.activeJobs}',
+                      icon: Icons.work_outline,
+                      compact: compact,
+                    ),
+                  ),
+                  if (compact) const SizedBox(width: 8) else const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildSummaryItem(
+                      label: 'Screening',
+                      value: '${summary.inScreening}',
+                      icon: Icons.fact_check_outlined,
+                      compact: compact,
+                    ),
+                  ),
+                  if (compact) const SizedBox(width: 8) else const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildSummaryItem(
+                      label: 'Siap Tes',
+                      value: '${summary.readyForTest}',
+                      icon: Icons.quiz_outlined,
+                      compact: compact,
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
           if (_isInitializingAI) ...[
-            SizedBox(height: compact ? 10 : 14),
-            LinearProgressIndicator(
-              value: _downloadProgress > 0 ? _downloadProgress : null,
-              backgroundColor: Colors.white24,
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+            SizedBox(height: compact ? 12 : 16),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                value: _downloadProgress > 0 ? _downloadProgress : null,
+                backgroundColor: Colors.white24,
+                valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                minHeight: 4,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               _downloadProgress > 0
-                  ? 'Menyiapkan Gemma ${(_downloadProgress * 100).toStringAsFixed(0)}%'
-                  : 'Menyiapkan Gemma lokal...',
-              style: const TextStyle(color: Colors.white70),
+                  ? 'Menyiapkan AI lokal ${(_downloadProgress * 100).toStringAsFixed(0)}%'
+                  : 'Menyiapkan AI lokal...',
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 12,
+              ),
             ),
           ],
         ],
@@ -321,19 +375,46 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
     );
   }
 
-  Widget _buildStatusChip({required String label}) {
+  Widget _buildSummaryItem({
+    required String label,
+    required String value,
+    required IconData icon,
+    required bool compact,
+  }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(999),
+      padding: EdgeInsets.symmetric(
+        vertical: compact ? 10 : 12,
+        horizontal: compact ? 8 : 12,
       ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w600,
-        ),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            color: Colors.white,
+            size: compact ? 18 : 22,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              fontSize: compact ? 18 : 22,
+            ),
+          ),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -350,15 +431,15 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
     );
   }
 
-  Widget _buildAssistantProfileCard(
-    bool hasLocalAI,
-    bool hasCloudAI, {
+  Widget _buildAssistantProfileCard({
     required bool compact,
   }) {
     final assistant = AssistantManager.getAssistantForTab(_selectedIndex);
     if (assistant == null) return const SizedBox.shrink();
 
     final colorScheme = Theme.of(context).colorScheme;
+    final hasLocalAI = _hybridService?.isLocalAIReady ?? false;
+    final hasCloudAI = _hybridService?.hasCloudAI ?? false;
     final aiStatus = hasLocalAI
         ? 'Local AI siap'
         : hasCloudAI
@@ -761,6 +842,28 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
       ),
     );
   }
+
+  Future<_RecruiterSummary> _buildRecruiterSummary() async {
+    final jobs = await _localJobPostRepository.list();
+    final activeJobs = jobs.where((j) => j.status == 'active' || j.status == 'Aktif').length;
+
+    var inScreening = 0;
+    var readyForTest = 0;
+
+    for (final job in jobs) {
+      final shortlist = await _localShortlistRepository.getLatestForJob(job.id);
+      if (shortlist != null) {
+        inScreening += shortlist.rankedCandidates.length;
+        readyForTest += shortlist.rankedCandidates.length;
+      }
+    }
+
+    return _RecruiterSummary(
+      activeJobs: activeJobs,
+      inScreening: inScreening,
+      readyForTest: readyForTest,
+    );
+  }
 }
 
 /// Helper class to hold job + shortlist data for screening context.
@@ -769,6 +872,19 @@ class _ScreeningData {
   final RecruiterShortlistResult shortlist;
 
   const _ScreeningData({required this.job, required this.shortlist});
+}
+
+/// Summary data for the recruiter dashboard
+class _RecruiterSummary {
+  final int activeJobs;
+  final int inScreening;
+  final int readyForTest;
+
+  const _RecruiterSummary({
+    required this.activeJobs,
+    required this.inScreening,
+    required this.readyForTest,
+  });
 }
 
 enum _HomeAction {
