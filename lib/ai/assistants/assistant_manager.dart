@@ -7,20 +7,18 @@ library;
 import 'assistant_base.dart';
 import 'raka_job_assistant.dart';
 import 'aria_screening_assistant.dart';
-import 'kara_assessment_assistant.dart';
 import 'bima_interview_assistant.dart';
 
 /// Maps tab index to the corresponding assistant config.
 class AssistantManager {
   /// Tab indices mapping:
-  /// 0 = Lowongan (Raka)
-  /// 1 = Screening (Aria)
-  /// 2 = Tes (Kara)
+  /// 0 = Dashboard (no assistant)
+  /// 1 = Lowongan (Raka)
+  /// 2 = Kandidat (Aria)
   /// 3 = Interview (Bima)
   static const _assistantMap = {
-    0: RakaAssistant.config,
-    1: AriaAssistant.config,
-    2: KaraAssistant.config,
+    1: RakaAssistant.config,
+    2: AriaAssistant.config,
     3: BimaAssistant.config,
   };
 
