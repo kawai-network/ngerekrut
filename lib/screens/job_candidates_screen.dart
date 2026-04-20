@@ -8,9 +8,9 @@ import '../repositories/hiring_repository.dart';
 import '../repositories/local_interview_guide_repository.dart';
 import '../repositories/local_scorecard_repository.dart';
 import '../repositories/local_shortlist_repository.dart';
+import '../services/interview_guide_generation_service.dart';
 import '../services/resume_screening_service.dart';
 import '../services/scorecard_generation_service.dart';
-import '../services/interview_guide_generation_service.dart';
 import 'shortlist_result_screen.dart';
 
 class JobCandidatesScreen extends StatefulWidget {
@@ -41,7 +41,9 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
   bool _isLoading = true;
   bool _isSubmitting = false;
   String? _error;
-  RecruiterJob? _job;
+  String _candidateFilter = 'all';
+  List<RecruiterJob> _jobs = const [];
+  RecruiterJob? _selectedJob;
   List<RecruiterCandidate> _candidates = const [];
   List<RecruiterShortlistResult> _localShortlists = const [];
 
@@ -51,7 +53,7 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
     _load();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({String? selectedJobId}) async {
     setState(() {
       _isLoading = true;
       _error = null;
@@ -63,13 +65,16 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
         throw Exception('Belum ada lowongan dari API.');
       }
 
-      final data = await widget.repository.fetchCandidates(jobs.first.id);
+      final targetJob = _resolveSelectedJob(jobs, selectedJobId);
+      final data = await widget.repository.fetchCandidates(targetJob.id);
       final shortlists = await widget.localShortlistRepository.listForJob(
         data.job.id,
       );
+
       if (!mounted) return;
       setState(() {
-        _job = data.job;
+        _jobs = jobs;
+        _selectedJob = data.job;
         _candidates = data.candidates;
         _localShortlists = shortlists;
       });
@@ -83,8 +88,25 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
     }
   }
 
+  RecruiterJob _resolveSelectedJob(
+    List<RecruiterJob> jobs,
+    String? selectedJobId,
+  ) {
+    final existingId = selectedJobId ?? _selectedJob?.id;
+    if (existingId == null) return jobs.first;
+    for (final job in jobs) {
+      if (job.id == existingId) return job;
+    }
+    return jobs.first;
+  }
+
+  Future<void> _changeSelectedJob(String jobId) async {
+    if (_selectedJob?.id == jobId || _isLoading) return;
+    await _load(selectedJobId: jobId);
+  }
+
   Future<void> _runScreening() async {
-    final job = _job;
+    final job = _selectedJob;
     if (job == null || _isSubmitting) return;
 
     setState(() => _isSubmitting = true);
@@ -95,29 +117,16 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
         topN: 3,
       );
       await widget.localShortlistRepository.save(shortlist);
-      final shortlists = await widget.localShortlistRepository.listForJob(job.id);
+      final shortlists = await widget.localShortlistRepository.listForJob(
+        job.id,
+      );
       if (!mounted) return;
       setState(() => _localShortlists = shortlists);
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ShortlistResultScreen(
-            repository: widget.repository,
-            localInterviewGuideRepository: widget.localInterviewGuideRepository,
-            localShortlistRepository: widget.localShortlistRepository,
-            localScorecardRepository: widget.localScorecardRepository,
-            interviewGuideGenerationService:
-                widget.interviewGuideGenerationService,
-            scorecardGenerationService: widget.scorecardGenerationService,
-            job: job,
-            initialResult: shortlist,
-          ),
-        ),
-      );
+      await _openShortlist(shortlist);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal menjalankan screening: $e')),
+        SnackBar(content: Text('Gagal menjalankan screening kandidat: $e')),
       );
     } finally {
       if (mounted) {
@@ -126,235 +135,807 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
     }
   }
 
+  Future<void> _openSavedShortlist() async {
+    final job = _selectedJob;
+    if (job == null) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    final saved = await widget.localShortlistRepository.getLatestForJob(job.id);
+    if (!mounted) return;
+    if (saved == null) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Belum ada shortlist tersimpan untuk lowongan ini.'),
+        ),
+      );
+      return;
+    }
+    await _openShortlist(saved);
+  }
+
+  Future<void> _openShortlist(RecruiterShortlistResult shortlist) async {
+    final job = _selectedJob;
+    if (job == null) return;
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ShortlistResultScreen(
+          repository: widget.repository,
+          localInterviewGuideRepository: widget.localInterviewGuideRepository,
+          localShortlistRepository: widget.localShortlistRepository,
+          localScorecardRepository: widget.localScorecardRepository,
+          interviewGuideGenerationService:
+              widget.interviewGuideGenerationService,
+          scorecardGenerationService: widget.scorecardGenerationService,
+          job: job,
+          initialResult: shortlist,
+        ),
+      ),
+    );
+  }
+
+  List<RecruiterCandidate> get _filteredCandidates {
+    switch (_candidateFilter) {
+      case 'screening':
+        return _candidates
+            .where((candidate) => candidate.stage == 'screening')
+            .toList();
+      case 'shortlisted':
+        return _candidates
+            .where((candidate) => candidate.stage == 'shortlisted')
+            .toList();
+      case 'rejected':
+        return _candidates
+            .where((candidate) => candidate.stage == 'rejected')
+            .toList();
+      default:
+        return _candidates;
+    }
+  }
+
+  int _countByStage(String stage) {
+    return _candidates.where((candidate) => candidate.stage == stage).length;
+  }
+
   Color _stageColor(String stage) {
     switch (stage) {
       case 'screening':
-        return Colors.orange;
+        return const Color(0xFFB45309);
       case 'shortlisted':
-        return Colors.green;
+        return const Color(0xFF166534);
       case 'rejected':
-        return Colors.red;
+        return const Color(0xFFB91C1C);
       default:
-        return Colors.blueGrey;
+        return const Color(0xFF1D4ED8);
+    }
+  }
+
+  String _stageLabel(String stage) {
+    switch (stage) {
+      case 'screening':
+        return 'Sedang direview';
+      case 'shortlisted':
+        return 'Masuk shortlist';
+      case 'rejected':
+        return 'Tidak lanjut';
+      case 'applied':
+        return 'Baru masuk';
+      default:
+        return stage;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Kandidat Per Lowongan')),
+      appBar: AppBar(title: const Text('Review Kandidat')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(child: Text(_error!))
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: ListView(
-                    padding: const EdgeInsets.all(16),
+          ? _ErrorState(message: _error!, onRetry: _load)
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                children: [
+                  _HeroPanel(
+                    selectedJob: _selectedJob,
+                    candidateCount: _candidates.length,
+                    shortlistedCount: _countByStage('shortlisted'),
+                    screeningCount: _countByStage('screening'),
+                    onRunScreening: _isSubmitting ? null : _runScreening,
+                    isSubmitting: _isSubmitting,
+                  ),
+                  const SizedBox(height: 20),
+                  _JobPicker(
+                    jobs: _jobs,
+                    selectedJobId: _selectedJob?.id,
+                    onSelected: _changeSelectedJob,
+                  ),
+                  const SizedBox(height: 20),
+                  if (_selectedJob != null) _JobOverview(job: _selectedJob!),
+                  const SizedBox(height: 20),
+                  _SectionHeader(
+                    title: 'Tindakan cepat',
+                    action: OutlinedButton.icon(
+                      onPressed: _selectedJob == null
+                          ? null
+                          : _openSavedShortlist,
+                      icon: const Icon(Icons.history),
+                      label: const Text('Buka shortlist tersimpan'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _QuickActionRow(
+                    selectedJob: _selectedJob,
+                    shortlistCount: _localShortlists.length,
+                    onOpenSavedShortlist: _openSavedShortlist,
+                  ),
+                  if (_localShortlists.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    _SectionHeader(
+                      title: 'Riwayat shortlist',
+                      subtitle: 'Hasil screening terakhir untuk lowongan ini.',
+                    ),
+                    const SizedBox(height: 12),
+                    ..._localShortlists
+                        .take(5)
+                        .map(
+                          (shortlist) => _ShortlistHistoryCard(
+                            shortlist: shortlist,
+                            onTap: () => _openShortlist(shortlist),
+                          ),
+                        ),
+                  ],
+                  const SizedBox(height: 24),
+                  _SectionHeader(
+                    title: 'Daftar kandidat',
+                    subtitle:
+                        '${_filteredCandidates.length} kandidat ditampilkan untuk lowongan ini.',
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
-                      if (_job != null) _JobCard(job: _job!),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Pelamar (${_candidates.length})',
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                          ),
-                          FilledButton.icon(
-                            onPressed: _isSubmitting ? null : _runScreening,
-                            icon: _isSubmitting
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Icon(Icons.auto_awesome),
-                            label: Text(
-                              _isSubmitting
-                                  ? 'Memuat...'
-                                  : 'Run AI Screening',
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      OutlinedButton.icon(
-                        onPressed: _job == null
-                            ? null
-                            : () async {
-                                final navigator = Navigator.of(context);
-                                final messenger = ScaffoldMessenger.of(context);
-                                final saved = await widget
-                                    .localShortlistRepository
-                                    .getLatestForJob(_job!.id);
-                                if (!mounted) return;
-                                if (saved == null) {
-                                  messenger.showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Belum ada shortlist lokal tersimpan.',
-                                      ),
-                                    ),
-                                  );
-                                  return;
-                                }
-                                await navigator.push(
-                                  MaterialPageRoute(
-                                    builder: (context) => ShortlistResultScreen(
-                                      repository: widget.repository,
-                                      localInterviewGuideRepository:
-                                          widget.localInterviewGuideRepository,
-                                      localShortlistRepository:
-                                          widget.localShortlistRepository,
-                                      localScorecardRepository:
-                                          widget.localScorecardRepository,
-                                      interviewGuideGenerationService:
-                                          widget.interviewGuideGenerationService,
-                                      scorecardGenerationService:
-                                          widget.scorecardGenerationService,
-                                      job: _job!,
-                                      initialResult: saved,
-                                    ),
-                                  ),
-                                );
-                              },
-                        icon: const Icon(Icons.history),
-                        label: const Text('Open Saved Shortlist'),
-                      ),
-                      if (_localShortlists.isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        Text(
-                          'Riwayat Shortlist Lokal',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 8),
-                        for (final shortlist in _localShortlists.take(5))
-                          Card(
-                            child: ListTile(
-                              leading: const Icon(Icons.history),
-                              title: Text(
-                                shortlist.usedMode == null
-                                    ? shortlist.status
-                                    : '${shortlist.status} • ${shortlist.usedMode}',
-                              ),
-                              subtitle: Text(
-                                shortlist.createdAt == null
-                                    ? shortlist.summary
-                                    : '${DateFormat('dd MMM yyyy HH:mm').format(DateTime.fromMillisecondsSinceEpoch(shortlist.createdAt!))}\n${shortlist.summary}',
-                              ),
-                              isThreeLine: true,
-                              onTap: () async {
-                                await Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (context) => ShortlistResultScreen(
-                                      repository: widget.repository,
-                                      localInterviewGuideRepository:
-                                          widget.localInterviewGuideRepository,
-                                      localShortlistRepository:
-                                          widget.localShortlistRepository,
-                                      localScorecardRepository:
-                                          widget.localScorecardRepository,
-                                      interviewGuideGenerationService:
-                                          widget.interviewGuideGenerationService,
-                                      scorecardGenerationService:
-                                          widget.scorecardGenerationService,
-                                      job: _job!,
-                                      initialResult: shortlist,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                      ],
-                      const SizedBox(height: 12),
-                      for (final candidate in _candidates)
-                        Card(
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.all(16),
-                            title: Text(candidate.name),
-                            subtitle: Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (candidate.headline != null)
-                                    Text(candidate.headline!),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    candidate.profile?.summary ??
-                                        'Belum ada ringkasan profil.',
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    children: [
-                                      Chip(
-                                        label: Text(
-                                          '${candidate.yearsOfExperience ?? 0} tahun',
-                                        ),
-                                      ),
-                                      Chip(
-                                        backgroundColor: _stageColor(
-                                          candidate.stage,
-                                        ).withValues(alpha: 0.12),
-                                        label: Text(candidate.stage),
-                                      ),
-                                      for (final skill
-                                          in candidate.profile?.skills
-                                                  .take(3) ??
-                                              const <String>[])
-                                        Chip(label: Text(skill)),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
+                      _buildFilterChip('all', 'Semua'),
+                      _buildFilterChip('screening', 'Sedang direview'),
+                      _buildFilterChip('shortlisted', 'Shortlist'),
+                      _buildFilterChip('rejected', 'Tidak lanjut'),
                     ],
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  if (_filteredCandidates.isEmpty)
+                    const _EmptyListState(
+                      title: 'Tidak ada kandidat untuk filter ini',
+                      description:
+                          'Ganti filter atau pilih lowongan lain untuk melihat kandidat yang tersedia.',
+                    )
+                  else
+                    ..._filteredCandidates.map(
+                      (candidate) => _CandidateCard(
+                        candidate: candidate,
+                        stageColor: _stageColor(candidate.stage),
+                        stageLabel: _stageLabel(candidate.stage),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+    );
+  }
+
+  Widget _buildFilterChip(String value, String label) {
+    final isSelected = _candidateFilter == value;
+    return FilterChip(
+      selected: isSelected,
+      showCheckmark: false,
+      label: Text(label),
+      selectedColor: const Color(0xFFDCFCE7),
+      side: BorderSide(
+        color: isSelected ? const Color(0xFF86EFAC) : const Color(0xFFE5E7EB),
+      ),
+      labelStyle: TextStyle(
+        fontWeight: FontWeight.w700,
+        color: isSelected ? const Color(0xFF166534) : null,
+      ),
+      onSelected: (_) {
+        setState(() => _candidateFilter = value);
+      },
     );
   }
 }
 
-class _JobCard extends StatelessWidget {
-  final RecruiterJob job;
+class _HeroPanel extends StatelessWidget {
+  const _HeroPanel({
+    required this.selectedJob,
+    required this.candidateCount,
+    required this.shortlistedCount,
+    required this.screeningCount,
+    required this.onRunScreening,
+    required this.isSubmitting,
+  });
 
-  const _JobCard({required this.job});
+  final RecruiterJob? selectedJob;
+  final int candidateCount;
+  final int shortlistedCount;
+  final int screeningCount;
+  final VoidCallback? onRunScreening;
+  final bool isSubmitting;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF12372A), Color(0xFF1C6758)],
+        ),
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            selectedJob == null
+                ? 'Pilih lowongan untuk mulai review kandidat.'
+                : 'Review kandidat untuk ${selectedJob!.title}',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Pilih lowongan terlebih dulu, lalu jalankan screening untuk melihat shortlist terbaik dan langkah berikutnya.',
+            style: TextStyle(color: Colors.white70, height: 1.45),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _HeroMetric(label: 'Pelamar', value: '$candidateCount'),
+              _HeroMetric(label: 'Direview', value: '$screeningCount'),
+              _HeroMetric(label: 'Shortlist', value: '$shortlistedCount'),
+            ],
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: onRunScreening,
+            icon: isSubmitting
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Color(0xFF12372A),
+                    ),
+                  )
+                : const Icon(Icons.auto_awesome),
+            label: Text(
+              isSubmitting
+                  ? 'Menjalankan screening...'
+                  : 'Screening Kandidat Sekarang',
+            ),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: const Color(0xFF12372A),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeroMetric extends StatelessWidget {
+  const _HeroMetric({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _JobPicker extends StatelessWidget {
+  const _JobPicker({
+    required this.jobs,
+    required this.selectedJobId,
+    required this.onSelected,
+  });
+
+  final List<RecruiterJob> jobs;
+  final String? selectedJobId;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Pilih lowongan',
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Ganti lowongan untuk melihat kandidat dan riwayat shortlist yang relevan.',
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: selectedJobId,
+              isExpanded: true,
+              hint: const Text('Pilih lowongan'),
+              items: jobs
+                  .map(
+                    (job) => DropdownMenuItem<String>(
+                      value: job.id,
+                      child: Text(job.title),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                if (value != null) onSelected(value);
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _JobOverview extends StatelessWidget {
+  const _JobOverview({required this.job});
+
+  final RecruiterJob job;
 
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: const BorderSide(color: Color(0xFFE5E7EB)),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(job.title, style: Theme.of(context).textTheme.headlineSmall),
+            Text(
+              job.title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+            ),
             const SizedBox(height: 8),
             Text(
-              '${job.department ?? '-'} • ${job.location ?? '-'} • ${job.status}',
+              [
+                if ((job.department ?? '').isNotEmpty) job.department!,
+                if ((job.location ?? '').isNotEmpty) job.location!,
+                job.status,
+              ].join(' • '),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700),
             ),
-            if (job.description != null) ...[
+            if ((job.description ?? '').isNotEmpty) ...[
               const SizedBox(height: 12),
-              Text(job.description!),
+              Text(
+                job.description!,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(height: 1.45),
+              ),
             ],
             if (job.requirements.isNotEmpty) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: job.requirements.map((item) => Chip(label: Text(item))).toList(),
+                children: job.requirements
+                    .take(6)
+                    .map((item) => Chip(label: Text(item)))
+                    .toList(),
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, this.subtitle, this.action});
+
+  final String title;
+  final String? subtitle;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  subtitle!,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700),
+                ),
+              ],
+            ],
+          ),
+        ),
+        action ?? const SizedBox.shrink(),
+      ],
+    );
+  }
+}
+
+class _QuickActionRow extends StatelessWidget {
+  const _QuickActionRow({
+    required this.selectedJob,
+    required this.shortlistCount,
+    required this.onOpenSavedShortlist,
+  });
+
+  final RecruiterJob? selectedJob;
+  final int shortlistCount;
+  final VoidCallback onOpenSavedShortlist;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _QuickActionCard(
+            icon: Icons.history,
+            title: 'Shortlist tersimpan',
+            subtitle: '$shortlistCount hasil tersedia',
+            onTap: selectedJob == null ? null : onOpenSavedShortlist,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _QuickActionCard(
+            icon: Icons.checklist_rtl,
+            title: 'Status lowongan',
+            subtitle: selectedJob?.status ?? 'Belum dipilih',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _QuickActionCard extends StatelessWidget {
+  const _QuickActionCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(22),
+      onTap: onTap,
+      child: Ink(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon),
+            const SizedBox(height: 10),
+            Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ShortlistHistoryCard extends StatelessWidget {
+  const _ShortlistHistoryCard({required this.shortlist, required this.onTap});
+
+  final RecruiterShortlistResult shortlist;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: const BorderSide(color: Color(0xFFE5E7EB)),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 10,
+        ),
+        leading: const Icon(Icons.history),
+        title: Text(
+          shortlist.usedMode == null
+              ? shortlist.status
+              : '${shortlist.status} • ${shortlist.usedMode}',
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        subtitle: Text(
+          shortlist.createdAt == null
+              ? shortlist.summary
+              : '${DateFormat('dd MMM yyyy HH:mm').format(DateTime.fromMillisecondsSinceEpoch(shortlist.createdAt!))}\n${shortlist.summary}',
+        ),
+        isThreeLine: true,
+        onTap: onTap,
+      ),
+    );
+  }
+}
+
+class _CandidateCard extends StatelessWidget {
+  const _CandidateCard({
+    required this.candidate,
+    required this.stageColor,
+    required this.stageLabel,
+  });
+
+  final RecruiterCandidate candidate;
+  final Color stageColor;
+  final String stageLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: const BorderSide(color: Color(0xFFE5E7EB)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        candidate.name,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                      if ((candidate.headline ?? '').isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          candidate.headline!,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: Colors.grey.shade700),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: stageColor.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    stageLabel,
+                    style: TextStyle(
+                      color: stageColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              candidate.profile?.summary.isNotEmpty == true
+                  ? candidate.profile!.summary
+                  : 'Belum ada ringkasan profil.',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(height: 1.45),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _InfoChip(
+                  label: '${candidate.yearsOfExperience ?? 0} tahun pengalaman',
+                ),
+                if (candidate.resume != null)
+                  _InfoChip(label: candidate.resume!.fileName),
+                for (final skill
+                    in candidate.profile?.skills.take(4) ?? const <String>[])
+                  _InfoChip(label: skill),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  const _InfoChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+    );
+  }
+}
+
+class _EmptyListState extends StatelessWidget {
+  const _EmptyListState({required this.title, required this.description});
+
+  final String title;
+  final String description;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            description,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Colors.grey.shade700,
+              height: 1.45,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.message, required this.onRetry});
+
+  final String message;
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 32),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: () {
+                onRetry();
+              },
+              child: const Text('Coba Lagi'),
+            ),
           ],
         ),
       ),

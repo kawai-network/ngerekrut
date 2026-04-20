@@ -319,6 +319,7 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
       ),
       LocalInterviewListScreen(
         jobPostRepository: _localJobPostRepository,
+        shortlistRepository: _localShortlistRepository,
         scorecardRepository: _localScorecardRepository,
         interviewGuideRepository: _localInterviewGuideRepository,
       ),
