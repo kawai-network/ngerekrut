@@ -126,7 +126,7 @@ class _ShortlistResultScreenState extends State<ShortlistResultScreen> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            'Interview kit untuk ${entry.candidateName} tersimpan.',
+            'Panduan interview untuk ${entry.candidateName} tersimpan.',
           ),
         ),
       );
@@ -139,7 +139,7 @@ class _ShortlistResultScreenState extends State<ShortlistResultScreen> {
     } catch (e) {
       if (!mounted) return;
       messenger.showSnackBar(
-        SnackBar(content: Text('Gagal membuat interview kit: $e')),
+        SnackBar(content: Text('Gagal membuat panduan interview: $e')),
       );
     } finally {
       if (mounted) {
@@ -182,7 +182,7 @@ class _ShortlistResultScreenState extends State<ShortlistResultScreen> {
       });
       messenger.showSnackBar(
         SnackBar(
-          content: Text('Scorecard untuk ${entry.candidateName} tersimpan.'),
+          content: Text('Penilaian untuk ${entry.candidateName} tersimpan.'),
         ),
       );
       if (!mounted) return;
@@ -194,7 +194,7 @@ class _ShortlistResultScreenState extends State<ShortlistResultScreen> {
     } catch (e) {
       if (!mounted) return;
       messenger.showSnackBar(
-        SnackBar(content: Text('Gagal membuat scorecard: $e')),
+        SnackBar(content: Text('Gagal membuat penilaian: $e')),
       );
     } finally {
       if (mounted) {
@@ -210,7 +210,7 @@ class _ShortlistResultScreenState extends State<ShortlistResultScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const ListTile(title: Text('Pilih Jenis Scorecard')),
+            const ListTile(title: Text('Pilih Jenis Penilaian')),
             for (final type in InterviewType.values)
               ListTile(
                 leading: const Icon(Icons.checklist_rtl),
@@ -226,15 +226,15 @@ class _ShortlistResultScreenState extends State<ShortlistResultScreen> {
   String _interviewTypeLabel(InterviewType type) {
     switch (type) {
       case InterviewType.technical:
-        return 'Technical';
+        return 'Teknis';
       case InterviewType.design:
-        return 'System Design';
+        return 'Desain Sistem';
       case InterviewType.behavioral:
-        return 'Behavioral';
+        return 'Perilaku';
       case InterviewType.finalRound:
-        return 'Final Round';
+        return 'Babak Akhir';
       case InterviewType.recruiter:
-        return 'Recruiter Screen';
+        return 'Screening Recruiter';
     }
   }
 
@@ -279,7 +279,7 @@ class _ShortlistResultScreenState extends State<ShortlistResultScreen> {
         .length;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Hasil Shortlist')),
+      appBar: AppBar(title: const Text('Hasil Kandidat Unggulan')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -315,7 +315,8 @@ class _ShortlistResultScreenState extends State<ShortlistResultScreen> {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        result?.summary ?? 'Belum ada ringkasan shortlist.',
+                        result?.summary ??
+                            'Belum ada ringkasan kandidat unggulan.',
                         style: const TextStyle(
                           color: Colors.white70,
                           height: 1.45,
@@ -550,8 +551,8 @@ class _ShortlistCandidateCard extends StatelessWidget {
               children: [
                 _StatusChip(
                   label: guides.isNotEmpty
-                      ? 'Guide ${guides.length}'
-                      : 'Guide belum ada',
+                      ? 'Panduan ${guides.length}'
+                      : 'Panduan belum ada',
                   color: guides.isNotEmpty
                       ? const Color(0xFF166534)
                       : const Color(0xFFB45309),
@@ -561,8 +562,8 @@ class _ShortlistCandidateCard extends StatelessWidget {
                 ),
                 _StatusChip(
                   label: scorecards.isNotEmpty
-                      ? 'Scorecard ${scorecards.length}'
-                      : 'Scorecard belum ada',
+                      ? 'Penilaian ${scorecards.length}'
+                      : 'Penilaian belum ada',
                   color: scorecards.isNotEmpty
                       ? const Color(0xFF166534)
                       : const Color(0xFFB45309),
@@ -586,7 +587,7 @@ class _ShortlistCandidateCard extends StatelessWidget {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.fact_check),
-                  label: const Text('Buat Scorecard'),
+                  label: const Text('Buat Penilaian'),
                 ),
                 OutlinedButton.icon(
                   onPressed: isGeneratingGuide ? null : onGenerateGuide,
@@ -597,14 +598,14 @@ class _ShortlistCandidateCard extends StatelessWidget {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.quiz_outlined),
-                  label: const Text('Buat Interview Kit'),
+                  label: const Text('Buat Panduan'),
                 ),
               ],
             ),
             if (guides.isNotEmpty) ...[
               const SizedBox(height: 16),
               Text(
-                'Interview kit tersimpan',
+                'Panduan interview tersimpan',
                 style: Theme.of(
                   context,
                 ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
@@ -613,7 +614,7 @@ class _ShortlistCandidateCard extends StatelessWidget {
               ...guides.map(
                 (stored) => _StoredArtifactTile(
                   icon: Icons.quiz_outlined,
-                  title: 'STAR Guide • ${stored.usedMode ?? 'unknown'}',
+                  title: 'Panduan STAR • ${stored.usedMode ?? 'unknown'}',
                   subtitle: DateFormat('dd MMM yyyy HH:mm').format(
                     DateTime.fromMillisecondsSinceEpoch(stored.createdAt),
                   ),
@@ -631,7 +632,7 @@ class _ShortlistCandidateCard extends StatelessWidget {
             if (scorecards.isNotEmpty) ...[
               const SizedBox(height: 16),
               Text(
-                'Scorecard tersimpan',
+                'Penilaian tersimpan',
                 style: Theme.of(
                   context,
                 ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
@@ -871,7 +872,9 @@ class _InterviewGuideSheet extends StatelessWidget {
                         spacing: 8,
                         runSpacing: 8,
                         children: guide.questions[i].lookFor
-                            .map((item) => Chip(label: Text('Look for: $item')))
+                            .map(
+                              (item) => Chip(label: Text('Perhatikan: $item')),
+                            )
                             .toList(),
                       ),
                     ],
@@ -880,7 +883,7 @@ class _InterviewGuideSheet extends StatelessWidget {
               ),
             const SizedBox(height: 12),
             Text(
-              'Scoring Guide',
+              'Panduan penilaian',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
@@ -917,18 +920,15 @@ class _ScorecardSheet extends StatelessWidget {
             Text('${scorecard.role} • ${scorecard.interviewType.name}'),
             const SizedBox(height: 8),
             if (scorecard.weightedScore != null)
-              Text('Weighted score: ${scorecard.weightedScore}'),
+              Text('Skor total: ${scorecard.weightedScore}'),
             if (scorecard.recommendation != null)
-              Text('Recommendation: ${scorecard.recommendation!.name}'),
+              Text('Rekomendasi: ${scorecard.recommendation!.name}'),
             if ((scorecard.summary ?? '').isNotEmpty) ...[
               const SizedBox(height: 12),
               Text(scorecard.summary!),
             ],
             const SizedBox(height: 16),
-            Text(
-              'Competencies',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+            Text('Kompetensi', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             for (final competency in scorecard.competencies)
               Card(

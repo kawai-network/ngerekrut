@@ -126,7 +126,7 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal menjalankan screening kandidat: $e')),
+        SnackBar(content: Text('Gagal menjalankan penilaian kandidat: $e')),
       );
     } finally {
       if (mounted) {
@@ -145,7 +145,9 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
     if (saved == null) {
       messenger.showSnackBar(
         const SnackBar(
-          content: Text('Belum ada shortlist tersimpan untuk lowongan ini.'),
+          content: Text(
+            'Belum ada hasil penilaian tersimpan untuk lowongan ini.',
+          ),
         ),
       );
       return;
@@ -216,7 +218,7 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
       case 'screening':
         return 'Sedang direview';
       case 'shortlisted':
-        return 'Masuk shortlist';
+        return 'Kandidat unggulan';
       case 'rejected':
         return 'Tidak lanjut';
       case 'applied':
@@ -263,7 +265,7 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
                           ? null
                           : _openSavedShortlist,
                       icon: const Icon(Icons.history),
-                      label: const Text('Buka shortlist tersimpan'),
+                      label: const Text('Buka hasil tersimpan'),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -275,8 +277,8 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
                   if (_localShortlists.isNotEmpty) ...[
                     const SizedBox(height: 24),
                     _SectionHeader(
-                      title: 'Riwayat shortlist',
-                      subtitle: 'Hasil screening terakhir untuk lowongan ini.',
+                      title: 'Riwayat hasil kandidat',
+                      subtitle: 'Hasil penilaian terakhir untuk lowongan ini.',
                     ),
                     const SizedBox(height: 12),
                     ..._localShortlists
@@ -301,7 +303,7 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
                     children: [
                       _buildFilterChip('all', 'Semua'),
                       _buildFilterChip('screening', 'Sedang direview'),
-                      _buildFilterChip('shortlisted', 'Shortlist'),
+                      _buildFilterChip('shortlisted', 'Unggulan'),
                       _buildFilterChip('rejected', 'Tidak lanjut'),
                     ],
                   ),
@@ -390,7 +392,7 @@ class _HeroPanel extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           const Text(
-            'Pilih lowongan terlebih dulu, lalu jalankan screening untuk melihat shortlist terbaik dan langkah berikutnya.',
+            'Pilih lowongan terlebih dulu, lalu jalankan penilaian untuk melihat kandidat unggulan dan langkah berikutnya.',
             style: TextStyle(color: Colors.white70, height: 1.45),
           ),
           const SizedBox(height: 16),
@@ -400,7 +402,7 @@ class _HeroPanel extends StatelessWidget {
             children: [
               _HeroMetric(label: 'Pelamar', value: '$candidateCount'),
               _HeroMetric(label: 'Direview', value: '$screeningCount'),
-              _HeroMetric(label: 'Shortlist', value: '$shortlistedCount'),
+              _HeroMetric(label: 'Unggulan', value: '$shortlistedCount'),
             ],
           ),
           const SizedBox(height: 16),
@@ -417,9 +419,7 @@ class _HeroPanel extends StatelessWidget {
                   )
                 : const Icon(Icons.auto_awesome),
             label: Text(
-              isSubmitting
-                  ? 'Menjalankan screening...'
-                  : 'Screening Kandidat Sekarang',
+              isSubmitting ? 'Menilai kandidat...' : 'Nilai Kandidat Sekarang',
             ),
             style: FilledButton.styleFrom(
               backgroundColor: Colors.white,
@@ -494,7 +494,7 @@ class _JobPicker extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Ganti lowongan untuk melihat kandidat dan riwayat shortlist yang relevan.',
+          'Ganti lowongan untuk melihat kandidat dan riwayat hasil yang relevan.',
           style: Theme.of(
             context,
           ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700),
@@ -651,7 +651,7 @@ class _QuickActionRow extends StatelessWidget {
         Expanded(
           child: _QuickActionCard(
             icon: Icons.history,
-            title: 'Shortlist tersimpan',
+            title: 'Hasil tersimpan',
             subtitle: '$shortlistCount hasil tersedia',
             onTap: selectedJob == null ? null : onOpenSavedShortlist,
           ),

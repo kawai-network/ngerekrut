@@ -104,7 +104,7 @@ class _LocalInterviewListScreenState extends State<LocalInterviewListScreen> {
               candidateName: guide.candidateName,
               rank: null,
               score: null,
-              recommendation: 'Guide tersedia',
+              recommendation: 'Panduan tersedia',
               guideCount: guideCountByCandidate[guide.candidateId] ?? 0,
               scorecardCount: scorecardCountByCandidate[guide.candidateId] ?? 0,
               needsPreparation:
@@ -122,7 +122,7 @@ class _LocalInterviewListScreenState extends State<LocalInterviewListScreen> {
               candidateName: scorecard.candidateName,
               rank: null,
               score: scorecard.scorecard.weightedScore,
-              recommendation: 'Scorecard tersedia',
+              recommendation: 'Penilaian tersedia',
               guideCount: guideCountByCandidate[scorecard.candidateId] ?? 0,
               scorecardCount:
                   scorecardCountByCandidate[scorecard.candidateId] ?? 0,
@@ -247,9 +247,9 @@ class _LocalInterviewListScreenState extends State<LocalInterviewListScreen> {
             )
           else if (_items.isEmpty)
             const _EmptyState(
-              title: 'Belum ada kandidat interview-ready',
+              title: 'Belum ada kandidat siap interview',
               description:
-                  'Generate interview kit atau scorecard dari hasil shortlist agar operasional interview muncul di sini.',
+                  'Buat panduan interview atau penilaian dari hasil kandidat unggulan agar operasional interview muncul di sini.',
             )
           else ...[
             Text(
@@ -260,7 +260,7 @@ class _LocalInterviewListScreenState extends State<LocalInterviewListScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Setiap kartu menunjukkan kandidat top, kelengkapan guide, dan status scorecard.',
+              'Setiap kartu menunjukkan kandidat unggulan, kelengkapan panduan, dan status penilaian.',
               style: Theme.of(
                 context,
               ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700),
@@ -382,8 +382,8 @@ class _InterviewJobCard extends StatelessWidget {
               runSpacing: 8,
               children: [
                 _InfoChip(label: 'Kandidat ${item.candidateCount}'),
-                _InfoChip(label: 'Guide ${item.guideCount}'),
-                _InfoChip(label: 'Scorecard ${item.scorecardCount}'),
+                _InfoChip(label: 'Panduan ${item.guideCount}'),
+                _InfoChip(label: 'Penilaian ${item.scorecardCount}'),
                 _InfoChip(label: 'Siap ${item.readyCount}'),
               ],
             ),
@@ -457,8 +457,8 @@ class _InterviewCandidateRow extends StatelessWidget {
             children: [
               _StatusChip(
                 label: candidate.guideCount > 0
-                    ? 'Guide siap'
-                    : 'Guide belum ada',
+                    ? 'Panduan siap'
+                    : 'Panduan belum ada',
                 color: candidate.guideCount > 0
                     ? const Color(0xFF166534)
                     : const Color(0xFFB45309),
@@ -468,8 +468,8 @@ class _InterviewCandidateRow extends StatelessWidget {
               ),
               _StatusChip(
                 label: candidate.scorecardCount > 0
-                    ? 'Scorecard siap'
-                    : 'Scorecard belum ada',
+                    ? 'Penilaian siap'
+                    : 'Penilaian belum ada',
                 color: candidate.scorecardCount > 0
                     ? const Color(0xFF166534)
                     : const Color(0xFFB45309),

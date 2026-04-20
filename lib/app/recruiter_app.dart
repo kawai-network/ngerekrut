@@ -228,7 +228,7 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
             title:
                 '${totalReviewCandidates - readyForInterview} kandidat perlu review',
             description:
-                'Ada kandidat yang sudah terscreening tapi belum diputuskan langkah berikutnya.',
+                'Ada kandidat yang sudah dinilai tetapi belum diputuskan langkah berikutnya.',
             icon: Icons.fact_check_outlined,
             tone: _DashboardPriorityTone.warning,
           ),
@@ -250,7 +250,7 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
           _DashboardPriority(
             title: '$draftJobs lowongan masih draft',
             description:
-                'Selesaikan lowongan draft agar bisa segera dipublikasikan.',
+                'Lengkapi lowongan yang belum selesai agar bisa segera dipublikasikan.',
             icon: Icons.edit_note,
             tone: _DashboardPriorityTone.neutral,
           ),
@@ -350,11 +350,11 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
               PopupMenuItem(
                 value: _HomeAction.candidateScreening,
                 enabled: hasRecruiterData,
-                child: const Text('Screening Kandidat API'),
+                child: const Text('Tarik Kandidat dari API'),
               ),
               const PopupMenuItem(
                 value: _HomeAction.hiringAssistant,
-                child: Text('Asisten Recruiter'),
+                child: Text('Template Hiring'),
               ),
               if (kDebugMode)
                 const PopupMenuItem(
@@ -671,7 +671,7 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Mock recruiter data berhasil diisi ke ObjectBox.'),
+        content: Text('Data contoh recruiter berhasil ditambahkan.'),
       ),
     );
   }
@@ -940,7 +940,7 @@ class _RecruiterDashboardScreen extends StatelessWidget {
                 _MetricCard(
                   label: 'Dokumen interview',
                   value: '${dashboard.interviewArtifacts}',
-                  helper: 'guide dan scorecard tersimpan',
+                  helper: 'panduan dan penilaian tersimpan',
                   icon: Icons.inventory_2_outlined,
                   color: const Color(0xFF4338CA),
                 ),
@@ -988,7 +988,7 @@ class _RecruiterDashboardScreen extends StatelessWidget {
               _EmptySection(
                 title: 'Belum ada kandidat prioritas',
                 description:
-                    'Jalankan screening kandidat untuk menampilkan shortlist terbaik di sini.',
+                    'Jalankan penilaian kandidat untuk menampilkan kandidat unggulan di sini.',
               )
             else
               ...dashboard.candidateActions.map(
@@ -1015,7 +1015,7 @@ class _RecruiterDashboardScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Gunakan asisten untuk bikin lowongan, merangkum hasil screening, atau menyiapkan interview kit.',
+                    'Gunakan template cepat untuk bikin lowongan, merangkum hasil kandidat, atau menyiapkan panduan interview.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       height: 1.45,
                       color: colorScheme.onSurfaceVariant,
@@ -1029,7 +1029,7 @@ class _RecruiterDashboardScreen extends StatelessWidget {
                       FilledButton.tonalIcon(
                         onPressed: onOpenAssistant,
                         icon: const Icon(Icons.auto_awesome),
-                        label: const Text('Buka Asisten'),
+                        label: const Text('Buka Template'),
                       ),
                       OutlinedButton.icon(
                         onPressed: onOpenInterview,
