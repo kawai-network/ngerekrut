@@ -16,6 +16,7 @@ class SavedJob {
   final DateTime savedAt;
   final String? notes;
   final bool isActive;
+  final String? jobStatus;
 
   const SavedJob({
     required this.id,
@@ -27,6 +28,7 @@ class SavedJob {
     required this.savedAt,
     this.notes,
     this.isActive = true,
+    this.jobStatus,
   });
 
   factory SavedJob.fromRecord(SavedJobRecord record) {
@@ -40,6 +42,7 @@ class SavedJob {
       savedAt: DateTime.fromMillisecondsSinceEpoch(record.savedAt),
       notes: record.notes,
       isActive: record.isActive,
+      jobStatus: null,
     );
   }
 
@@ -105,9 +108,18 @@ class SavedJobRepository {
 
   /// Get all saved jobs
   Future<List<SavedJob>> getAll({bool onlyActive = true}) async {
-    final rows = await _db.getSavedJobs(
-      userId: _userId,
-      onlyActive: onlyActive,
+    final rows = await _db.rawQuery(
+      '''
+      SELECT
+        s.*,
+        p.status AS job_status
+      FROM saved_jobs s
+      LEFT JOIN job_postings p ON p.job_id = s.job_id
+      WHERE s.user_id = ?
+      ${onlyActive ? 'AND s.is_active = 1' : ''}
+      ORDER BY s.saved_at DESC
+      ''',
+      positional: [_userId],
     );
     return rows.map(_fromMap).toList();
   }
@@ -115,7 +127,14 @@ class SavedJobRepository {
   /// Get saved job by job ID
   Future<SavedJob?> getByJobId(String jobId) async {
     final rows = await _db.rawQuery(
-      'SELECT * FROM saved_jobs WHERE user_id = ? AND job_id = ? AND is_active = 1',
+      '''
+      SELECT
+        s.*,
+        p.status AS job_status
+      FROM saved_jobs s
+      LEFT JOIN job_postings p ON p.job_id = s.job_id
+      WHERE s.user_id = ? AND s.job_id = ? AND s.is_active = 1
+      ''',
       positional: [_userId, jobId],
     );
     if (rows.isEmpty) return null;
@@ -192,6 +211,7 @@ class SavedJobRepository {
       savedAt: DateTime.fromMillisecondsSinceEpoch(map['saved_at'] as int),
       notes: map['notes'] as String?,
       isActive: (map['is_active'] as int?) == 1,
+      jobStatus: map['job_status'] as String?,
     );
   }
 }

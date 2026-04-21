@@ -11,6 +11,7 @@ import '../../repositories/candidate_repository.dart';
 import '../../repositories/job_application_repository.dart';
 import '../../repositories/job_posting_repository.dart';
 import '../../repositories/saved_job_repository.dart';
+import 'interview_prep_screen.dart';
 
 // Re-export SavedJob class for use in this screen
 export '../../repositories/saved_job_repository.dart' show SavedJob;
@@ -559,6 +560,22 @@ class _JobDetailScreenState extends State<_JobDetailScreen> {
             ),
           ],
           const SizedBox(height: 32),
+          OutlinedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => InterviewPrepScreen(job: widget.job),
+                ),
+              );
+            },
+            icon: const Icon(Icons.school),
+            label: const Text('Persiapan Wawancara'),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+          ),
+          const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(

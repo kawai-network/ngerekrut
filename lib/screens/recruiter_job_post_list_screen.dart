@@ -109,6 +109,19 @@ class _RecruiterJobPostListScreenState
   ) async {
     final currentStatus = item.job.status.toLowerCase();
     if (currentStatus == nextStatus.toLowerCase()) return;
+    if (nextStatus == 'closed') {
+      final applications = await _jobApplicationRepository.getByJobId(
+        item.job.id,
+      );
+      final activeApplications = applications
+          .where((application) => application.status.isActive)
+          .length;
+      final shouldContinue = await _confirmCloseJob(
+        jobTitle: item.job.title,
+        activeApplications: activeApplications,
+      );
+      if (shouldContinue != true) return;
+    }
 
     setState(() => _updatingJobId = item.job.id);
     try {
@@ -160,6 +173,34 @@ class _RecruiterJobPostListScreenState
       default:
         return status;
     }
+  }
+
+  Future<bool?> _confirmCloseJob({
+    required String jobTitle,
+    required int activeApplications,
+  }) async {
+    if (activeApplications == 0) return true;
+    return showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Tutup lowongan?'),
+          content: Text(
+            '$jobTitle masih punya $activeApplications kandidat aktif. Tutup lowongan hanya jika Anda yakin pipeline ini harus dihentikan.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Batal'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Tutup Lowongan'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -732,6 +773,16 @@ class _LocalJobPostDetailScreenState extends State<_LocalJobPostDetailScreen> {
   Future<void> _changeJobStatus(String nextStatus) async {
     final currentStatus = _job.status.toLowerCase();
     if (currentStatus == nextStatus.toLowerCase()) return;
+    if (nextStatus == 'closed') {
+      final activeApplications = _applications
+          .where((application) => application.status.isActive)
+          .length;
+      final shouldContinue = await _confirmCloseJob(
+        jobTitle: _job.title,
+        activeApplications: activeApplications,
+      );
+      if (shouldContinue != true) return;
+    }
 
     setState(() => _isUpdatingJobStatus = true);
     try {
@@ -788,6 +839,34 @@ class _LocalJobPostDetailScreenState extends State<_LocalJobPostDetailScreen> {
       default:
         return status;
     }
+  }
+
+  Future<bool?> _confirmCloseJob({
+    required String jobTitle,
+    required int activeApplications,
+  }) async {
+    if (activeApplications == 0) return true;
+    return showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Tutup lowongan?'),
+          content: Text(
+            '$jobTitle masih punya $activeApplications kandidat aktif. Tutup lowongan hanya jika Anda yakin pipeline ini harus dihentikan.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Batal'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Tutup Lowongan'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _updateApplicationStatus(

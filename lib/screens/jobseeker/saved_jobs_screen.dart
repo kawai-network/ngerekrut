@@ -100,6 +100,7 @@ class _SavedJobsScreenState extends State<SavedJobsScreen> {
               savedAt: _savedJobs[index].savedAt,
               notes: notes,
               isActive: _savedJobs[index].isActive,
+              jobStatus: _savedJobs[index].jobStatus,
             );
           }
         });
@@ -223,6 +224,27 @@ class _SavedJobCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (_isClosed(job.jobStatus)) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEE2E2),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: const Text(
+                      'Closed',
+                      style: TextStyle(
+                        color: Color(0xFFB91C1C),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 IconButton(
                   icon: const Icon(Icons.bookmark, color: Color(0xFF6366F1)),
                   onPressed: onToggleSave,
@@ -284,6 +306,12 @@ class _SavedJobCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  bool _isClosed(String? status) {
+    if (status == null) return false;
+    final normalized = status.toLowerCase();
+    return normalized == 'closed' || normalized == 'ditutup';
   }
 }
 

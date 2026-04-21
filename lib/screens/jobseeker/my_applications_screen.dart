@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../models/application_status.dart';
 import '../../models/job_application.dart';
 import '../../repositories/job_application_repository.dart';
+import '../../repositories/job_posting_repository.dart';
 
 class MyApplicationsScreen extends StatefulWidget {
   const MyApplicationsScreen({super.key});
@@ -17,9 +18,11 @@ class MyApplicationsScreen extends StatefulWidget {
 
 class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
   final JobApplicationRepository _repo = JobApplicationRepository();
+  final JobPostingRepository _jobPostingRepository = JobPostingRepository();
 
   bool _isLoading = true;
   List<JobApplication> _applications = [];
+  Map<String, String> _jobStatusesById = {};
   String _statusFilter = 'all';
 
   @override
@@ -32,9 +35,17 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
     setState(() => _isLoading = true);
     try {
       final apps = await _repo.getByCandidateId(_repo.candidateId);
+      final jobIds = apps.map((app) => app.jobId).toSet().toList();
+      final jobs = await Future.wait(
+        jobIds.map((jobId) => _jobPostingRepository.getById(jobId)),
+      );
       if (mounted) {
         setState(() {
           _applications = apps;
+          _jobStatusesById = {
+            for (final job in jobs.whereType<dynamic>())
+              job.id as String: job.status as String,
+          };
           _isLoading = false;
         });
       }
@@ -94,6 +105,9 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                             itemBuilder: (context, index) {
                               return _ApplicationCard(
                                 application: _filteredApplications[index],
+                                jobStatus:
+                                    _jobStatusesById[_filteredApplications[index]
+                                        .jobId],
                                 onTap: () => _showApplicationDetail(
                                   _filteredApplications[index],
                                 ),
@@ -111,15 +125,23 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => _ApplicationDetailSheet(application: application),
+      builder: (context) => _ApplicationDetailSheet(
+        application: application,
+        jobStatus: _jobStatusesById[application.jobId],
+      ),
     );
   }
 }
 
 class _ApplicationCard extends StatelessWidget {
-  const _ApplicationCard({required this.application, required this.onTap});
+  const _ApplicationCard({
+    required this.application,
+    required this.jobStatus,
+    required this.onTap,
+  });
 
   final JobApplication application;
+  final String? jobStatus;
   final VoidCallback onTap;
 
   @override
@@ -183,6 +205,38 @@ class _ApplicationCard extends StatelessWidget {
                     ),
                 ],
               ),
+              if (_isClosed(jobStatus)) ...[
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEE2E2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFFCA5A5)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.work_off_outlined,
+                        color: Color(0xFFB91C1C),
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Lowongan ini sudah ditutup oleh recruiter.',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: const Color(0xFFB91C1C),
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               if (application.interviewDates?.isNotEmpty == true) ...[
                 const SizedBox(height: 8),
                 Wrap(
@@ -248,6 +302,12 @@ class _ApplicationCard extends StatelessWidget {
     if (difference.inDays == 1) return 'kemarin';
     if (difference.inDays < 7) return '${difference.inDays} hari lalu';
     return DateFormat('d MMM yyyy').format(date);
+  }
+
+  bool _isClosed(String? status) {
+    if (status == null) return false;
+    final normalized = status.toLowerCase();
+    return normalized == 'closed' || normalized == 'ditutup';
   }
 }
 
@@ -360,9 +420,13 @@ class _StatusConfig {
 }
 
 class _ApplicationDetailSheet extends StatelessWidget {
-  const _ApplicationDetailSheet({required this.application});
+  const _ApplicationDetailSheet({
+    required this.application,
+    required this.jobStatus,
+  });
 
   final JobApplication application;
+  final String? jobStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -407,6 +471,35 @@ class _ApplicationDetailSheet extends StatelessWidget {
                     ],
                     const SizedBox(height: 16),
                     _StatusChip(status: application.status),
+                    if (_isClosed(jobStatus)) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEE2E2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.work_off_outlined,
+                              color: Color(0xFFB91C1C),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Lowongan ini sudah ditutup oleh recruiter. Anda masih bisa melihat riwayat lamaran di sini.',
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color: const Color(0xFFB91C1C),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     _DetailRow(
                       label: 'Tanggal melamar',
@@ -526,6 +619,12 @@ class _ApplicationDetailSheet extends StatelessWidget {
         );
       },
     );
+  }
+
+  bool _isClosed(String? status) {
+    if (status == null) return false;
+    final normalized = status.toLowerCase();
+    return normalized == 'closed' || normalized == 'ditutup';
   }
 }
 

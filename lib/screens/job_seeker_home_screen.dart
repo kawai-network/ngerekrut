@@ -4,6 +4,7 @@ import 'jobseeker/job_browse_screen.dart';
 import 'jobseeker/my_applications_screen.dart';
 import 'jobseeker/saved_jobs_screen.dart';
 import 'jobseeker/cv_upload_screen.dart';
+import 'jobseeker/interview_prep_screen.dart';
 
 /// Home screen for Job Seeker app
 class JobSeekerHomeScreen extends StatefulWidget {
@@ -118,9 +119,11 @@ class _JobSeekerHomeScreenState extends State<JobSeekerHomeScreen> {
               const SizedBox(height: 12),
               OutlinedButton.icon(
                 onPressed: () {
-                  // TODO: Navigate to interview prep
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Interview Prep coming soon!')),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const InterviewPrepScreen(),
+                    ),
                   );
                 },
                 icon: const Icon(Icons.school),
