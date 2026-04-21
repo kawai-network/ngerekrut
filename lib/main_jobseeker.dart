@@ -98,6 +98,7 @@ class MyApp extends StatelessWidget {
         title: 'Masuk ke NgeRekrut Jobseeker',
         description:
             'Gunakan akun Firebase Auth untuk menyimpan lamaran, lowongan tersimpan, dan profil kandidat Anda.',
+        requestCalendarAccess: true,
         child: JobSeekerHomeScreen(),
       ),
     );

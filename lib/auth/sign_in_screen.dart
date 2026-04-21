@@ -6,10 +6,16 @@ import 'package:flutter/material.dart';
 import '../services/shared_identity_service.dart';
 
 class SignInScreen extends StatefulWidget {
-  const SignInScreen({super.key, required this.title, this.description});
+  const SignInScreen({
+    super.key,
+    required this.title,
+    this.description,
+    this.requestCalendarAccess = false,
+  });
 
   final String title;
   final String? description;
+  final bool requestCalendarAccess;
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
@@ -28,7 +34,9 @@ class _SignInScreenState extends State<SignInScreen> {
     });
 
     try {
-      await SharedIdentityService.signInWithGoogle();
+      await SharedIdentityService.signInWithGoogleCalendarAccess(
+        requestCalendarAccess: widget.requestCalendarAccess,
+      );
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -67,7 +75,9 @@ class _SignInScreenState extends State<SignInScreen> {
                 const SizedBox(height: 12),
                 Text(
                   widget.description ??
-                      'Masuk dengan akun Google untuk melanjutkan, termasuk izin kalender untuk sinkron interview.',
+                      (widget.requestCalendarAccess
+                          ? 'Masuk dengan akun Google untuk melanjutkan, termasuk izin kalender untuk sinkron interview.'
+                          : 'Masuk dengan akun Google untuk melanjutkan.'),
                   style: Theme.of(
                     context,
                   ).textTheme.bodyMedium?.copyWith(height: 1.5),

@@ -12,11 +12,13 @@ class AuthGate extends StatelessWidget {
     required this.child,
     required this.title,
     this.description,
+    this.requestCalendarAccess = false,
   });
 
   final Widget child;
   final String title;
   final String? description;
+  final bool requestCalendarAccess;
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +36,11 @@ class AuthGate extends StatelessWidget {
 
         final user = snapshot.data;
         if (user == null) {
-          return SignInScreen(title: title, description: description);
+          return SignInScreen(
+            title: title,
+            description: description,
+            requestCalendarAccess: requestCalendarAccess,
+          );
         }
 
         return child;

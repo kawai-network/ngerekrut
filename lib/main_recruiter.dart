@@ -85,6 +85,7 @@ void main() async {
         title: 'Masuk ke NgeRekrut Recruiter',
         description:
             'Gunakan akun Firebase Auth untuk mengelola lowongan, lamaran, dan kandidat.',
+        requestCalendarAccess: true,
         child: RecruiterHomeScreen(),
       ),
     ),

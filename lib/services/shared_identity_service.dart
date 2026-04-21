@@ -41,11 +41,19 @@ class SharedIdentityService {
       currentUser?.getIdTokenResult();
 
   static Future<UserCredential> signInWithGoogle() async {
+    return signInWithGoogleCalendarAccess(requestCalendarAccess: true);
+  }
+
+  static Future<UserCredential> signInWithGoogleCalendarAccess({
+    required bool requestCalendarAccess,
+  }) async {
     await _ensureGoogleInitialized();
     final googleUser = await GoogleSignIn.instance.authenticate(
-      scopeHint: _calendarScopes,
+      scopeHint: requestCalendarAccess ? _calendarScopes : const <String>[],
     );
-    await googleUser.authorizationClient.authorizeScopes(_calendarScopes);
+    if (requestCalendarAccess) {
+      await googleUser.authorizationClient.authorizeScopes(_calendarScopes);
+    }
     final googleAuth = googleUser.authentication;
     final idToken = googleAuth.idToken;
     if (idToken == null || idToken.isEmpty) {
