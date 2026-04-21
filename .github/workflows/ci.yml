@@ -12,6 +12,7 @@ jobs:
     env:
       ANDROID_SDK_ROOT: ${{ github.workspace }}/.android-sdk
       ANDROID_HOME: ${{ github.workspace }}/.android-sdk
+      EXPECTED_ANDROID_SHA1: ${{ secrets.EXPECTED_ANDROID_SHA1 }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -105,7 +106,7 @@ jobs:
             -keypass '${{ secrets.KEY_PASSWORD }}' | grep -E 'Alias name:|SHA1:|SHA256:'
 
       - name: Verify expected signing SHA1
-        if: ${{ secrets.EXPECTED_ANDROID_SHA1 != '' }}
+        if: ${{ env.EXPECTED_ANDROID_SHA1 != '' }}
         shell: bash
         run: |
           ACTUAL_SHA1=$(keytool -list -v \
@@ -114,7 +115,7 @@ jobs:
             -storepass '${{ secrets.KEYSTORE_PASSWORD }}' \
             -keypass '${{ secrets.KEY_PASSWORD }}' | sed -n 's/.*SHA1: //p')
           echo "CI signing SHA1: ${ACTUAL_SHA1}"
-          if [ "${ACTUAL_SHA1}" != "${{ secrets.EXPECTED_ANDROID_SHA1 }}" ]; then
+          if [ "${ACTUAL_SHA1}" != "${EXPECTED_ANDROID_SHA1}" ]; then
             echo "Expected SHA1 does not match CI signing certificate"
             exit 1
           fi
