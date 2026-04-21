@@ -15,16 +15,18 @@ class LocalSavedJobRepository {
         .build()
         .findFirst();
 
-    final record = existing ?? SavedJobRecord(
-      jobId: savedJob.jobId,
-      title: savedJob.title,
-      savedAt: savedJob.savedAt.millisecondsSinceEpoch,
-      isActive: savedJob.isActive,
-    );
+    final record =
+        existing ??
+        SavedJobRecord(
+          jobId: savedJob.jobId,
+          title: savedJob.title,
+          savedAt: savedJob.savedAt.millisecondsSinceEpoch,
+          isActive: savedJob.isActive,
+        );
 
     record.jobId = savedJob.jobId;
     record.title = savedJob.title;
-    record.company = savedJob.company;
+    record.unitLabel = savedJob.unitLabel;
     record.location = savedJob.location;
     record.savedAt = savedJob.savedAt.millisecondsSinceEpoch;
     record.notes = savedJob.notes;
@@ -128,7 +130,7 @@ class LocalSavedJobRepository {
     return SavedJob(
       jobId: record.jobId,
       title: record.title,
-      company: record.company,
+      unitLabel: record.unitLabel,
       location: record.location,
       savedAt: DateTime.fromMillisecondsSinceEpoch(record.savedAt),
       notes: record.notes,

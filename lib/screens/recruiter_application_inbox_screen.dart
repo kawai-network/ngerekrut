@@ -7,6 +7,8 @@ import '../models/candidate.dart';
 import '../models/job_application.dart';
 import '../repositories/candidate_repository.dart';
 import '../repositories/job_application_repository.dart';
+import '../repositories/job_posting_repository.dart';
+import 'recruiter_candidate_profile_screen.dart';
 
 class RecruiterApplicationInboxScreen extends StatefulWidget {
   const RecruiterApplicationInboxScreen({super.key});
@@ -21,6 +23,7 @@ class _RecruiterApplicationInboxScreenState
   final JobApplicationRepository _applicationRepository =
       JobApplicationRepository();
   final CandidateRepository _candidateRepository = CandidateRepository();
+  final JobPostingRepository _jobPostingRepository = JobPostingRepository();
 
   bool _isLoading = true;
   String _statusFilter = 'all';
@@ -28,6 +31,7 @@ class _RecruiterApplicationInboxScreenState
   String? _updatingApplicationId;
   List<JobApplication> _applications = const [];
   Map<String, RecruiterCandidate> _candidatesById = const {};
+  Map<String, String> _jobStatusesById = const {};
 
   @override
   void initState() {
@@ -44,9 +48,14 @@ class _RecruiterApplicationInboxScreenState
           .whereType<String>()
           .toSet()
           .toList();
+      final jobIds = applications
+          .map((application) => application.jobId)
+          .toSet()
+          .toList();
       final candidates = await Future.wait(
         candidateIds.map(_candidateRepository.getById),
       );
+      final jobs = await Future.wait(jobIds.map(_jobPostingRepository.getById));
 
       if (!mounted) return;
       setState(() {
@@ -54,6 +63,10 @@ class _RecruiterApplicationInboxScreenState
         _candidatesById = {
           for (final candidate in candidates.whereType<RecruiterCandidate>())
             candidate.id: candidate,
+        };
+        _jobStatusesById = {
+          for (final job in jobs.whereType<dynamic>())
+            job.id as String: job.status as String,
         };
         _isLoading = false;
       });
@@ -290,7 +303,10 @@ class _RecruiterApplicationInboxScreenState
 
   List<JobApplication> get _filteredApplications {
     return _applications.where((application) {
-      if (_statusFilter != 'all' && application.status.name != _statusFilter) {
+      if (_statusFilter == 'cleanup') {
+        if (!_needsCleanup(application)) return false;
+      } else if (_statusFilter != 'all' &&
+          application.status.name != _statusFilter) {
         return false;
       }
 
@@ -300,7 +316,7 @@ class _RecruiterApplicationInboxScreenState
           : null;
       final haystack = [
         application.jobTitle,
-        application.company,
+        application.unitLabel,
         application.candidateId,
         candidate?.name,
         candidate?.headline,
@@ -312,6 +328,9 @@ class _RecruiterApplicationInboxScreenState
 
   int _countForStatus(String status) {
     if (status == 'all') return _applications.length;
+    if (status == 'cleanup') {
+      return _applications.where(_needsCleanup).length;
+    }
     return _applications.where((app) => app.status.name == status).length;
   }
 
@@ -320,6 +339,69 @@ class _RecruiterApplicationInboxScreenState
         ? _candidatesById[application.candidateId!]
         : null;
     return candidate?.name ?? application.candidateId ?? application.id;
+  }
+
+  bool _needsCleanup(JobApplication application) {
+    if (!application.status.isActive) return false;
+    final jobStatus = _jobStatusesById[application.jobId];
+    if (jobStatus == null) return false;
+    final normalized = jobStatus.toLowerCase();
+    return normalized == 'closed' || normalized == 'ditutup';
+  }
+
+  Future<void> _archiveCleanupApplications() async {
+    final targets = _filteredApplications.where(_needsCleanup).toList();
+    if (targets.isEmpty) return;
+
+    final shouldContinue = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Arsipkan semua cleanup?'),
+          content: Text(
+            '${targets.length} lamaran aktif pada lowongan yang sudah ditutup akan dipindahkan ke status Archived.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Batal'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Arsipkan Semua'),
+            ),
+          ],
+        );
+      },
+    );
+    if (shouldContinue != true) return;
+
+    setState(() => _updatingApplicationId = 'bulk_cleanup');
+    try {
+      for (final application in targets) {
+        await _applicationRepository.archiveFromCleanup(
+          application.id,
+          note:
+              '[Cleanup] Auto-archived because ${application.jobTitle} is already closed.',
+        );
+      }
+      await _loadApplications();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${targets.length} lamaran berhasil diarsipkan.'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal mengarsipkan cleanup items: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _updatingApplicationId = null);
+      }
+    }
   }
 
   @override
@@ -332,6 +414,7 @@ class _RecruiterApplicationInboxScreenState
           (application) => application.status == ApplicationStatus.interview,
         )
         .length;
+    final cleanupCount = _applications.where(_needsCleanup).length;
 
     return RefreshIndicator(
       onRefresh: _loadApplications,
@@ -387,6 +470,10 @@ class _RecruiterApplicationInboxScreenState
                         label: 'Tahap interview',
                         value: '$interviewApplications',
                       ),
+                      _InboxMetric(
+                        label: 'Perlu cleanup',
+                        value: '$cleanupCount',
+                      ),
                     ],
                   ),
               ],
@@ -425,8 +512,29 @@ class _RecruiterApplicationInboxScreenState
               ),
               _buildFilterChip(ApplicationStatus.offered.name, 'Offered'),
               _buildFilterChip(ApplicationStatus.rejected.name, 'Rejected'),
+              _buildFilterChip('cleanup', 'Perlu Cleanup'),
             ],
           ),
+          if (_statusFilter == 'cleanup' &&
+              _filteredApplications.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FilledButton.tonalIcon(
+                onPressed: _updatingApplicationId == 'bulk_cleanup'
+                    ? null
+                    : _archiveCleanupApplications,
+                icon: _updatingApplicationId == 'bulk_cleanup'
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.archive_outlined),
+                label: const Text('Arsipkan Semua Cleanup'),
+              ),
+            ),
+          ],
           const SizedBox(height: 20),
           if (_isLoading)
             const Padding(
@@ -455,6 +563,7 @@ class _RecruiterApplicationInboxScreenState
                 child: _InboxApplicationCard(
                   application: application,
                   candidate: candidate,
+                  jobStatus: _jobStatusesById[application.jobId],
                   isUpdating: _updatingApplicationId == application.id,
                   onStatusSelected: (status) =>
                       _updateApplicationStatus(application, status),
@@ -479,6 +588,7 @@ class _RecruiterApplicationInboxScreenState
         return _InboxApplicationDetailSheet(
           application: application,
           candidate: candidate,
+          jobStatus: _jobStatusesById[application.jobId],
           onOpenCandidate: () => _openCandidateProfile(candidate),
         );
       },
@@ -497,7 +607,7 @@ class _RecruiterApplicationInboxScreenState
       context,
       MaterialPageRoute(
         builder: (context) =>
-            _RecruiterCandidateProfileScreen(candidate: candidate),
+            RecruiterCandidateProfileScreen(candidate: candidate),
       ),
     );
   }
@@ -564,6 +674,7 @@ class _InboxApplicationCard extends StatelessWidget {
   const _InboxApplicationCard({
     required this.application,
     required this.candidate,
+    required this.jobStatus,
     required this.isUpdating,
     required this.onStatusSelected,
     required this.onEditNotes,
@@ -575,6 +686,7 @@ class _InboxApplicationCard extends StatelessWidget {
 
   final JobApplication application;
   final RecruiterCandidate? candidate;
+  final String? jobStatus;
   final bool isUpdating;
   final ValueChanged<ApplicationStatus> onStatusSelected;
   final VoidCallback onEditNotes;
@@ -590,7 +702,7 @@ class _InboxApplicationCard extends StatelessWidget {
         candidate?.name ?? application.candidateId ?? 'Kandidat tanpa ID';
     final subtitle = [
       if ((candidate?.headline ?? '').isNotEmpty) candidate!.headline!,
-      if ((application.company ?? '').isNotEmpty) application.company!,
+      if ((application.unitLabel ?? '').isNotEmpty) application.unitLabel!,
     ].join(' • ');
 
     return Card(
@@ -691,6 +803,39 @@ class _InboxApplicationCard extends StatelessWidget {
                     ),
                 ],
               ),
+              if (_showClosedWarning(jobStatus, application.status)) ...[
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF7ED),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFFCD34D)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.warning_amber_rounded,
+                        size: 18,
+                        color: Color(0xFFB45309),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Lowongan ini sudah ditutup, tetapi kandidat masih berada di tahap aktif.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: const Color(0xFF92400E),
+                            fontWeight: FontWeight.w600,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               if ((application.recruiterNotes ?? '').isNotEmpty) ...[
                 const SizedBox(height: 10),
                 Text(
@@ -736,6 +881,12 @@ class _InboxApplicationCard extends StatelessWidget {
       ),
     );
   }
+
+  bool _showClosedWarning(String? status, ApplicationStatus applicationStatus) {
+    if (!applicationStatus.isActive || status == null) return false;
+    final normalized = status.toLowerCase();
+    return normalized == 'closed' || normalized == 'ditutup';
+  }
 }
 
 class _InboxMetaText extends StatelessWidget {
@@ -766,11 +917,13 @@ class _InboxApplicationDetailSheet extends StatelessWidget {
   const _InboxApplicationDetailSheet({
     required this.application,
     required this.candidate,
+    required this.jobStatus,
     required this.onOpenCandidate,
   });
 
   final JobApplication application;
   final RecruiterCandidate? candidate;
+  final String? jobStatus;
   final VoidCallback onOpenCandidate;
 
   @override
@@ -808,6 +961,38 @@ class _InboxApplicationDetailSheet extends StatelessWidget {
               ],
               const SizedBox(height: 12),
               _InboxStatusPill(status: application.status),
+              if (_showClosedWarning(jobStatus, application.status)) ...[
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF7ED),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFFCD34D)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.warning_amber_rounded,
+                        color: Color(0xFFB45309),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Lowongan ini sudah ditutup, tetapi lamaran ini masih aktif. Pertimbangkan untuk mengarsipkan atau menyelesaikan pipeline kandidat.',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: const Color(0xFF92400E),
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               if ((candidate?.headline ?? '').isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Text(
@@ -899,8 +1084,8 @@ class _InboxApplicationDetailSheet extends StatelessWidget {
                   label: 'Ekspektasi gaji',
                   value: application.expectedSalary!,
                 ),
-              if ((application.company ?? '').isNotEmpty)
-                _DetailRow(label: 'Unit', value: application.company!),
+              if ((application.unitLabel ?? '').isNotEmpty)
+                _DetailRow(label: 'Unit', value: application.unitLabel!),
               if (application.internalRating != null)
                 _DetailRow(
                   label: 'Internal rating',
@@ -916,6 +1101,12 @@ class _InboxApplicationDetailSheet extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  bool _showClosedWarning(String? status, ApplicationStatus applicationStatus) {
+    if (!applicationStatus.isActive || status == null) return false;
+    final normalized = status.toLowerCase();
+    return normalized == 'closed' || normalized == 'ditutup';
   }
 }
 
@@ -1025,222 +1216,6 @@ class _InboxStatusPill extends StatelessWidget {
       child: Text(
         status.displayName,
         style: TextStyle(color: foreground, fontWeight: FontWeight.w700),
-      ),
-    );
-  }
-}
-
-class _RecruiterCandidateProfileScreen extends StatelessWidget {
-  const _RecruiterCandidateProfileScreen({required this.candidate});
-
-  final RecruiterCandidate candidate;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(candidate.name)),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF0F172A), Color(0xFF1D4ED8)],
-              ),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  candidate.name,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                if ((candidate.headline ?? '').isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    candidate.headline!,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.titleMedium?.copyWith(color: Colors.white70),
-                  ),
-                ],
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    _CandidateProfileMetric(
-                      label: 'Stage',
-                      value: candidate.stage,
-                    ),
-                    _CandidateProfileMetric(
-                      label: 'Pengalaman',
-                      value: '${candidate.yearsOfExperience ?? 0} tahun',
-                    ),
-                    if (candidate.resume != null)
-                      _CandidateProfileMetric(
-                        label: 'Resume',
-                        value: candidate.resume!.fileName,
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          _CandidateProfileSection(
-            title: 'Ringkasan',
-            child: Text(
-              candidate.profile?.summary.isNotEmpty == true
-                  ? candidate.profile!.summary
-                  : 'Belum ada ringkasan profil kandidat.',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(height: 1.5),
-            ),
-          ),
-          const SizedBox(height: 16),
-          _CandidateProfileSection(
-            title: 'Skill utama',
-            child: candidate.profile?.skills.isNotEmpty == true
-                ? Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: candidate.profile!.skills
-                        .map((skill) => Chip(label: Text(skill)))
-                        .toList(),
-                  )
-                : const Text('Belum ada skill yang tersimpan.'),
-          ),
-          const SizedBox(height: 16),
-          _CandidateProfileSection(
-            title: 'Metadata',
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _CandidateProfileRow(label: 'ID kandidat', value: candidate.id),
-                _CandidateProfileRow(label: 'Stage', value: candidate.stage),
-                _CandidateProfileRow(
-                  label: 'Pengalaman',
-                  value: '${candidate.yearsOfExperience ?? 0} tahun',
-                ),
-                if (candidate.resume != null)
-                  _CandidateProfileRow(
-                    label: 'Resume',
-                    value: candidate.resume!.fileName,
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CandidateProfileMetric extends StatelessWidget {
-  const _CandidateProfileMetric({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CandidateProfileSection extends StatelessWidget {
-  const _CandidateProfileSection({required this.title, required this.child});
-
-  final String title;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 12),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _CandidateProfileRow extends StatelessWidget {
-  const _CandidateProfileRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 110,
-            child: Text(
-              label,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
-            ),
-          ),
-          Expanded(
-            child: Text(value, style: Theme.of(context).textTheme.bodyMedium),
-          ),
-        ],
       ),
     );
   }

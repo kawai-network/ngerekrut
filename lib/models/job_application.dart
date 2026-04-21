@@ -23,8 +23,9 @@ class JobApplication {
   @JsonKey(name: 'job_title')
   final String jobTitle;
 
-  /// Company/organization name
-  final String? company;
+  /// Hiring unit/department label shown to recruiter and jobseeker.
+  @JsonKey(name: 'unit_label')
+  final String? unitLabel;
 
   /// Location of the job
   final String? location;
@@ -76,7 +77,7 @@ class JobApplication {
     required this.jobId,
     this.candidateId,
     required this.jobTitle,
-    this.company,
+    this.unitLabel,
     this.location,
     required this.status,
     required this.appliedAt,
@@ -101,7 +102,7 @@ class JobApplication {
     String? jobId,
     String? candidateId,
     String? jobTitle,
-    String? company,
+    String? unitLabel,
     String? location,
     ApplicationStatus? status,
     DateTime? appliedAt,
@@ -120,7 +121,7 @@ class JobApplication {
       jobId: jobId ?? this.jobId,
       candidateId: candidateId ?? this.candidateId,
       jobTitle: jobTitle ?? this.jobTitle,
-      company: company ?? this.company,
+      unitLabel: unitLabel ?? this.unitLabel,
       location: location ?? this.location,
       status: status ?? this.status,
       appliedAt: appliedAt ?? this.appliedAt,
@@ -141,7 +142,7 @@ class JobApplication {
     required String jobId,
     required String jobTitle,
     String? candidateId,
-    String? company,
+    String? unitLabel,
     String? location,
     String? expectedSalary,
     String? coverLetter,
@@ -153,7 +154,7 @@ class JobApplication {
       jobId: jobId,
       candidateId: candidateId,
       jobTitle: jobTitle,
-      company: company,
+      unitLabel: unitLabel,
       location: location,
       status: ApplicationStatus.applied,
       appliedAt: now,
@@ -174,7 +175,7 @@ class JobApplication {
       jobId: jobId,
       candidateId: candidateId,
       jobTitle: jobTitle,
-      company: company,
+      unitLabel: unitLabel,
       location: location,
       status: newStatus,
       appliedAt: appliedAt,
@@ -199,7 +200,7 @@ class JobApplication {
       jobId: jobId,
       candidateId: candidateId,
       jobTitle: jobTitle,
-      company: company,
+      unitLabel: unitLabel,
       location: location,
       status: status,
       appliedAt: appliedAt,

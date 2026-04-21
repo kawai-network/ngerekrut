@@ -54,14 +54,14 @@ class _SavedJobsScreenState extends State<SavedJobsScreen> {
   Future<void> _toggleSave(
     String jobId,
     String title,
-    String? company,
+    String? unitLabel,
     String? location,
   ) async {
     try {
       final isSaved = await _repo.toggle(
         jobId,
         title: title,
-        company: company,
+        unitLabel: unitLabel,
         location: location,
       );
       if (!isSaved) {
@@ -95,7 +95,7 @@ class _SavedJobsScreenState extends State<SavedJobsScreen> {
               userId: _savedJobs[index].userId,
               jobId: _savedJobs[index].jobId,
               title: _savedJobs[index].title,
-              company: _savedJobs[index].company,
+              unitLabel: _savedJobs[index].unitLabel,
               location: _savedJobs[index].location,
               savedAt: _savedJobs[index].savedAt,
               notes: notes,
@@ -147,7 +147,7 @@ class _SavedJobsScreenState extends State<SavedJobsScreen> {
                     onToggleSave: () => _toggleSave(
                       _savedJobs[index].jobId,
                       _savedJobs[index].title,
-                      _savedJobs[index].company,
+                      _savedJobs[index].unitLabel,
                       _savedJobs[index].location,
                     ),
                     onToggleNotes: () {
@@ -205,10 +205,10 @@ class _SavedJobCard extends StatelessWidget {
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.bold),
                       ),
-                      if (job.company != null) ...[
+                      if (job.unitLabel != null) ...[
                         const SizedBox(height: 4),
                         Text(
-                          job.company!,
+                          job.unitLabel!,
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(color: Colors.grey.shade700),
                         ),

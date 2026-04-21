@@ -5,6 +5,7 @@ import 'jobseeker/my_applications_screen.dart';
 import 'jobseeker/saved_jobs_screen.dart';
 import 'jobseeker/cv_upload_screen.dart';
 import 'jobseeker/interview_prep_screen.dart';
+import 'jobseeker/career_coach_screen.dart';
 
 /// Home screen for Job Seeker app
 class JobSeekerHomeScreen extends StatefulWidget {
@@ -153,9 +154,11 @@ class _JobSeekerHomeScreenState extends State<JobSeekerHomeScreen> {
               const SizedBox(height: 12),
               ElevatedButton.icon(
                 onPressed: () {
-                  // TODO: Navigate to AI career coach
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('AI Career Coach coming soon!')),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CareerCoachScreen(),
+                    ),
                   );
                 },
                 icon: const Icon(Icons.auto_awesome),

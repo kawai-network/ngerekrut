@@ -11,7 +11,7 @@ class SavedJob {
   final String userId;
   final String jobId;
   final String title;
-  final String? company;
+  final String? unitLabel;
   final String? location;
   final DateTime savedAt;
   final String? notes;
@@ -23,7 +23,7 @@ class SavedJob {
     required this.userId,
     required this.jobId,
     required this.title,
-    this.company,
+    this.unitLabel,
     this.location,
     required this.savedAt,
     this.notes,
@@ -37,7 +37,7 @@ class SavedJob {
       userId: SharedIdentityService.jobseekerUserId,
       jobId: record.jobId,
       title: record.title,
-      company: record.company,
+      unitLabel: record.unitLabel,
       location: record.location,
       savedAt: DateTime.fromMillisecondsSinceEpoch(record.savedAt),
       notes: record.notes,
@@ -51,7 +51,7 @@ class SavedJob {
       id: int.tryParse(id) ?? 0,
       jobId: jobId,
       title: title,
-      company: company,
+      unitLabel: unitLabel,
       location: location,
       savedAt: savedAt.millisecondsSinceEpoch,
       notes: notes,
@@ -75,7 +75,7 @@ class SavedJobRepository {
       'user_id': job.userId,
       'job_id': job.jobId,
       'title': job.title,
-      'company': job.company,
+      'unit_label': job.unitLabel,
       'location': job.location,
       'saved_at': job.savedAt.millisecondsSinceEpoch,
       'notes': job.notes,
@@ -87,7 +87,7 @@ class SavedJobRepository {
   Future<void> saveJob({
     required String jobId,
     required String title,
-    String? company,
+    String? unitLabel,
     String? location,
     String? notes,
   }) async {
@@ -98,7 +98,7 @@ class SavedJobRepository {
         userId: _userId,
         jobId: jobId,
         title: title,
-        company: company,
+        unitLabel: unitLabel,
         location: location,
         savedAt: DateTime.now(),
         notes: notes,
@@ -156,7 +156,7 @@ class SavedJobRepository {
   Future<bool> toggle(
     String jobId, {
     required String title,
-    String? company,
+    String? unitLabel,
     String? location,
   }) async {
     final existing = await getByJobId(jobId);
@@ -167,7 +167,7 @@ class SavedJobRepository {
       await saveJob(
         jobId: jobId,
         title: title,
-        company: company,
+        unitLabel: unitLabel,
         location: location,
       );
       return true;
@@ -206,7 +206,7 @@ class SavedJobRepository {
       userId: map['user_id'] as String? ?? _userId,
       jobId: map['job_id'] as String,
       title: map['title'] as String,
-      company: map['company'] as String?,
+      unitLabel: map['unit_label'] as String?,
       location: map['location'] as String?,
       savedAt: DateTime.fromMillisecondsSinceEpoch(map['saved_at'] as int),
       notes: map['notes'] as String?,

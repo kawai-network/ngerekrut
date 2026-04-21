@@ -6,7 +6,7 @@ class SavedJobRecord {
     this.id = 0,
     required this.jobId,
     required this.title,
-    this.company,
+    this.unitLabel,
     this.location,
     required this.savedAt,
     this.notes,
@@ -19,7 +19,7 @@ class SavedJobRecord {
   String jobId;
 
   String title;
-  String? company;
+  String? unitLabel;
   String? location;
   int savedAt;
   String? notes;

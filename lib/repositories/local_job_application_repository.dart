@@ -18,19 +18,21 @@ class LocalJobApplicationRepository {
         .build()
         .findFirst();
 
-    final record = existing ?? JobApplicationRecord(
-      applicationId: application.id,
-      jobId: application.jobId,
-      jobTitle: application.jobTitle,
-      status: application.status.name,
-      appliedAt: application.appliedAt.millisecondsSinceEpoch,
-      updatedAt: application.updatedAt.millisecondsSinceEpoch,
-    );
+    final record =
+        existing ??
+        JobApplicationRecord(
+          applicationId: application.id,
+          jobId: application.jobId,
+          jobTitle: application.jobTitle,
+          status: application.status.name,
+          appliedAt: application.appliedAt.millisecondsSinceEpoch,
+          updatedAt: application.updatedAt.millisecondsSinceEpoch,
+        );
 
     record.jobId = application.jobId;
     record.candidateId = application.candidateId;
     record.jobTitle = application.jobTitle;
-    record.company = application.company;
+    record.unitLabel = application.unitLabel;
     record.location = application.location;
     record.status = application.status.name;
     record.appliedAt = application.appliedAt.millisecondsSinceEpoch;
@@ -39,7 +41,11 @@ class LocalJobApplicationRepository {
     record.coverLetter = application.coverLetter;
     record.resumeId = application.resumeId;
     record.interviewDatesJson = application.interviewDates != null
-        ? jsonEncode(application.interviewDates!.map((d) => d.millisecondsSinceEpoch).toList())
+        ? jsonEncode(
+            application.interviewDates!
+                .map((d) => d.millisecondsSinceEpoch)
+                .toList(),
+          )
         : null;
     record.rejectionReason = application.rejectionReason;
     record.recruiterNotes = application.recruiterNotes;
@@ -173,7 +179,9 @@ class LocalJobApplicationRepository {
       if (record.interviewDatesJson == null) return null;
       try {
         final List<dynamic> decoded = jsonDecode(record.interviewDatesJson!);
-        return decoded.map((ms) => DateTime.fromMillisecondsSinceEpoch(ms as int)).toList();
+        return decoded
+            .map((ms) => DateTime.fromMillisecondsSinceEpoch(ms as int))
+            .toList();
       } catch (_) {
         return null;
       }
@@ -191,7 +199,7 @@ class LocalJobApplicationRepository {
       jobId: record.jobId,
       candidateId: record.candidateId,
       jobTitle: record.jobTitle,
-      company: record.company,
+      unitLabel: record.unitLabel,
       location: record.location,
       status: parseStatus(record.status),
       appliedAt: DateTime.fromMillisecondsSinceEpoch(record.appliedAt),

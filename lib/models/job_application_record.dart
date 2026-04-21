@@ -8,7 +8,7 @@ class JobApplicationRecord {
     required this.jobId,
     this.candidateId,
     required this.jobTitle,
-    this.company,
+    this.unitLabel,
     this.location,
     required this.status,
     required this.appliedAt,
@@ -31,7 +31,7 @@ class JobApplicationRecord {
   String jobId;
   String? candidateId;
   String jobTitle;
-  String? company;
+  String? unitLabel;
   String? location;
 
   /// Stored as string (ApplicationStatus enum value)
@@ -43,7 +43,7 @@ class JobApplicationRecord {
   String? coverLetter;
   String? resumeId;
 
-  /// JSON encoded List<DateTime> as milliseconds
+  /// JSON encoded `List<DateTime>` stored as epoch milliseconds.
   String? interviewDatesJson;
 
   String? rejectionReason;

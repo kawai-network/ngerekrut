@@ -9,7 +9,7 @@ part of 'saved_job.dart';
 SavedJob _$SavedJobFromJson(Map<String, dynamic> json) => SavedJob(
   jobId: json['jobId'] as String,
   title: json['title'] as String,
-  company: json['company'] as String?,
+  unitLabel: json['unit_label'] as String?,
   location: json['location'] as String?,
   savedAt: DateTime.parse(json['saved_at'] as String),
   notes: json['notes'] as String?,
@@ -19,7 +19,7 @@ SavedJob _$SavedJobFromJson(Map<String, dynamic> json) => SavedJob(
 Map<String, dynamic> _$SavedJobToJson(SavedJob instance) => <String, dynamic>{
   'jobId': instance.jobId,
   'title': instance.title,
-  'company': ?instance.company,
+  'unit_label': ?instance.unitLabel,
   'location': ?instance.location,
   'saved_at': instance.savedAt.toIso8601String(),
   'notes': ?instance.notes,

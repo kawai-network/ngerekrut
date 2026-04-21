@@ -99,7 +99,7 @@ final repo = JobApplicationRepository();
 await repo.create(JobApplication.create(
   jobId: 'job_123',
   jobTitle: 'Senior Flutter Dev',
-  company: 'Tech Co',
+  unitLabel: 'Engineering',
   coverLetter: 'I am interested...',
 ));
 
@@ -124,7 +124,7 @@ final repo = SavedJobRepository();
 await repo.saveJob(
   jobId: 'job_123',
   title: 'Senior Flutter Dev',
-  company: 'Tech Co',
+  unitLabel: 'Engineering',
   location: 'Remote',
 );
 
@@ -134,7 +134,7 @@ final saved = await repo.getAll();
 // Toggle save status
 final isSaved = await repo.toggle('job_123',
   title: 'Senior Flutter Dev',
-  company: 'Tech Co',
+  unitLabel: 'Engineering',
 );
 ```
 

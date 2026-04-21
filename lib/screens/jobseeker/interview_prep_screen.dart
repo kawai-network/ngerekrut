@@ -79,9 +79,9 @@ class _InterviewPrepScreenState extends State<InterviewPrepScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading jobs: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error loading jobs: $e')));
       }
     }
   }
@@ -119,9 +119,9 @@ class _InterviewPrepScreenState extends State<InterviewPrepScreen> {
   Future<void> _generateForCustomTitle() async {
     final title = _customTitleController.text.trim();
     if (title.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Masukkan judul posisi')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Masukkan judul posisi')));
       return;
     }
 
@@ -208,8 +208,7 @@ class _InterviewPrepScreenState extends State<InterviewPrepScreen> {
       onPrevious: _previousQuestion,
       onRegenerate: () {
         if (_selectedJobId != null) {
-          final job = _availableJobs.cast<RecruiterJob?>(
-            ).firstWhere(
+          final job = _availableJobs.cast<RecruiterJob?>().firstWhere(
             (j) => j?.id == _selectedJobId,
             orElse: () => null,
           );
@@ -267,7 +266,11 @@ class _JobSelectionView extends StatelessWidget {
   List<RecruiterJob> get _uniqueJobs {
     final ids = <String>{};
     final unique = <RecruiterJob>[];
-    for (final job in [..._savedJobsFromSaved(), ..._savedJobsFromApplications(), ...availableJobs]) {
+    for (final job in [
+      ..._savedJobsFromSaved(),
+      ..._savedJobsFromApplications(),
+      ...availableJobs,
+    ]) {
       if (ids.add(job.id)) {
         unique.add(job);
       }
@@ -276,25 +279,33 @@ class _JobSelectionView extends StatelessWidget {
   }
 
   List<RecruiterJob> _savedJobsFromSaved() {
-    return savedJobs.map((s) => RecruiterJob(
-      id: s.jobId,
-      title: s.title,
-      department: s.company,
-      location: s.location,
-      requirements: [],
-      status: 'active',
-    )).toList();
+    return savedJobs
+        .map(
+          (s) => RecruiterJob(
+            id: s.jobId,
+            title: s.title,
+            department: s.unitLabel,
+            location: s.location,
+            requirements: [],
+            status: 'active',
+          ),
+        )
+        .toList();
   }
 
   List<RecruiterJob> _savedJobsFromApplications() {
-    return appliedJobs.map((a) => RecruiterJob(
-      id: a.jobId,
-      title: a.jobTitle,
-      department: a.company,
-      location: a.location,
-      requirements: [],
-      status: 'applied',
-    )).toList();
+    return appliedJobs
+        .map(
+          (a) => RecruiterJob(
+            id: a.jobId,
+            title: a.jobTitle,
+            department: a.unitLabel,
+            location: a.location,
+            requirements: [],
+            status: 'applied',
+          ),
+        )
+        .toList();
   }
 
   @override
@@ -341,16 +352,16 @@ class _JobSelectionView extends StatelessWidget {
         // Job selection
         Text(
           'Pilih Lowongan',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         if (_uniqueJobs.isEmpty)
           _EmptyJobsHint()
         else
           DropdownButtonFormField<String>(
-            value: selectedJobId,
+            initialValue: selectedJobId,
             decoration: const InputDecoration(
               labelText: 'Pilih lowongan',
               prefixIcon: Icon(Icons.work_outline),
@@ -409,12 +420,16 @@ class _JobSelectionView extends StatelessWidget {
         SizedBox(
           width: double.infinity,
           child: FilledButton.icon(
-            onPressed: (isGenerating ||
-                    (selectedJobId == null && customTitleController.text.trim().isEmpty))
+            onPressed:
+                (isGenerating ||
+                    (selectedJobId == null &&
+                        customTitleController.text.trim().isEmpty))
                 ? null
                 : () {
                     if (selectedJobId != null) {
-                      final job = _uniqueJobs.firstWhere((j) => j.id == selectedJobId);
+                      final job = _uniqueJobs.firstWhere(
+                        (j) => j.id == selectedJobId,
+                      );
                       onJobSelected(job);
                     } else {
                       onCustomSubmit();
@@ -451,7 +466,11 @@ class _JobSelectionView extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                  Icon(
+                    Icons.info_outline,
+                    color: Colors.blue.shade700,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     'Tentang STAR',
@@ -469,7 +488,11 @@ class _JobSelectionView extends StatelessWidget {
                 '• **T**ask - Tugas/tanggung jawab\n'
                 '• **A**ction - Tindakan yang Anda lakukan\n'
                 '• **R**esult - Hasil yang dicapai',
-                style: TextStyle(color: Colors.blue.shade900, fontSize: 13, height: 1.5),
+                style: TextStyle(
+                  color: Colors.blue.shade900,
+                  fontSize: 13,
+                  height: 1.5,
+                ),
               ),
             ],
           ),
@@ -549,9 +572,7 @@ class _QuestionsView extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.grey.shade100,
-            border: Border(
-              bottom: BorderSide(color: Colors.grey.shade300),
-            ),
+            border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
           ),
           child: Row(
             children: [
@@ -562,12 +583,15 @@ class _QuestionsView extends StatelessWidget {
                     Text(
                       result.jobTitle,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     Text(
                       '$_currentNumber dari $_totalQuestions pertanyaan',
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -608,8 +632,8 @@ class _QuestionsView extends StatelessWidget {
               Text(
                 question.question,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 24),
 
@@ -626,7 +650,10 @@ class _QuestionsView extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.check_circle_outline, color: Colors.green.shade700),
+                        Icon(
+                          Icons.check_circle_outline,
+                          color: Colors.green.shade700,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           'Yang dinilai interviewer:',
@@ -638,21 +665,26 @@ class _QuestionsView extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    ...question.lookFor.map((item) => Padding(
-                          padding: const EdgeInsets.only(bottom: 6),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('• ', style: TextStyle(color: Colors.green)),
-                              Expanded(
-                                child: Text(
-                                  item,
-                                  style: TextStyle(color: Colors.green.shade900),
-                                ),
+                    ...question.lookFor.map(
+                      (item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '• ',
+                              style: TextStyle(color: Colors.green),
+                            ),
+                            Expanded(
+                              child: Text(
+                                item,
+                                style: TextStyle(color: Colors.green.shade900),
                               ),
-                            ],
-                          ),
-                        )),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -668,7 +700,11 @@ class _QuestionsView extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.lightbulb_outline, color: Colors.amber.shade700, size: 20),
+                    Icon(
+                      Icons.lightbulb_outline,
+                      color: Colors.amber.shade700,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -691,9 +727,7 @@ class _QuestionsView extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
-            border: Border(
-              top: BorderSide(color: Colors.grey.shade300),
-            ),
+            border: Border(top: BorderSide(color: Colors.grey.shade300)),
           ),
           child: SafeArea(
             top: false,
@@ -709,7 +743,9 @@ class _QuestionsView extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: FilledButton.icon(
-                    onPressed: currentIndex < _totalQuestions - 1 ? onNext : null,
+                    onPressed: currentIndex < _totalQuestions - 1
+                        ? onNext
+                        : null,
                     label: const Text('Selanjutnya'),
                     icon: const Icon(Icons.arrow_forward),
                   ),

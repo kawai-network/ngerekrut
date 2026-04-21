@@ -166,10 +166,10 @@ class _ApplicationCard extends StatelessWidget {
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(fontWeight: FontWeight.bold),
                         ),
-                        if (application.company != null) ...[
+                        if (application.unitLabel != null) ...[
                           const SizedBox(height: 4),
                           Text(
-                            application.company!,
+                            application.unitLabel!,
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(color: Colors.grey.shade700),
                           ),
@@ -461,10 +461,10 @@ class _ApplicationDetailSheet extends StatelessWidget {
                       style: Theme.of(context).textTheme.headlineSmall
                           ?.copyWith(fontWeight: FontWeight.bold),
                     ),
-                    if (application.company != null) ...[
+                    if (application.unitLabel != null) ...[
                       const SizedBox(height: 4),
                       Text(
-                        application.company!,
+                        application.unitLabel!,
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(color: Colors.grey.shade700),
                       ),

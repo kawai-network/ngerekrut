@@ -13,8 +13,9 @@ class SavedJob {
   /// Title of the job (cached for offline display)
   final String title;
 
-  /// Company/organization name
-  final String? company;
+  /// Legacy storage field mapped to department/unit in active UI flows.
+  @JsonKey(name: 'unit_label')
+  final String? unitLabel;
 
   /// Location (cached)
   final String? location;
@@ -32,7 +33,7 @@ class SavedJob {
   const SavedJob({
     required this.jobId,
     required this.title,
-    this.company,
+    this.unitLabel,
     this.location,
     required this.savedAt,
     this.notes,
@@ -47,7 +48,7 @@ class SavedJob {
   SavedJob copyWith({
     String? jobId,
     String? title,
-    String? company,
+    String? unitLabel,
     String? location,
     DateTime? savedAt,
     String? notes,
@@ -56,7 +57,7 @@ class SavedJob {
     return SavedJob(
       jobId: jobId ?? this.jobId,
       title: title ?? this.title,
-      company: company ?? this.company,
+      unitLabel: unitLabel ?? this.unitLabel,
       location: location ?? this.location,
       savedAt: savedAt ?? this.savedAt,
       notes: notes ?? this.notes,
@@ -68,14 +69,14 @@ class SavedJob {
   factory SavedJob.fromJobPosting({
     required String jobId,
     required String title,
-    String? company,
+    String? unitLabel,
     String? location,
     String? notes,
   }) {
     return SavedJob(
       jobId: jobId,
       title: title,
-      company: company,
+      unitLabel: unitLabel,
       location: location,
       savedAt: DateTime.now(),
       notes: notes,

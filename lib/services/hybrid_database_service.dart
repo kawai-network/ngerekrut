@@ -165,7 +165,7 @@ class HybridDatabaseService {
         job_id TEXT NOT NULL,
         candidate_id TEXT NOT NULL,
         job_title TEXT NOT NULL,
-        company TEXT,
+        unit_label TEXT,
         location TEXT,
         status TEXT NOT NULL,
         applied_at INTEGER NOT NULL,
@@ -188,7 +188,7 @@ class HybridDatabaseService {
         user_id TEXT NOT NULL,
         job_id TEXT NOT NULL,
         title TEXT NOT NULL,
-        company TEXT,
+        unit_label TEXT,
         location TEXT,
         saved_at INTEGER NOT NULL,
         notes TEXT,
@@ -275,6 +275,16 @@ class HybridDatabaseService {
       column: 'recruiter_user_id',
       definition: "TEXT NOT NULL DEFAULT ''",
     );
+    await _ensureColumnExists(
+      table: 'job_applications',
+      column: 'unit_label',
+      definition: 'TEXT',
+    );
+    await _ensureColumnExists(
+      table: 'saved_jobs',
+      column: 'unit_label',
+      definition: 'TEXT',
+    );
 
     // Normalize legacy ad-hoc serialized data to JSON for safer parsing.
     final legacyJobPostings = await rawQuery(
@@ -335,7 +345,7 @@ class HybridDatabaseService {
     await client.query(
       '''
       INSERT INTO job_applications (
-        id, job_id, candidate_id, job_title, company, location, status,
+        id, job_id, candidate_id, job_title, unit_label, location, status,
         applied_at, updated_at, expected_salary, cover_letter, resume_id,
         interview_dates, rejection_reason, recruiter_notes, internal_rating, source
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -345,7 +355,7 @@ class HybridDatabaseService {
         data['job_id'],
         data['candidate_id'],
         data['job_title'],
-        data['company'],
+        data['unit_label'],
         data['location'],
         data['status'],
         data['applied_at'],
@@ -407,7 +417,9 @@ class HybridDatabaseService {
     final client = _ensureConnected();
     await client.query(
       '''
-      INSERT OR REPLACE INTO saved_jobs (id, user_id, job_id, title, company, location, saved_at, notes, is_active)
+      INSERT OR REPLACE INTO saved_jobs (
+        id, user_id, job_id, title, unit_label, location, saved_at, notes, is_active
+      )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''',
       positional: [
@@ -415,7 +427,7 @@ class HybridDatabaseService {
         data['user_id'],
         data['job_id'],
         data['title'],
-        data['company'],
+        data['unit_label'],
         data['location'],
         data['saved_at'],
         data['notes'],

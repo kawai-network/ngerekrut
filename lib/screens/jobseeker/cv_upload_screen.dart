@@ -6,6 +6,7 @@ import '../../models/candidate.dart';
 import '../../repositories/candidate_repository.dart';
 import '../../services/cv_extraction_service.dart';
 import '../../services/shared_identity_service.dart';
+import 'job_browse_screen.dart';
 
 class CVUploadScreen extends StatefulWidget {
   const CVUploadScreen({super.key});
@@ -22,6 +23,7 @@ class _CVUploadScreenState extends State<CVUploadScreen> {
   bool _isSaving = false;
   CVExtractionResult? _extractionResult;
   CVParsedData? _editedData;
+  bool _showSuccessScreen = false;
 
   final _nameController = TextEditingController();
   final _summaryController = TextEditingController();
@@ -155,13 +157,7 @@ class _CVUploadScreenState extends State<CVUploadScreen> {
       await _candidateRepo.save(candidate);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Data CV berhasil disimpan!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context, true);
+        _showSuccessDialog();
       }
     } catch (e) {
       if (mounted) {
@@ -181,6 +177,19 @@ class _CVUploadScreenState extends State<CVUploadScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_showSuccessScreen) {
+      return _SuccessScreen(
+        onBrowseJobs: () {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const JobBrowseScreen()),
+          );
+        },
+        onClose: () {
+          Navigator.of(context).pop();
+        },
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Upload CV'),
@@ -320,6 +329,86 @@ class _CVUploadScreenState extends State<CVUploadScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  void _showSuccessDialog() {
+    setState(() => _showSuccessScreen = true);
+  }
+}
+
+/// Success screen shown after CV is saved
+class _SuccessScreen extends StatelessWidget {
+  const _SuccessScreen({
+    required this.onBrowseJobs,
+    required this.onClose,
+  });
+
+  final VoidCallback onBrowseJobs;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle,
+                  size: 80,
+                  color: Color(0xFF10B981),
+                ),
+              ),
+              const SizedBox(height: 32),
+              Text(
+                'CV Berhasil Disimpan!',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 24,
+                    ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'AI akan merekomendasikan lowongan yang cocok dengan skill dan pengalaman kamu.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey.shade700,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 48),
+              ElevatedButton.icon(
+                onPressed: onBrowseJobs,
+                icon: const Icon(Icons.search),
+                label: const Text('Cari Lowongan Cocok'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 18,
+                  ),
+                  textStyle: const TextStyle(fontSize: 16),
+                  backgroundColor: const Color(0xFF10B981),
+                  foregroundColor: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextButton.icon(
+                onPressed: onClose,
+                icon: const Icon(Icons.arrow_back),
+                label: const Text('Kembali ke Home'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

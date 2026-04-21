@@ -27,7 +27,7 @@ class JobPostingTool {
             },
             'description': {
               'type': 'string',
-              'description': 'Detailed job description explaining the role and company',
+              'description': 'Detailed job description explaining the role and hiring team',
             },
             'requirements': {
               'type': 'array',

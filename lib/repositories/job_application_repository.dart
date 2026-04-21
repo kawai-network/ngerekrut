@@ -134,6 +134,34 @@ class JobApplicationRepository {
     );
   }
 
+  /// Archive application from recruiter cleanup flow and append a short audit note.
+  Future<void> archiveFromCleanup(String id, {String? note}) async {
+    final app = await getById(id);
+    if (app == null) return;
+
+    final now = DateTime.now();
+    final timestamp =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} '
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    final auditLine =
+        note ??
+        '[Cleanup] Auto-archived on $timestamp because the job is closed.';
+    final existingNotes = (app.recruiterNotes ?? '').trim();
+    final mergedNotes = existingNotes.isEmpty
+        ? auditLine
+        : '$existingNotes\n$auditLine';
+
+    final epochNow = now.millisecondsSinceEpoch;
+    await _db.rawQuery(
+      '''
+      UPDATE job_applications
+      SET status = ?, recruiter_notes = ?, updated_at = ?
+      WHERE id = ?
+      ''',
+      positional: [ApplicationStatus.archived.name, mergedNotes, epochNow, id],
+    );
+  }
+
   /// Get applications by status
   Future<List<JobApplication>> getByStatus(ApplicationStatus status) async {
     final rows = await _db.rawQuery(
@@ -196,7 +224,7 @@ class JobApplicationRepository {
       'job_id': app.jobId,
       'candidate_id': app.candidateId ?? _candidateId,
       'job_title': app.jobTitle,
-      'company': app.company,
+      'unit_label': app.unitLabel,
       'location': app.location,
       'status': app.status.name,
       'applied_at': app.appliedAt.millisecondsSinceEpoch,
@@ -218,7 +246,7 @@ class JobApplicationRepository {
       jobId: map['job_id'] as String,
       candidateId: map['candidate_id'] as String?,
       jobTitle: map['job_title'] as String,
-      company: map['company'] as String?,
+      unitLabel: map['unit_label'] as String?,
       location: map['location'] as String?,
       status: _parseStatus(map['status'] as String?),
       appliedAt: DateTime.fromMillisecondsSinceEpoch(map['applied_at'] as int),
