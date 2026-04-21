@@ -461,6 +461,7 @@ class _RecruiterApplicationInboxScreenState
                   onEditNotes: () => _saveRecruiterNotes(application),
                   onSetRating: () => _setInternalRating(application),
                   onAddInterviewDate: () => _addInterviewSchedule(application),
+                  onOpenCandidate: () => _openCandidateProfile(candidate),
                   onTap: () => _showDetails(application, candidate),
                 ),
               );
@@ -478,8 +479,26 @@ class _RecruiterApplicationInboxScreenState
         return _InboxApplicationDetailSheet(
           application: application,
           candidate: candidate,
+          onOpenCandidate: () => _openCandidateProfile(candidate),
         );
       },
+    );
+  }
+
+  void _openCandidateProfile(RecruiterCandidate? candidate) {
+    if (candidate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profil kandidat belum tersedia.')),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            _RecruiterCandidateProfileScreen(candidate: candidate),
+      ),
     );
   }
 
@@ -550,6 +569,7 @@ class _InboxApplicationCard extends StatelessWidget {
     required this.onEditNotes,
     required this.onSetRating,
     required this.onAddInterviewDate,
+    required this.onOpenCandidate,
     required this.onTap,
   });
 
@@ -560,6 +580,7 @@ class _InboxApplicationCard extends StatelessWidget {
   final VoidCallback onEditNotes;
   final VoidCallback onSetRating;
   final VoidCallback onAddInterviewDate;
+  final VoidCallback onOpenCandidate;
   final VoidCallback onTap;
 
   @override
@@ -702,6 +723,11 @@ class _InboxApplicationCard extends StatelessWidget {
                     icon: const Icon(Icons.event_available),
                     label: const Text('Jadwal'),
                   ),
+                  OutlinedButton.icon(
+                    onPressed: onOpenCandidate,
+                    icon: const Icon(Icons.person_outline),
+                    label: const Text('Profil'),
+                  ),
                 ],
               ),
             ],
@@ -740,10 +766,12 @@ class _InboxApplicationDetailSheet extends StatelessWidget {
   const _InboxApplicationDetailSheet({
     required this.application,
     required this.candidate,
+    required this.onOpenCandidate,
   });
 
   final JobApplication application;
   final RecruiterCandidate? candidate;
+  final VoidCallback onOpenCandidate;
 
   @override
   Widget build(BuildContext context) {
@@ -770,6 +798,14 @@ class _InboxApplicationDetailSheet extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
+              if (candidate != null) ...[
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: onOpenCandidate,
+                  icon: const Icon(Icons.person_outline),
+                  label: const Text('Buka Profil Kandidat'),
+                ),
+              ],
               const SizedBox(height: 12),
               _InboxStatusPill(status: application.status),
               if ((candidate?.headline ?? '').isNotEmpty) ...[
@@ -989,6 +1025,222 @@ class _InboxStatusPill extends StatelessWidget {
       child: Text(
         status.displayName,
         style: TextStyle(color: foreground, fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+}
+
+class _RecruiterCandidateProfileScreen extends StatelessWidget {
+  const _RecruiterCandidateProfileScreen({required this.candidate});
+
+  final RecruiterCandidate candidate;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(candidate.name)),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF0F172A), Color(0xFF1D4ED8)],
+              ),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  candidate.name,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                if ((candidate.headline ?? '').isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    candidate.headline!,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleMedium?.copyWith(color: Colors.white70),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _CandidateProfileMetric(
+                      label: 'Stage',
+                      value: candidate.stage,
+                    ),
+                    _CandidateProfileMetric(
+                      label: 'Pengalaman',
+                      value: '${candidate.yearsOfExperience ?? 0} tahun',
+                    ),
+                    if (candidate.resume != null)
+                      _CandidateProfileMetric(
+                        label: 'Resume',
+                        value: candidate.resume!.fileName,
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          _CandidateProfileSection(
+            title: 'Ringkasan',
+            child: Text(
+              candidate.profile?.summary.isNotEmpty == true
+                  ? candidate.profile!.summary
+                  : 'Belum ada ringkasan profil kandidat.',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(height: 1.5),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _CandidateProfileSection(
+            title: 'Skill utama',
+            child: candidate.profile?.skills.isNotEmpty == true
+                ? Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: candidate.profile!.skills
+                        .map((skill) => Chip(label: Text(skill)))
+                        .toList(),
+                  )
+                : const Text('Belum ada skill yang tersimpan.'),
+          ),
+          const SizedBox(height: 16),
+          _CandidateProfileSection(
+            title: 'Metadata',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _CandidateProfileRow(label: 'ID kandidat', value: candidate.id),
+                _CandidateProfileRow(label: 'Stage', value: candidate.stage),
+                _CandidateProfileRow(
+                  label: 'Pengalaman',
+                  value: '${candidate.yearsOfExperience ?? 0} tahun',
+                ),
+                if (candidate.resume != null)
+                  _CandidateProfileRow(
+                    label: 'Resume',
+                    value: candidate.resume!.fileName,
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CandidateProfileMetric extends StatelessWidget {
+  const _CandidateProfileMetric({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CandidateProfileSection extends StatelessWidget {
+  const _CandidateProfileSection({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _CandidateProfileRow extends StatelessWidget {
+  const _CandidateProfileRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
+            ),
+          ),
+          Expanded(
+            child: Text(value, style: Theme.of(context).textTheme.bodyMedium),
+          ),
+        ],
       ),
     );
   }

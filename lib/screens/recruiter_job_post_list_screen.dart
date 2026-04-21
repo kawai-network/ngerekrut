@@ -38,6 +38,7 @@ class _RecruiterJobPostListScreenState
   final JobApplicationRepository _jobApplicationRepository =
       JobApplicationRepository();
   bool _isLoading = true;
+  String? _updatingJobId;
   List<_LocalJobPostSummary> _items = const [];
   String _statusFilter = 'all';
 
@@ -100,6 +101,65 @@ class _RecruiterJobPostListScreenState
           (_statusFilter == 'active' && normalized == 'aktif') ||
           (_statusFilter == 'closed' && normalized == 'ditutup');
     }).toList();
+  }
+
+  Future<void> _changeJobStatus(
+    _LocalJobPostSummary item,
+    String nextStatus,
+  ) async {
+    final currentStatus = item.job.status.toLowerCase();
+    if (currentStatus == nextStatus.toLowerCase()) return;
+
+    setState(() => _updatingJobId = item.job.id);
+    try {
+      switch (nextStatus) {
+        case 'published':
+          await widget.jobPostRepository.publish(item.job.id);
+          break;
+        case 'closed':
+          await widget.jobPostRepository.close(item.job.id);
+          break;
+        case 'draft':
+          await widget.jobPostRepository.updateStatus(item.job.id, 'draft');
+          break;
+        default:
+          await widget.jobPostRepository.updateStatus(item.job.id, nextStatus);
+      }
+      await _load();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Status lowongan ${item.job.title} diperbarui ke ${_jobStatusLabel(nextStatus)}.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal memperbarui status lowongan: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _updatingJobId = null);
+      }
+    }
+  }
+
+  String _jobStatusLabel(String status) {
+    switch (status.toLowerCase()) {
+      case 'published':
+      case 'active':
+      case 'aktif':
+        return 'Published';
+      case 'closed':
+      case 'ditutup':
+        return 'Closed';
+      case 'draft':
+        return 'Draft';
+      default:
+        return status;
+    }
   }
 
   @override
@@ -240,9 +300,12 @@ class _RecruiterJobPostListScreenState
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => _LocalJobPostDetailScreen(item: item),
+              builder: (context) => _LocalJobPostDetailScreen(
+                item: item,
+                jobPostRepository: widget.jobPostRepository,
+              ),
             ),
-          );
+          ).then((_) => _load());
         },
         child: Padding(
           padding: const EdgeInsets.all(18),
@@ -274,7 +337,59 @@ class _RecruiterJobPostListScreenState
                       ],
                     ),
                   ),
-                  _StatusChip(status: job.status),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _StatusChip(status: job.status),
+                      const SizedBox(width: 4),
+                      PopupMenuButton<String>(
+                        enabled: _updatingJobId != job.id,
+                        tooltip: 'Kelola status lowongan',
+                        onSelected: (status) => _changeJobStatus(item, status),
+                        itemBuilder: (context) {
+                          final actions = <PopupMenuEntry<String>>[];
+                          final normalized = job.status.toLowerCase();
+                          if (normalized != 'published' &&
+                              normalized != 'active' &&
+                              normalized != 'aktif') {
+                            actions.add(
+                              const PopupMenuItem<String>(
+                                value: 'published',
+                                child: Text('Publish lowongan'),
+                              ),
+                            );
+                          }
+                          if (normalized != 'draft') {
+                            actions.add(
+                              const PopupMenuItem<String>(
+                                value: 'draft',
+                                child: Text('Pindah ke draft'),
+                              ),
+                            );
+                          }
+                          if (normalized != 'closed' &&
+                              normalized != 'ditutup') {
+                            actions.add(
+                              const PopupMenuItem<String>(
+                                value: 'closed',
+                                child: Text('Tutup lowongan'),
+                              ),
+                            );
+                          }
+                          return actions;
+                        },
+                        icon: _updatingJobId == job.id
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.more_horiz),
+                      ),
+                    ],
+                  ),
                 ],
               ),
               if ((job.description ?? '').isNotEmpty) ...[
@@ -555,9 +670,13 @@ class _EmptyState extends StatelessWidget {
 }
 
 class _LocalJobPostDetailScreen extends StatefulWidget {
-  const _LocalJobPostDetailScreen({required this.item});
+  const _LocalJobPostDetailScreen({
+    required this.item,
+    required this.jobPostRepository,
+  });
 
   final _LocalJobPostSummary item;
+  final JobPostingRepository jobPostRepository;
 
   @override
   State<_LocalJobPostDetailScreen> createState() =>
@@ -568,7 +687,9 @@ class _LocalJobPostDetailScreenState extends State<_LocalJobPostDetailScreen> {
   final CandidateRepository _candidateRepository = CandidateRepository();
   final JobApplicationRepository _jobApplicationRepository =
       JobApplicationRepository();
+  late RecruiterJob _job = widget.item.job;
   bool _isLoadingApplications = true;
+  bool _isUpdatingJobStatus = false;
   String? _updatingApplicationId;
   List<JobApplication> _applications = const [];
   Map<String, RecruiterCandidate> _candidatesById = const {};
@@ -605,6 +726,67 @@ class _LocalJobPostDetailScreenState extends State<_LocalJobPostDetailScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _isLoadingApplications = false);
+    }
+  }
+
+  Future<void> _changeJobStatus(String nextStatus) async {
+    final currentStatus = _job.status.toLowerCase();
+    if (currentStatus == nextStatus.toLowerCase()) return;
+
+    setState(() => _isUpdatingJobStatus = true);
+    try {
+      switch (nextStatus) {
+        case 'published':
+          await widget.jobPostRepository.publish(_job.id);
+          break;
+        case 'closed':
+          await widget.jobPostRepository.close(_job.id);
+          break;
+        case 'draft':
+          await widget.jobPostRepository.updateStatus(_job.id, 'draft');
+          break;
+        default:
+          await widget.jobPostRepository.updateStatus(_job.id, nextStatus);
+      }
+      final updatedJob =
+          await widget.jobPostRepository.getById(_job.id) ??
+          await widget.jobPostRepository.getByJobId(_job.id);
+      if (!mounted) return;
+      setState(() {
+        _job = updatedJob ?? _job;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Status lowongan diperbarui ke ${_jobStatusLabel(nextStatus)}.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal memperbarui status lowongan: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isUpdatingJobStatus = false);
+      }
+    }
+  }
+
+  String _jobStatusLabel(String status) {
+    switch (status.toLowerCase()) {
+      case 'published':
+      case 'active':
+      case 'aktif':
+        return 'Published';
+      case 'closed':
+      case 'ditutup':
+        return 'Closed';
+      case 'draft':
+        return 'Draft';
+      default:
+        return status;
     }
   }
 
@@ -839,10 +1021,59 @@ class _LocalJobPostDetailScreenState extends State<_LocalJobPostDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
-    final job = item.job;
+    final job = _job;
 
     return Scaffold(
-      appBar: AppBar(title: Text(job.title)),
+      appBar: AppBar(
+        title: Text(job.title),
+        actions: [
+          PopupMenuButton<String>(
+            enabled: !_isUpdatingJobStatus,
+            onSelected: _changeJobStatus,
+            itemBuilder: (context) {
+              final actions = <PopupMenuEntry<String>>[];
+              final normalized = job.status.toLowerCase();
+              if (normalized != 'published' &&
+                  normalized != 'active' &&
+                  normalized != 'aktif') {
+                actions.add(
+                  const PopupMenuItem<String>(
+                    value: 'published',
+                    child: Text('Publish lowongan'),
+                  ),
+                );
+              }
+              if (normalized != 'draft') {
+                actions.add(
+                  const PopupMenuItem<String>(
+                    value: 'draft',
+                    child: Text('Pindah ke draft'),
+                  ),
+                );
+              }
+              if (normalized != 'closed' && normalized != 'ditutup') {
+                actions.add(
+                  const PopupMenuItem<String>(
+                    value: 'closed',
+                    child: Text('Tutup lowongan'),
+                  ),
+                );
+              }
+              return actions;
+            },
+            icon: _isUpdatingJobStatus
+                ? const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : const Icon(Icons.more_horiz),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
