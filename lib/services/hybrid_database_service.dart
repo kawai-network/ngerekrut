@@ -146,7 +146,7 @@ class HybridDatabaseService {
 
   /// Disconnect from database
   Future<void> disconnect() async {
-    await _client?.close();
+    // libsql_dart doesn't have a close method, just clear the reference
     _client = null;
     _isConnected = false;
   }
@@ -422,7 +422,7 @@ class HybridDatabaseService {
   }
 
   /// Begin transaction
-  Future<LibsqlTransaction> beginTransaction() async {
+  Future<dynamic> beginTransaction() async {
     final client = _ensureConnected();
     return await client.transaction();
   }

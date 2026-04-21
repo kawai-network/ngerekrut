@@ -10,6 +10,7 @@ import 'flavors/app_flavor_config.dart';
 import 'flavors/flavor_environment.dart';
 import 'flavors/flavor_firebase_options.dart';
 import 'flavors/flavor_manager.dart';
+import 'services/hybrid_database_service.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -50,6 +51,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await loadEnv();
   await bootstrapGemma();
+
+  // Initialize hybrid database (libsql_dart for shared data)
+  await hybridDatabase.autoInit();
 
   FlavorManager.init(
     AppFlavorConfig.recruiter,

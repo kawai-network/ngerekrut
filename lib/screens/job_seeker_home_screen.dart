@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../flavors/flavor_manager.dart';
+import 'jobseeker/job_browse_screen.dart';
+import 'jobseeker/my_applications_screen.dart';
+import 'jobseeker/saved_jobs_screen.dart';
 
 /// Home screen for Job Seeker app
 class JobSeekerHomeScreen extends StatefulWidget {
@@ -65,9 +68,9 @@ class _JobSeekerHomeScreenState extends State<JobSeekerHomeScreen> {
               // Feature buttons
               ElevatedButton.icon(
                 onPressed: () {
-                  // TODO: Navigate to job search screen
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Job Search coming soon!')),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const JobBrowseScreen()),
                   );
                 },
                 icon: const Icon(Icons.search),
@@ -80,9 +83,9 @@ class _JobSeekerHomeScreenState extends State<JobSeekerHomeScreen> {
               const SizedBox(height: 12),
               ElevatedButton.icon(
                 onPressed: () {
-                  // TODO: Navigate to applications screen
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('My Applications coming soon!')),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const MyApplicationsScreen()),
                   );
                 },
                 icon: const Icon(Icons.description),
@@ -97,6 +100,23 @@ class _JobSeekerHomeScreenState extends State<JobSeekerHomeScreen> {
               const SizedBox(height: 12),
               ElevatedButton.icon(
                 onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SavedJobsScreen()),
+                  );
+                },
+                icon: const Icon(Icons.bookmark),
+                label: const Text('Pekerjaan Disimpan'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  textStyle: const TextStyle(fontSize: 16),
+                  backgroundColor: const Color(0xFF6366F1),
+                  foregroundColor: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () {
                   // TODO: Navigate to interview prep
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Interview Prep coming soon!')),
@@ -104,11 +124,9 @@ class _JobSeekerHomeScreenState extends State<JobSeekerHomeScreen> {
                 },
                 icon: const Icon(Icons.school),
                 label: const Text('Persiapan Wawancara'),
-                style: ElevatedButton.styleFrom(
+                style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   textStyle: const TextStyle(fontSize: 16),
-                  backgroundColor: const Color(0xFFFF9800),
-                  foregroundColor: Colors.white,
                 ),
               ),
               const SizedBox(height: 12),
