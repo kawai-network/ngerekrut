@@ -3,6 +3,7 @@ library;
 import 'package:ngerekrut/langchain/langchain.dart';
 
 import '../models/hiring_models.dart';
+import '../models/candidate.dart';
 import '../models/interview_guide_record.dart';
 import '../models/candidate_scorecard_record.dart';
 import '../models/recruiter_shortlist.dart';
@@ -11,6 +12,7 @@ import '../models/chat_session_record.dart';
 import '../models/recruiter_job.dart';
 import '../objectbox_store_provider.dart';
 import '../repositories/chat_session_repository.dart';
+import '../repositories/candidate_repository.dart';
 import '../repositories/interview_guide_artifact_repository.dart';
 import '../repositories/job_posting_repository.dart';
 import '../repositories/scorecard_artifact_repository.dart';
@@ -94,8 +96,80 @@ class MockRecruiterDataSeed {
   }
 
   static Future<void> _seedScreeningData() async {
+    final candidateRepository = CandidateRepository();
     final shortlistRepository = ShortlistArtifactRepository();
     final jobRepository = JobPostingRepository();
+
+    await candidateRepository.save(
+      const RecruiterCandidate(
+        id: 'cand_budi',
+        name: 'Budi Santoso',
+        headline: 'Senior Flutter Engineer',
+        yearsOfExperience: 6,
+        stage: 'interview',
+        profile: CandidateProfile(
+          skills: ['Flutter', 'Dart', 'Testing', 'Architecture'],
+          summary:
+              'Memimpin mobile squad dan terbiasa mengawal delivery aplikasi Flutter skala produk.',
+        ),
+      ),
+    );
+    await candidateRepository.save(
+      const RecruiterCandidate(
+        id: 'cand_sinta',
+        name: 'Sinta Maharani',
+        headline: 'Mobile Engineer',
+        yearsOfExperience: 4,
+        stage: 'screening',
+        profile: CandidateProfile(
+          skills: ['Flutter', 'Firebase', 'Product Collaboration'],
+          summary:
+              'Berpengalaman membangun fitur mobile lintas fungsi dan cepat beradaptasi di domain baru.',
+        ),
+      ),
+    );
+    await candidateRepository.save(
+      const RecruiterCandidate(
+        id: 'cand_andi',
+        name: 'Andi Prakoso',
+        headline: 'Android Engineer',
+        yearsOfExperience: 5,
+        stage: 'review',
+        profile: CandidateProfile(
+          skills: ['Android', 'Kotlin', 'Flutter'],
+          summary:
+              'Kuat di Android native dan mulai aktif menangani delivery Flutter di beberapa proyek terakhir.',
+        ),
+      ),
+    );
+    await candidateRepository.save(
+      const RecruiterCandidate(
+        id: 'cand_fitri',
+        name: 'Fitri Aulia',
+        headline: 'Admin Gudang Senior',
+        yearsOfExperience: 5,
+        stage: 'interview',
+        profile: CandidateProfile(
+          skills: ['WMS', 'Inventory', 'Administrasi'],
+          summary:
+              'Pengalaman operasional gudang kuat dengan rekam jejak administrasi dan kontrol stok yang rapi.',
+        ),
+      ),
+    );
+    await candidateRepository.save(
+      const RecruiterCandidate(
+        id: 'cand_deni',
+        name: 'Deni Ramadhan',
+        headline: 'Warehouse Operations Staff',
+        yearsOfExperience: 3,
+        stage: 'screening',
+        profile: CandidateProfile(
+          skills: ['Operasional Gudang', 'Problem Solving', 'Stock Checking'],
+          summary:
+              'Berpengalaman di operasional gudang dan cukup kuat di troubleshooting proses lapangan.',
+        ),
+      ),
+    );
 
     await jobRepository.create(
       const RecruiterJob(

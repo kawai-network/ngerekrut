@@ -33,6 +33,14 @@ class JobApplicationRepository {
     return rows.map(_fromMap).toList();
   }
 
+  /// Get all applications across jobs (recruiter inbox view)
+  Future<List<JobApplication>> getAll() async {
+    final rows = await _db.rawQuery(
+      'SELECT * FROM job_applications ORDER BY applied_at DESC',
+    );
+    return rows.map(_fromMap).toList();
+  }
+
   /// Get all applications for a candidate (jobseeker view)
   Future<List<JobApplication>> getByCandidateId(String candidateId) async {
     final rows = await _db.getJobApplicationsByCandidate(candidateId);

@@ -3,9 +3,11 @@ library;
 import 'package:flutter/material.dart';
 
 import '../models/application_status.dart';
+import '../models/candidate.dart';
 import '../models/job_application.dart';
 import '../models/recruiter_job.dart';
 import '../models/recruiter_shortlist.dart';
+import '../repositories/candidate_repository.dart';
 import '../repositories/interview_guide_artifact_repository.dart';
 import '../repositories/job_application_repository.dart';
 import '../repositories/job_posting_repository.dart';
@@ -563,11 +565,13 @@ class _LocalJobPostDetailScreen extends StatefulWidget {
 }
 
 class _LocalJobPostDetailScreenState extends State<_LocalJobPostDetailScreen> {
+  final CandidateRepository _candidateRepository = CandidateRepository();
   final JobApplicationRepository _jobApplicationRepository =
       JobApplicationRepository();
   bool _isLoadingApplications = true;
   String? _updatingApplicationId;
   List<JobApplication> _applications = const [];
+  Map<String, RecruiterCandidate> _candidatesById = const {};
 
   @override
   void initState() {
@@ -580,9 +584,22 @@ class _LocalJobPostDetailScreenState extends State<_LocalJobPostDetailScreen> {
       final applications = await _jobApplicationRepository.getByJobId(
         widget.item.job.id,
       );
+      final candidateIds = applications
+          .map((application) => application.candidateId)
+          .whereType<String>()
+          .toSet()
+          .toList();
+      final candidates = await Future.wait(
+        candidateIds.map(_candidateRepository.getById),
+      );
+      final candidatesById = <String, RecruiterCandidate>{
+        for (final candidate in candidates.whereType<RecruiterCandidate>())
+          candidate.id: candidate,
+      };
       if (!mounted) return;
       setState(() {
         _applications = applications;
+        _candidatesById = candidatesById;
         _isLoadingApplications = false;
       });
     } catch (_) {
@@ -901,6 +918,9 @@ class _LocalJobPostDetailScreenState extends State<_LocalJobPostDetailScreen> {
                         padding: const EdgeInsets.only(bottom: 14),
                         child: _ApplicationPreviewCard(
                           application: application,
+                          candidate: application.candidateId != null
+                              ? _candidatesById[application.candidateId!]
+                              : null,
                           isUpdating: _updatingApplicationId == application.id,
                           onStatusSelected: (status) =>
                               _updateApplicationStatus(application, status),
@@ -1065,6 +1085,7 @@ class _ArtifactCard extends StatelessWidget {
 class _ApplicationPreviewCard extends StatelessWidget {
   const _ApplicationPreviewCard({
     required this.application,
+    required this.candidate,
     required this.isUpdating,
     required this.onStatusSelected,
     required this.onEditNotes,
@@ -1073,6 +1094,7 @@ class _ApplicationPreviewCard extends StatelessWidget {
   });
 
   final JobApplication application;
+  final RecruiterCandidate? candidate;
   final bool isUpdating;
   final ValueChanged<ApplicationStatus> onStatusSelected;
   final VoidCallback onEditNotes;
@@ -1082,6 +1104,15 @@ class _ApplicationPreviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final candidateName =
+        candidate?.name ?? application.candidateId ?? 'Kandidat tanpa ID';
+    final candidateMeta = [
+      if ((candidate?.headline ?? '').isNotEmpty) candidate!.headline!,
+      if (candidate?.yearsOfExperience != null)
+        '${candidate!.yearsOfExperience} tahun pengalaman',
+    ].join(' • ');
+    final topSkills = candidate?.profile?.skills.take(3).toList() ?? const [];
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
@@ -1097,7 +1128,7 @@ class _ApplicationPreviewCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  application.candidateId ?? 'Kandidat tanpa ID',
+                  candidateName,
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
@@ -1138,6 +1169,43 @@ class _ApplicationPreviewCard extends StatelessWidget {
               color: Colors.grey.shade600,
             ),
           ),
+          if (candidateMeta.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              candidateMeta,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.grey.shade700,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          if (topSkills.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: topSkills
+                  .map(
+                    (skill) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE2E8F0),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        skill,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
           if ((application.expectedSalary ?? '').isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
@@ -1189,6 +1257,15 @@ class _ApplicationPreviewCard extends StatelessWidget {
               maxLines: 4,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
+            ),
+          ],
+          if (application.candidateId != null && candidate == null) ...[
+            const SizedBox(height: 8),
+            Text(
+              'ID kandidat: ${application.candidateId!}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.grey.shade600,
+              ),
             ),
           ],
           const SizedBox(height: 12),

@@ -20,6 +20,7 @@ import '../screens/assistant_chat_screen.dart';
 import '../models/recruiter_job.dart';
 import '../models/recruiter_shortlist.dart';
 import '../screens/recruiter_interview_list_screen.dart';
+import '../screens/recruiter_application_inbox_screen.dart';
 import '../screens/recruiter_job_post_list_screen.dart';
 import '../screens/recruiter_screening_list_screen.dart';
 import '../screens/job_posting_chat_screen.dart';
@@ -328,6 +329,7 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
         scorecardRepository: _scorecardArtifactRepository,
         interviewGuideRepository: _interviewGuideArtifactRepository,
       ),
+      const RecruiterApplicationInboxScreen(),
     ][_selectedIndex];
 
     return Scaffold(
@@ -403,6 +405,10 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
           NavigationDestination(
             icon: Icon(Icons.record_voice_over_outlined),
             label: 'Interview',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.inbox_outlined),
+            label: 'Lamaran',
           ),
         ],
       ),
@@ -691,6 +697,8 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
         return 'Kandidat';
       case 3:
         return 'Interview';
+      case 4:
+        return 'Lamaran';
       default:
         return 'NgeRekrut';
     }
