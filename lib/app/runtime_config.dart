@@ -23,6 +23,11 @@ String readConfig(String key) {
     'LIBSQL_URL_TOKEN': String.fromEnvironment('LIBSQL_URL_TOKEN'),
     'ONESIGNAL_APP_ID': String.fromEnvironment('ONESIGNAL_APP_ID'),
     'ONESIGNAL_API_KEY': String.fromEnvironment('ONESIGNAL_API_KEY'),
+    'SUPABASE_URL': String.fromEnvironment('SUPABASE_URL'),
+    'SUPABASE_ANON_KEY': String.fromEnvironment('SUPABASE_ANON_KEY'),
+    'SUPABASE_PUBLISHABLE_KEY': String.fromEnvironment(
+      'SUPABASE_PUBLISHABLE_KEY',
+    ),
   };
 
   final envValue = dotenv.isInitialized ? dotenv.maybeGet(key) : null;

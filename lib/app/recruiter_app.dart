@@ -1,5 +1,7 @@
 library;
 
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 
@@ -34,6 +36,7 @@ import '../services/resume_screening_service.dart';
 import '../services/scorecard_generation_service.dart';
 import '../services/shared_identity_service.dart';
 import '../services/onesignal_service.dart';
+import '../services/supabase_log_service.dart';
 import 'runtime_config.dart';
 
 class RecruiterApp extends StatelessWidget {
@@ -135,8 +138,17 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
       );
       if (!mounted) return;
       setState(() {});
-    } catch (e) {
+    } catch (e, st) {
       debugPrint('Failed to initialize hybrid service: $e');
+      unawaited(
+        SupabaseLogService.instance.reportError(
+          eventType: 'hybrid_ai_initialization_failed',
+          error: e,
+          stackTrace: st,
+          screen: 'RecruiterHomeScreen',
+          metadata: {'component': 'HybridAIService'},
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isInitializingAI = false);

@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
 
 import 'api_client.dart';
+import '../supabase_log_service.dart';
 
 class CloudflareKvApiClient implements ApiClient {
   final Dio _dio;
@@ -16,15 +18,14 @@ class CloudflareKvApiClient implements ApiClient {
     Dio? dio,
   }) : _accountId = accountId,
        _namespaceId = namespaceId,
-       _dio = dio ??
+       _dio =
+           dio ??
            Dio(
              BaseOptions(
                baseUrl: 'https://api.cloudflare.com/client/v4',
                connectTimeout: const Duration(seconds: 10),
                receiveTimeout: const Duration(seconds: 20),
-               headers: {
-                 'authorization': 'Bearer $apiToken',
-               },
+               headers: {'authorization': 'Bearer $apiToken'},
              ),
            );
 
@@ -37,19 +38,37 @@ class CloudflareKvApiClient implements ApiClient {
       final response = await _dio.get<Map<String, dynamic>>(path);
       return _unwrapEnvelope(response.data ?? const {});
     } on DioException catch (e) {
+      unawaited(
+        SupabaseLogService.instance.reportError(
+          eventType: 'cloudflare_kv_get_failed',
+          error: ApiException.fromDio(e),
+          stackTrace: e.stackTrace,
+          metadata: _dioErrorMetadata(method: 'GET', path: path, error: e),
+        ),
+      );
       throw ApiException.fromDio(e);
     }
   }
 
   @override
-  Future<Map<String, dynamic>> postJson(
-    String path, {
-    Object? data,
-  }) async {
+  Future<Map<String, dynamic>> postJson(String path, {Object? data}) async {
     try {
       final response = await _dio.post<Map<String, dynamic>>(path, data: data);
       return _unwrapEnvelope(response.data ?? const {});
     } on DioException catch (e) {
+      unawaited(
+        SupabaseLogService.instance.reportError(
+          eventType: 'cloudflare_kv_post_failed',
+          error: ApiException.fromDio(e),
+          stackTrace: e.stackTrace,
+          metadata: _dioErrorMetadata(
+            method: 'POST',
+            path: path,
+            error: e,
+            requestBody: data,
+          ),
+        ),
+      );
       throw ApiException.fromDio(e);
     }
   }
@@ -82,6 +101,19 @@ class CloudflareKvApiClient implements ApiClient {
           )
           .toList();
     } on DioException catch (e) {
+      unawaited(
+        SupabaseLogService.instance.reportError(
+          eventType: 'cloudflare_kv_list_failed',
+          error: ApiException.fromDio(e),
+          stackTrace: e.stackTrace,
+          metadata: _dioErrorMetadata(
+            method: 'GET',
+            path: '$_namespaceBase/keys',
+            error: e,
+            requestBody: {'prefix': prefix, 'limit': limit, 'cursor': cursor},
+          ),
+        ),
+      );
       throw ApiException.fromDio(e);
     }
   }
@@ -103,10 +135,39 @@ class CloudflareKvApiClient implements ApiClient {
       }
       throw const ApiException('Cloudflare KV value is not a JSON object');
     } on DioException catch (e) {
+      unawaited(
+        SupabaseLogService.instance.reportError(
+          eventType: 'cloudflare_kv_value_failed',
+          error: ApiException.fromDio(e),
+          stackTrace: e.stackTrace,
+          metadata: _dioErrorMetadata(
+            method: 'GET',
+            path: '$_namespaceBase/values/${Uri.encodeComponent(key)}',
+            error: e,
+          ),
+        ),
+      );
       throw ApiException.fromDio(e);
     } on FormatException catch (e) {
       throw ApiException('Failed to parse Cloudflare KV JSON: $e');
     }
+  }
+
+  Map<String, dynamic> _dioErrorMetadata({
+    required String method,
+    required String path,
+    required DioException error,
+    Object? requestBody,
+  }) {
+    return {
+      'provider': 'cloudflare_kv',
+      'method': method,
+      'path': path,
+      'status_code': error.response?.statusCode,
+      'dio_type': error.type.name,
+      'request_body': requestBody,
+      'response_data': error.response?.data,
+    };
   }
 
   Map<String, dynamic> _unwrapEnvelope(Map<String, dynamic> data) {

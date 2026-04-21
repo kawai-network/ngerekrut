@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'auth/auth_gate.dart';
+import 'app/error_reporting.dart';
 import 'app/recruiter_app.dart';
 import 'app/gemma_bootstrap.dart';
 import 'app/runtime_config.dart';
@@ -13,6 +14,7 @@ import 'flavors/flavor_manager.dart';
 import 'services/hybrid_database_service.dart';
 import 'services/onesignal_service.dart';
 import 'services/shared_identity_service.dart';
+import 'services/supabase_log_service.dart';
 
 Future<void> _initializeOneSignal() async {
   // Initialize OneSignal
@@ -33,47 +35,64 @@ Future<void> _initializeOneSignal() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await loadEnv();
-  await bootstrapGemma();
+  await SupabaseLogService.instance.initialize();
+  await runWithErrorReporting(
+    appEntrypoint: 'main_recruiter',
+    appFlavor: AppFlavorType.recruiter.name,
+    body: () async {
+      await bootstrapGemma();
 
-  // Initialize hybrid database (libsql_dart for shared data)
-  await hybridDatabase.autoInit();
+      // Initialize hybrid database (libsql_dart for shared data)
+      await hybridDatabase.autoInit();
 
-  FlavorManager.init(
-    AppFlavorConfig.recruiter,
-    environment: FlavorEnvironment.fromConfig(),
-  );
+      FlavorManager.init(
+        AppFlavorConfig.recruiter,
+        environment: FlavorEnvironment.fromConfig(),
+      );
 
-  // Initialize Firebase (Auth only)
-  final isSupportedPlatform =
-      kIsWeb || (Platform.isAndroid || Platform.isIOS || Platform.isMacOS);
-  if (isSupportedPlatform) {
-    try {
-      final options = FlavorFirebaseOptions.currentPlatform;
-      if (options == null) {
-        debugPrint(
-          'Firebase disabled for recruiter flavor. '
-          'Set FIREBASE_RECRUITER_* dart-defines before release builds.',
-        );
-      } else {
-        await Firebase.initializeApp(options: options);
-        // Initialize OneSignal for push notifications
-        await _initializeOneSignal();
+      // Initialize Firebase (Auth only)
+      final isSupportedPlatform =
+          kIsWeb || (Platform.isAndroid || Platform.isIOS || Platform.isMacOS);
+      if (isSupportedPlatform) {
+        try {
+          final options = FlavorFirebaseOptions.currentPlatform;
+          if (options == null) {
+            debugPrint(
+              'Firebase disabled for recruiter flavor. '
+              'Set FIREBASE_RECRUITER_* dart-defines before release builds.',
+            );
+          } else {
+            await Firebase.initializeApp(options: options);
+            // Initialize OneSignal for push notifications
+            await _initializeOneSignal();
+          }
+        } on Exception catch (e, st) {
+          debugPrint('Firebase initialization failed: $e');
+          await SupabaseLogService.instance.reportError(
+            eventType: 'firebase_initialization_failed',
+            error: e,
+            stackTrace: st,
+            fatal: false,
+            metadata: {
+              'app_entrypoint': 'main_recruiter',
+              'app_flavor': AppFlavorType.recruiter.name,
+            },
+          );
+        }
       }
-    } on Exception catch (e) {
-      debugPrint('Firebase initialization failed: $e');
-    }
-  }
 
-  runApp(
-    const RecruiterApp(
-      title: 'NgeRekrut Recruiter',
-      homeOverride: AuthGate(
-        title: 'Masuk ke NgeRekrut Recruiter',
-        description:
-            'Gunakan akun Firebase Auth untuk mengelola lowongan, lamaran, dan kandidat.',
-        requestCalendarAccess: true,
-        child: RecruiterHomeScreen(),
-      ),
-    ),
+      runApp(
+        const RecruiterApp(
+          title: 'NgeRekrut Recruiter',
+          homeOverride: AuthGate(
+            title: 'Masuk ke NgeRekrut Recruiter',
+            description:
+                'Gunakan akun Firebase Auth untuk mengelola lowongan, lamaran, dan kandidat.',
+            requestCalendarAccess: true,
+            child: RecruiterHomeScreen(),
+          ),
+        ),
+      );
+    },
   );
 }

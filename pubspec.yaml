@@ -55,6 +55,7 @@ dependencies:
   provider: ^6.1.5+1
   scrollview_observer: ^1.26.2
   shimmer: ^3.0.0
+  supabase_flutter: ^2.10.3
   uuid: ^4.5.2
   # Local AI inference
   flutter_gemma: ^0.13.1
