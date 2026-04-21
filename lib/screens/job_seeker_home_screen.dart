@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../flavors/flavor_manager.dart';
 import '../services/shared_identity_service.dart';
+import '../services/onesignal_service.dart';
 import 'jobseeker/job_browse_screen.dart';
 import 'jobseeker/my_applications_screen.dart';
 import 'jobseeker/saved_jobs_screen.dart';
@@ -32,7 +33,11 @@ class _JobSeekerHomeScreenState extends State<JobSeekerHomeScreen> {
         ),
         actions: [
           IconButton(
-            onPressed: SharedIdentityService.signOut,
+            onPressed: () async {
+              // Clear OneSignal subscription before signing out
+              await OneSignalService.instance.clearSubscription();
+              await SharedIdentityService.signOut();
+            },
             icon: const Icon(Icons.logout),
             tooltip: 'Keluar',
           ),

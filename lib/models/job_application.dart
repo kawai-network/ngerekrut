@@ -65,6 +65,18 @@ class JobApplication {
   @JsonKey(name: 'candidate_calendar_event_id')
   final String? candidateCalendarEventId;
 
+  /// Shared meeting URL for this interview, usually a Google Meet link.
+  @JsonKey(name: 'meeting_url')
+  final String? meetingUrl;
+
+  /// Interview duration in minutes.
+  @JsonKey(name: 'interview_duration_minutes')
+  final int? interviewDurationMinutes;
+
+  /// Shared interview notes shown to both recruiter and jobseeker.
+  @JsonKey(name: 'interview_notes')
+  final String? interviewNotes;
+
   /// Rejection reason (if rejected)
   @JsonKey(name: 'rejection_reason')
   final String? rejectionReason;
@@ -96,6 +108,9 @@ class JobApplication {
     this.interviewDates,
     this.calendarEventId,
     this.candidateCalendarEventId,
+    this.meetingUrl,
+    this.interviewDurationMinutes,
+    this.interviewNotes,
     this.rejectionReason,
     this.recruiterNotes,
     this.internalRating,
@@ -123,6 +138,9 @@ class JobApplication {
     List<DateTime>? interviewDates,
     String? calendarEventId,
     String? candidateCalendarEventId,
+    String? meetingUrl,
+    int? interviewDurationMinutes,
+    String? interviewNotes,
     String? rejectionReason,
     String? recruiterNotes,
     int? internalRating,
@@ -145,6 +163,10 @@ class JobApplication {
       calendarEventId: calendarEventId ?? this.calendarEventId,
       candidateCalendarEventId:
           candidateCalendarEventId ?? this.candidateCalendarEventId,
+      meetingUrl: meetingUrl ?? this.meetingUrl,
+      interviewDurationMinutes:
+          interviewDurationMinutes ?? this.interviewDurationMinutes,
+      interviewNotes: interviewNotes ?? this.interviewNotes,
       rejectionReason: rejectionReason ?? this.rejectionReason,
       recruiterNotes: recruiterNotes ?? this.recruiterNotes,
       internalRating: internalRating ?? this.internalRating,
@@ -201,6 +223,9 @@ class JobApplication {
       interviewDates: interviewDates,
       calendarEventId: calendarEventId,
       candidateCalendarEventId: candidateCalendarEventId,
+      meetingUrl: meetingUrl,
+      interviewDurationMinutes: interviewDurationMinutes,
+      interviewNotes: interviewNotes,
       rejectionReason: rejectionReason ?? this.rejectionReason,
       recruiterNotes: recruiterNotes,
       internalRating: internalRating,
@@ -228,6 +253,9 @@ class JobApplication {
       interviewDates: dates,
       calendarEventId: calendarEventId,
       candidateCalendarEventId: candidateCalendarEventId,
+      meetingUrl: meetingUrl,
+      interviewDurationMinutes: interviewDurationMinutes,
+      interviewNotes: interviewNotes,
       rejectionReason: rejectionReason,
       recruiterNotes: recruiterNotes,
       internalRating: internalRating,
@@ -253,6 +281,9 @@ class JobApplication {
       interviewDates: interviewDates,
       calendarEventId: eventId,
       candidateCalendarEventId: candidateCalendarEventId,
+      meetingUrl: meetingUrl,
+      interviewDurationMinutes: interviewDurationMinutes,
+      interviewNotes: interviewNotes,
       rejectionReason: rejectionReason,
       recruiterNotes: recruiterNotes,
       internalRating: internalRating,

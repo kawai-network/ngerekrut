@@ -8,6 +8,7 @@ import '../models/application_status.dart';
 import '../models/job_application.dart';
 import '../services/hybrid_database_service.dart';
 import '../services/shared_identity_service.dart';
+import '../services/push_notification_service.dart';
 
 class JobApplicationRepository {
   final HybridDatabaseService _db;
@@ -30,6 +31,29 @@ class JobApplicationRepository {
         ? application.copyWith(candidateId: _candidateId)
         : application;
     await _db.insertJobApplication(_toMap(scopedApplication));
+
+    // Send push notification to recruiter about new application
+    try {
+      // Get job details to include in notification
+      final jobRows = await _db.rawQuery(
+        'SELECT recruiter_user_id, title, unit_label FROM job_postings WHERE job_id = ?',
+        positional: [scopedApplication.jobId],
+      );
+
+      if (jobRows.isNotEmpty) {
+        final job = jobRows.first;
+        await PushNotificationService.instance.notifyNewApplication(
+          jobId: scopedApplication.jobId,
+          jobTitle: scopedApplication.jobTitle,
+          candidateId: scopedApplication.candidateId ?? _candidateId,
+          unitLabel: job['unit_label'] as String?,
+          applicationId: scopedApplication.id,
+        );
+      }
+    } catch (e) {
+      // Log error but don't fail the application creation
+      // print('Error sending notification: $e');
+    }
   }
 
   /// Get all applications for a specific job (recruiter view)
@@ -93,11 +117,28 @@ class JobApplicationRepository {
     ApplicationStatus status, {
     String? rejectionReason,
   }) async {
+    // Get application details before updating
+    final application = await getById(id);
+    if (application == null) return;
+
     await _db.updateJobApplicationStatus(
       id,
       status.name,
       rejectionReason: rejectionReason,
     );
+
+    // Send push notification to candidate about status change
+    try {
+      await PushNotificationService.instance.notifyStatusChange(
+        applicationId: id,
+        status: status.name,
+        jobTitle: application.jobTitle,
+        candidateId: application.candidateId ?? '',
+      );
+    } catch (e) {
+      // Log error but don't fail the status update
+      // print('Error sending notification: $e');
+    }
   }
 
   /// Add an interview date to application
@@ -145,6 +186,34 @@ class JobApplicationRepository {
       WHERE id = ?
       ''',
       positional: [eventId, now, id],
+    );
+  }
+
+  Future<void> updateMeetingUrl(String id, String? meetingUrl) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await _db.rawQuery(
+      '''
+      UPDATE job_applications
+      SET meeting_url = ?, updated_at = ?
+      WHERE id = ?
+      ''',
+      positional: [meetingUrl, now, id],
+    );
+  }
+
+  Future<void> updateInterviewDetails(
+    String id, {
+    int? durationMinutes,
+    String? notes,
+  }) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await _db.rawQuery(
+      '''
+      UPDATE job_applications
+      SET interview_duration_minutes = ?, interview_notes = ?, updated_at = ?
+      WHERE id = ?
+      ''',
+      positional: [durationMinutes, notes, now, id],
     );
   }
 
@@ -275,6 +344,9 @@ class JobApplicationRepository {
       'interview_dates': _encodeDates(app.interviewDates),
       'calendar_event_id': app.calendarEventId,
       'candidate_calendar_event_id': app.candidateCalendarEventId,
+      'meeting_url': app.meetingUrl,
+      'interview_duration_minutes': app.interviewDurationMinutes,
+      'interview_notes': app.interviewNotes,
       'rejection_reason': app.rejectionReason,
       'recruiter_notes': app.recruiterNotes,
       'internal_rating': app.internalRating,
@@ -299,6 +371,9 @@ class JobApplicationRepository {
       interviewDates: _decodeDates(map['interview_dates'] as String?),
       calendarEventId: map['calendar_event_id'] as String?,
       candidateCalendarEventId: map['candidate_calendar_event_id'] as String?,
+      meetingUrl: map['meeting_url'] as String?,
+      interviewDurationMinutes: map['interview_duration_minutes'] as int?,
+      interviewNotes: map['interview_notes'] as String?,
       rejectionReason: map['rejection_reason'] as String?,
       recruiterNotes: map['recruiter_notes'] as String?,
       internalRating: map['internal_rating'] as int?,

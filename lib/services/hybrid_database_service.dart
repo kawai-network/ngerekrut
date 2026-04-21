@@ -176,6 +176,9 @@ class HybridDatabaseService {
         interview_dates TEXT, -- JSON array
         calendar_event_id TEXT,
         candidate_calendar_event_id TEXT,
+        meeting_url TEXT,
+        interview_duration_minutes INTEGER,
+        interview_notes TEXT,
         rejection_reason TEXT,
         recruiter_notes TEXT,
         internal_rating INTEGER,
@@ -232,6 +235,19 @@ class HybridDatabaseService {
       )
     ''');
 
+    // FCM Tokens table (for push notifications)
+    await _client!.execute('''
+      CREATE TABLE IF NOT EXISTS fcm_tokens (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        token TEXT NOT NULL UNIQUE,
+        platform TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        is_active INTEGER NOT NULL DEFAULT 1
+      )
+    ''');
+
     await _runMigrations();
 
     // Create indexes for better query performance
@@ -259,9 +275,28 @@ class HybridDatabaseService {
     await _client!.execute(
       'CREATE INDEX IF NOT EXISTS idx_job_postings_recruiter_user_id ON job_postings(recruiter_user_id)',
     );
+    await _client!.execute(
+      'CREATE INDEX IF NOT EXISTS idx_fcm_tokens_user_id ON fcm_tokens(user_id)',
+    );
+    await _client!.execute(
+      'CREATE UNIQUE INDEX IF NOT EXISTS idx_fcm_tokens_token_unique ON fcm_tokens(token)',
+    );
   }
 
   Future<void> _runMigrations() async {
+    // Ensure fcm_tokens table exists (for existing databases)
+    await _ensureTableExists('''
+      CREATE TABLE IF NOT EXISTS fcm_tokens (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        token TEXT NOT NULL UNIQUE,
+        platform TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        is_active INTEGER NOT NULL DEFAULT 1
+      )
+    ''');
+
     await _ensureColumnExists(
       table: 'saved_jobs',
       column: 'user_id',
@@ -295,6 +330,21 @@ class HybridDatabaseService {
     await _ensureColumnExists(
       table: 'job_applications',
       column: 'candidate_calendar_event_id',
+      definition: 'TEXT',
+    );
+    await _ensureColumnExists(
+      table: 'job_applications',
+      column: 'meeting_url',
+      definition: 'TEXT',
+    );
+    await _ensureColumnExists(
+      table: 'job_applications',
+      column: 'interview_duration_minutes',
+      definition: 'INTEGER',
+    );
+    await _ensureColumnExists(
+      table: 'job_applications',
+      column: 'interview_notes',
       definition: 'TEXT',
     );
 
@@ -361,6 +411,21 @@ class HybridDatabaseService {
     }
   }
 
+  Future<void> _ensureTableExists(String createTableSql) async {
+    // Extract table name from CREATE TABLE statement
+    final match = RegExp(r'CREATE TABLE IF NOT EXISTS (\w+)').firstMatch(createTableSql);
+    if (match == null) return;
+
+    final tableName = match.group(1);
+    if (tableName == null) return;
+
+    // Check if table exists
+    final rows = await rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name=?", positional: [tableName]);
+    if (rows.isEmpty) {
+      await _client!.execute(createTableSql);
+    }
+  }
+
   // ==================== Job Applications ====================
 
   Future<void> insertJobApplication(Map<String, dynamic> data) async {
@@ -371,8 +436,9 @@ class HybridDatabaseService {
         id, job_id, candidate_id, job_title, unit_label, location, status,
         applied_at, updated_at, expected_salary, cover_letter, resume_id,
         interview_dates, calendar_event_id, candidate_calendar_event_id,
+        meeting_url, interview_duration_minutes, interview_notes,
         rejection_reason, recruiter_notes, internal_rating, source
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''',
       positional: [
         data['id'],
@@ -390,6 +456,9 @@ class HybridDatabaseService {
         data['interview_dates'],
         data['calendar_event_id'],
         data['candidate_calendar_event_id'],
+        data['meeting_url'],
+        data['interview_duration_minutes'],
+        data['interview_notes'],
         data['rejection_reason'],
         data['recruiter_notes'],
         data['internal_rating'],
@@ -711,6 +780,75 @@ class HybridDatabaseService {
         .map((item) => int.tryParse(item.trim()))
         .whereType<int>()
         .toList();
+  }
+
+  // ==================== FCM Tokens ====================
+
+  /// Save or update FCM token for a user
+  Future<void> saveFcmToken({
+    required String userId,
+    required String token,
+    required String platform,
+  }) async {
+    final client = _ensureConnected();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final id = 'fcm_${now}_$userId';
+
+    await client.query(
+      '''
+      INSERT OR REPLACE INTO fcm_tokens (
+        id, user_id, token, platform, created_at, updated_at, is_active
+      )
+      VALUES (?, ?, ?, ?, ?, ?, 1)
+      ''',
+      positional: [id, userId, token, platform, now, now],
+    );
+  }
+
+  /// Get all active FCM tokens for a user
+  Future<List<Map<String, dynamic>>> getFcmTokens(String userId) async {
+    final client = _ensureConnected();
+    final result = await client.query(
+      'SELECT * FROM fcm_tokens WHERE user_id = ? AND is_active = 1 ORDER BY updated_at DESC',
+      positional: [userId],
+    );
+    return _parseResult(result);
+  }
+
+  /// Get recruiter's FCM token for a job posting
+  Future<List<String>> getRecruiterFcmTokens(String jobId) async {
+    final client = _ensureConnected();
+    final result = await client.query(
+      '''
+      SELECT DISTINCT f.token
+      FROM fcm_tokens f
+      INNER JOIN job_postings j ON f.user_id = j.recruiter_user_id
+      WHERE j.job_id = ? AND f.is_active = 1
+      ''',
+      positional: [jobId],
+    );
+    final rows = _parseResult(result);
+    return rows.map((row) => row['token'] as String).toList();
+  }
+
+  /// Deactivate FCM token (when user logs out or token refreshes)
+  Future<void> deactivateFcmToken(String token) async {
+    final client = _ensureConnected();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await client.query(
+      'UPDATE fcm_tokens SET is_active = 0, updated_at = ? WHERE token = ?',
+      positional: [now, token],
+    );
+  }
+
+  /// Clean up old inactive tokens (call periodically)
+  Future<void> cleanupOldFcmTokens({int daysOld = 30}) async {
+    final client = _ensureConnected();
+    final cutoff = DateTime.now().subtract(Duration(days: daysOld)).millisecondsSinceEpoch;
+    await client.query(
+      'DELETE FROM fcm_tokens WHERE is_active = 0 AND updated_at < ?',
+      positional: [cutoff],
+    );
   }
 }
 

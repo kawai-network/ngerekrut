@@ -1,6 +1,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/application_status.dart';
 import '../models/candidate.dart';
@@ -277,10 +278,18 @@ class _RecruiterApplicationInboxScreenState
       time.minute,
     );
 
+    final draftDetails = await _askInterviewDetails(application);
+    if (draftDetails == null || !mounted) return;
+
     setState(() => _updatingApplicationId = application.id);
     var syncSucceeded = false;
     try {
       await _applicationRepository.addInterviewDate(application.id, schedule);
+      await _applicationRepository.updateInterviewDetails(
+        application.id,
+        durationMinutes: draftDetails.durationMinutes,
+        notes: draftDetails.notes,
+      );
       if (application.status != ApplicationStatus.interview) {
         await _applicationRepository.updateStatus(
           application.id,
@@ -291,17 +300,29 @@ class _RecruiterApplicationInboxScreenState
       if (shouldSync == true) {
         final refreshedApplication =
             (await _applicationRepository.getById(application.id)) ??
-            application.addInterviewDate(schedule);
+            application
+                .addInterviewDate(schedule)
+                .copyWith(
+                  interviewDurationMinutes: draftDetails.durationMinutes,
+                  interviewNotes: draftDetails.notes,
+                );
         final result = await _calendarService.syncInterviewEvent(
           application: refreshedApplication,
           interviewDate: schedule,
           existingEventId: refreshedApplication.calendarEventId,
+          createMeetConference: true,
         );
         if (result.success) {
           await _applicationRepository.updateCalendarEventId(
             application.id,
             result.eventId,
           );
+          if ((result.eventUrl ?? '').isNotEmpty) {
+            await _applicationRepository.updateMeetingUrl(
+              application.id,
+              result.eventUrl,
+            );
+          }
           syncSucceeded = true;
         } else if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -334,6 +355,73 @@ class _RecruiterApplicationInboxScreenState
         setState(() => _updatingApplicationId = null);
       }
     }
+  }
+
+  Future<_InterviewDetailsDraft?> _askInterviewDetails(
+    JobApplication application,
+  ) async {
+    final durationController = TextEditingController(
+      text: '${application.interviewDurationMinutes ?? 60}',
+    );
+    final notesController = TextEditingController(
+      text: application.interviewNotes ?? '',
+    );
+
+    final result = await showDialog<_InterviewDetailsDraft>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Detail interview'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: durationController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Durasi (menit)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: notesController,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  labelText: 'Catatan interview',
+                  hintText: 'Agenda, persiapan, atau instruksi singkat',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Batal'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final parsedDuration =
+                    int.tryParse(durationController.text.trim()) ?? 60;
+                Navigator.pop(
+                  context,
+                  _InterviewDetailsDraft(
+                    durationMinutes: parsedDuration <= 0 ? 60 : parsedDuration,
+                    notes: notesController.text.trim(),
+                  ),
+                );
+              },
+              child: const Text('Simpan'),
+            ),
+          ],
+        );
+      },
+    );
+
+    durationController.dispose();
+    notesController.dispose();
+    return result;
   }
 
   Future<bool?> _askToSyncInterviewSchedule() {
@@ -380,6 +468,7 @@ class _RecruiterApplicationInboxScreenState
         application: application,
         interviewDate: interviewDate,
         existingEventId: application.calendarEventId,
+        createMeetConference: true,
       );
       if (!result.success) {
         throw result.error ?? 'Google Calendar sync gagal.';
@@ -388,6 +477,12 @@ class _RecruiterApplicationInboxScreenState
         application.id,
         result.eventId,
       );
+      if ((result.eventUrl ?? '').isNotEmpty) {
+        await _applicationRepository.updateMeetingUrl(
+          application.id,
+          result.eventUrl,
+        );
+      }
       await _loadApplications();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -408,6 +503,33 @@ class _RecruiterApplicationInboxScreenState
       if (mounted) {
         setState(() => _updatingApplicationId = null);
       }
+    }
+  }
+
+  Future<void> _openMeetingLink(JobApplication application) async {
+    final meetingUrl = application.meetingUrl;
+    if (meetingUrl == null || meetingUrl.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Belum ada link meeting untuk lamaran ini.'),
+        ),
+      );
+      return;
+    }
+
+    final uri = Uri.tryParse(meetingUrl);
+    if (uri == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Link meeting tidak valid.')),
+      );
+      return;
+    }
+
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal membuka link meeting.')),
+      );
     }
   }
 
@@ -681,6 +803,7 @@ class _RecruiterApplicationInboxScreenState
                   onSetRating: () => _setInternalRating(application),
                   onAddInterviewDate: () => _addInterviewSchedule(application),
                   onSyncCalendar: () => _syncInterviewToCalendar(application),
+                  onOpenMeeting: () => _openMeetingLink(application),
                   onOpenCandidate: () => _openCandidateProfile(candidate),
                   onTap: () => _showDetails(application, candidate),
                 ),
@@ -792,6 +915,7 @@ class _InboxApplicationCard extends StatelessWidget {
     required this.onSetRating,
     required this.onAddInterviewDate,
     required this.onSyncCalendar,
+    required this.onOpenMeeting,
     required this.onOpenCandidate,
     required this.onTap,
   });
@@ -805,6 +929,7 @@ class _InboxApplicationCard extends StatelessWidget {
   final VoidCallback onSetRating;
   final VoidCallback onAddInterviewDate;
   final VoidCallback onSyncCalendar;
+  final VoidCallback onOpenMeeting;
   final VoidCallback onOpenCandidate;
   final VoidCallback onTap;
 
@@ -914,10 +1039,20 @@ class _InboxApplicationCard extends StatelessWidget {
                       label:
                           'Interview ${_formatScheduleDate(application.interviewDates!.last)}',
                     ),
+                  if ((application.interviewDurationMinutes ?? 0) > 0)
+                    _InboxMetaText(
+                      icon: Icons.schedule_outlined,
+                      label: '${application.interviewDurationMinutes} menit',
+                    ),
                   if (application.isSyncedToCalendar)
                     const _InboxMetaText(
                       icon: Icons.cloud_done_outlined,
                       label: 'Google Calendar',
+                    ),
+                  if ((application.meetingUrl ?? '').isNotEmpty)
+                    const _InboxMetaText(
+                      icon: Icons.video_camera_front_outlined,
+                      label: 'Google Meet',
                     ),
                 ],
               ),
@@ -966,6 +1101,18 @@ class _InboxApplicationCard extends StatelessWidget {
                   ),
                 ),
               ],
+              if ((application.interviewNotes ?? '').isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Text(
+                  application.interviewNotes!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF475569),
+                    height: 1.45,
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
@@ -999,6 +1146,12 @@ class _InboxApplicationCard extends StatelessWidget {
                           : 'Calendar',
                     ),
                   ),
+                  if ((application.meetingUrl ?? '').isNotEmpty)
+                    OutlinedButton.icon(
+                      onPressed: onOpenMeeting,
+                      icon: const Icon(Icons.video_camera_front_outlined),
+                      label: const Text('Buka Meet'),
+                    ),
                   OutlinedButton.icon(
                     onPressed: onOpenCandidate,
                     icon: const Icon(Icons.person_outline),
@@ -1018,6 +1171,16 @@ class _InboxApplicationCard extends StatelessWidget {
     final normalized = status.toLowerCase();
     return normalized == 'closed' || normalized == 'ditutup';
   }
+}
+
+class _InterviewDetailsDraft {
+  const _InterviewDetailsDraft({
+    required this.durationMinutes,
+    required this.notes,
+  });
+
+  final int durationMinutes;
+  final String notes;
 }
 
 class _InboxMetaText extends StatelessWidget {

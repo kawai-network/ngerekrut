@@ -85,6 +85,7 @@ class GoogleCalendarService {
     required JobApplication application,
     required DateTime interviewDate,
     String? existingEventId,
+    bool createMeetConference = true,
   }) async {
     http.Client? client;
     try {
@@ -97,11 +98,24 @@ class GoogleCalendarService {
 
       client = _StaticHeadersClient(headers);
       final api = CalendarApi(client);
-      final event = _buildEvent(application, interviewDate);
+      final event = _buildEvent(
+        application,
+        interviewDate,
+        createMeetConference: createMeetConference,
+      );
 
       final result = existingEventId != null && existingEventId.isNotEmpty
-          ? await api.events.update(event, _calendarId, existingEventId)
-          : await api.events.insert(event, _calendarId);
+          ? await api.events.update(
+              event,
+              _calendarId,
+              existingEventId,
+              conferenceDataVersion: createMeetConference ? 1 : null,
+            )
+          : await api.events.insert(
+              event,
+              _calendarId,
+              conferenceDataVersion: createMeetConference ? 1 : null,
+            );
 
       final eventId = result.id;
       if (eventId == null || eventId.isEmpty) {
@@ -110,9 +124,14 @@ class GoogleCalendarService {
         );
       }
 
+      final meetingUrl =
+          result.hangoutLink ??
+          _extractVideoEntryPoint(result.conferenceData) ??
+          result.htmlLink;
+
       return GoogleCalendarSyncResult.success(
         eventId: eventId,
-        eventUrl: result.htmlLink,
+        eventUrl: meetingUrl,
       );
     } on GoogleSignInException catch (e) {
       return GoogleCalendarSyncResult.failure(
@@ -127,9 +146,13 @@ class GoogleCalendarService {
     }
   }
 
-  Event _buildEvent(JobApplication application, DateTime interviewDate) {
+  Event _buildEvent(
+    JobApplication application,
+    DateTime interviewDate, {
+    required bool createMeetConference,
+  }) {
     final unitLabel = application.unitLabel ?? 'Hiring Team';
-    final location = application.location ?? 'TBD';
+    final location = application.meetingUrl ?? application.location ?? 'TBD';
     final candidateLabel = application.candidateId ?? 'candidate';
     final description = StringBuffer()
       ..writeln('Interview for ${application.jobTitle}')
@@ -139,6 +162,20 @@ class GoogleCalendarService {
       ..writeln('Application ID: ${application.id}')
       ..writeln('Current status: ${application.status.displayName}');
 
+    if ((application.meetingUrl ?? '').isNotEmpty) {
+      description
+        ..writeln()
+        ..writeln('Meeting link')
+        ..writeln(application.meetingUrl!.trim());
+    }
+
+    if ((application.interviewNotes ?? '').isNotEmpty) {
+      description
+        ..writeln()
+        ..writeln('Interview notes')
+        ..writeln(application.interviewNotes!.trim());
+    }
+
     if ((application.coverLetter ?? '').isNotEmpty) {
       description
         ..writeln()
@@ -146,15 +183,25 @@ class GoogleCalendarService {
         ..writeln(application.coverLetter!.trim());
     }
 
+    final durationMinutes = application.interviewDurationMinutes ?? 60;
+
     return Event()
       ..summary = 'Interview: ${application.jobTitle}'
       ..location = location
       ..description = description.toString()
+      ..conferenceData = (createMeetConference
+          ? (ConferenceData()
+              ..createRequest = (CreateConferenceRequest()
+                ..conferenceSolutionKey = (ConferenceSolutionKey()
+                  ..type = 'hangoutsMeet')
+                ..requestId =
+                    'interview-${application.id}-${interviewDate.millisecondsSinceEpoch}'))
+          : null)
       ..start = (EventDateTime()
         ..dateTime = interviewDate
         ..timeZone = 'Asia/Jakarta')
       ..end = (EventDateTime()
-        ..dateTime = interviewDate.add(const Duration(hours: 1))
+        ..dateTime = interviewDate.add(Duration(minutes: durationMinutes))
         ..timeZone = 'Asia/Jakarta')
       ..reminders = (EventReminders()
         ..useDefault = false
@@ -163,6 +210,19 @@ class GoogleCalendarService {
             ..method = 'popup'
             ..minutes = 30,
         ]);
+  }
+
+  String? _extractVideoEntryPoint(ConferenceData? conferenceData) {
+    final entries = conferenceData?.entryPoints;
+    if (entries == null) return null;
+    for (final entry in entries) {
+      if (entry.entryPointType == 'video' &&
+          entry.uri != null &&
+          entry.uri!.isNotEmpty) {
+        return entry.uri;
+      }
+    }
+    return null;
   }
 }
 

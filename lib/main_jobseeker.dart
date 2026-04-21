@@ -1,8 +1,7 @@
 import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'auth/auth_gate.dart';
 import 'app/gemma_bootstrap.dart';
 import 'app/runtime_config.dart';
@@ -12,35 +11,22 @@ import 'flavors/flavor_firebase_options.dart';
 import 'flavors/flavor_manager.dart';
 import 'screens/job_seeker_home_screen.dart';
 import 'services/hybrid_database_service.dart';
+import 'services/onesignal_service.dart';
+import 'services/shared_identity_service.dart';
 
-@pragma('vm:entry-point')
-Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  final options = FlavorFirebaseOptions.currentPlatform;
-  if (options == null) {
-    return;
-  }
-  await Firebase.initializeApp(options: options);
-  debugPrint('FCM background message: ${message.messageId}');
-}
+Future<void> _initializeOneSignal() async {
+  // Initialize OneSignal
+  await OneSignalService.instance.initialize();
 
-Future<void> _initializeFirebaseMessaging() async {
-  final messaging = FirebaseMessaging.instance;
-
-  await messaging.requestPermission(alert: true, badge: true, sound: true);
-
-  final token = await messaging.getToken();
-  debugPrint('FCM token: $token');
-
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    debugPrint('FCM foreground message: ${message.messageId}');
-  });
-
-  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-    debugPrint('FCM opened app from notification: ${message.messageId}');
-  });
-
-  messaging.onTokenRefresh.listen((newToken) {
-    debugPrint('FCM token refreshed: $newToken');
+  // Set external user ID when Firebase Auth state changes
+  SharedIdentityService.authStateChanges().listen((user) {
+    if (user != null) {
+      OneSignalService.instance.setExternalUserId(user.uid);
+      // Set jobseeker tag
+      OneSignalService.instance.addTag('user_type', 'jobseeker');
+    } else {
+      OneSignalService.instance.removeExternalUserId();
+    }
   });
 }
 
@@ -56,7 +42,8 @@ void main() async {
     AppFlavorConfig.jobSeeker,
     environment: FlavorEnvironment.fromConfig(),
   );
-  // Only initialize Firebase on supported platforms
+
+  // Initialize Firebase (Auth only)
   final isSupportedPlatform =
       kIsWeb || (Platform.isAndroid || Platform.isIOS || Platform.isMacOS);
   if (isSupportedPlatform) {
@@ -69,15 +56,14 @@ void main() async {
         );
       } else {
         await Firebase.initializeApp(options: options);
-        FirebaseMessaging.onBackgroundMessage(
-          firebaseMessagingBackgroundHandler,
-        );
-        await _initializeFirebaseMessaging();
+        // Initialize OneSignal for push notifications
+        await _initializeOneSignal();
       }
     } on Exception catch (e) {
       debugPrint('Firebase initialization failed: $e');
     }
   }
+
   runApp(const MyApp());
 }
 

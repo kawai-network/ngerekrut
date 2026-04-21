@@ -4,6 +4,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/application_status.dart';
 import '../../models/job_application.dart';
 import '../../repositories/job_application_repository.dart';
@@ -71,6 +72,28 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
         .toList();
   }
 
+  JobApplication? get _nextUpcomingInterviewApplication {
+    final now = DateTime.now();
+    final upcoming = _applications.where(
+      (application) =>
+          application.interviewDates?.any((date) => date.isAfter(now)) == true,
+    );
+    if (upcoming.isEmpty) return null;
+
+    JobApplication? selected;
+    DateTime? selectedDate;
+    for (final application in upcoming) {
+      final nextDate = application.interviewDates!
+          .where((date) => date.isAfter(now))
+          .reduce((a, b) => a.isBefore(b) ? a : b);
+      if (selectedDate == null || nextDate.isBefore(selectedDate)) {
+        selected = application;
+        selectedDate = nextDate;
+      }
+    }
+    return selected;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -94,6 +117,19 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                   ? _EmptyState(onRefresh: _loadApplications)
                   : Column(
                       children: [
+                        if (_nextUpcomingInterviewApplication != null)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                            child: _UpcomingInterviewBanner(
+                              application: _nextUpcomingInterviewApplication!,
+                              onOpenMeeting: () => _openMeetingLink(
+                                _nextUpcomingInterviewApplication!,
+                              ),
+                              onOpenDetails: () => _showApplicationDetail(
+                                _nextUpcomingInterviewApplication!,
+                              ),
+                            ),
+                          ),
                         _StatusFilterBar(
                           selectedFilter: _statusFilter,
                           onFilterChanged: (filter) =>
@@ -113,6 +149,10 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                                   itemBuilder: (context, index) {
                                     return _ApplicationCard(
                                       application: _filteredApplications[index],
+                                      isUpcoming:
+                                          _nextUpcomingInterviewApplication
+                                              ?.id ==
+                                          _filteredApplications[index].id,
                                       jobStatus:
                                           _jobStatusesById[_filteredApplications[index]
                                               .jobId],
@@ -140,6 +180,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
         application: application,
         jobStatus: _jobStatusesById[application.jobId],
         onSyncCalendar: () => _syncInterviewToCalendar(application),
+        onOpenMeeting: () => _openMeetingLink(application),
       ),
     );
   }
@@ -162,6 +203,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
         application: application,
         interviewDate: interviewDate,
         existingEventId: application.candidateCalendarEventId,
+        createMeetConference: false,
       );
       if (!result.success) {
         throw result.error ?? 'Sinkronisasi Google Calendar gagal.';
@@ -188,16 +230,45 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
       );
     }
   }
+
+  Future<void> _openMeetingLink(JobApplication application) async {
+    final meetingUrl = application.meetingUrl;
+    if (meetingUrl == null || meetingUrl.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Belum ada link Google Meet untuk interview ini.'),
+        ),
+      );
+      return;
+    }
+
+    final uri = Uri.tryParse(meetingUrl);
+    if (uri == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Link meeting tidak valid.')),
+      );
+      return;
+    }
+
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal membuka Google Meet.')),
+      );
+    }
+  }
 }
 
 class _ApplicationCard extends StatelessWidget {
   const _ApplicationCard({
     required this.application,
+    required this.isUpcoming,
     required this.jobStatus,
     required this.onTap,
   });
 
   final JobApplication application;
+  final bool isUpcoming;
   final String? jobStatus;
   final VoidCallback onTap;
 
@@ -205,6 +276,7 @@ class _ApplicationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
+      color: isUpcoming ? const Color(0xFFEEF2FF) : null,
       child: InkWell(
         onTap: onTap,
         child: Padding(
@@ -309,6 +381,38 @@ class _ApplicationCard extends StatelessWidget {
                     );
                   }).toList(),
                 ),
+                if (isUpcoming) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDBEAFE),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF93C5FD)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.alarm_on_outlined,
+                          color: Color(0xFF1D4ED8),
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Ini interview terdekat Anda.',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: const Color(0xFF1D4ED8),
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
               if ((application.recruiterNotes ?? '').isNotEmpty) ...[
                 const SizedBox(height: 10),
@@ -365,6 +469,125 @@ class _ApplicationCard extends StatelessWidget {
     if (status == null) return false;
     final normalized = status.toLowerCase();
     return normalized == 'closed' || normalized == 'ditutup';
+  }
+}
+
+class _UpcomingInterviewBanner extends StatelessWidget {
+  const _UpcomingInterviewBanner({
+    required this.application,
+    required this.onOpenMeeting,
+    required this.onOpenDetails,
+  });
+
+  final JobApplication application;
+  final VoidCallback onOpenMeeting;
+  final VoidCallback onOpenDetails;
+
+  @override
+  Widget build(BuildContext context) {
+    final nextInterview = application.interviewDates!
+        .where((date) => date.isAfter(DateTime.now()))
+        .reduce((a, b) => a.isBefore(b) ? a : b);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0F172A), Color(0xFF1D4ED8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.event_available, color: Colors.white),
+              const SizedBox(width: 8),
+              Text(
+                'Interview Terdekat',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            application.jobTitle,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          if ((application.unitLabel ?? '').isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              application.unitLabel!,
+              style: const TextStyle(color: Colors.white70),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Text(
+            _formatUpcomingInterview(nextInterview),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          if ((application.interviewDurationMinutes ?? 0) > 0) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Durasi ${application.interviewDurationMinutes} menit',
+              style: const TextStyle(color: Colors.white70),
+            ),
+          ],
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              if ((application.meetingUrl ?? '').isNotEmpty)
+                FilledButton.tonalIcon(
+                  onPressed: onOpenMeeting,
+                  icon: const Icon(Icons.video_camera_front_outlined),
+                  label: const Text('Buka Meet'),
+                ),
+              OutlinedButton.icon(
+                onPressed: onOpenDetails,
+                icon: const Icon(Icons.open_in_new, color: Colors.white),
+                label: const Text(
+                  'Lihat Detail',
+                  style: TextStyle(color: Colors.white),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.white24),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _formatUpcomingInterview(DateTime date) {
+    final now = DateTime.now();
+    final localDate = DateTime(date.year, date.month, date.day);
+    final localNow = DateTime(now.year, now.month, now.day);
+    final dayDifference = localDate.difference(localNow).inDays;
+    final timeLabel = DateFormat('EEEE, d MMM yyyy • HH:mm').format(date);
+
+    if (dayDifference == 0) return 'Hari ini • $timeLabel';
+    if (dayDifference == 1) return 'Besok • $timeLabel';
+    if (dayDifference > 1 && dayDifference < 7) {
+      return '$dayDifference hari lagi • $timeLabel';
+    }
+    return timeLabel;
   }
 }
 
@@ -481,11 +704,13 @@ class _ApplicationDetailSheet extends StatelessWidget {
     required this.application,
     required this.jobStatus,
     required this.onSyncCalendar,
+    required this.onOpenMeeting,
   });
 
   final JobApplication application;
   final String? jobStatus;
   final VoidCallback onSyncCalendar;
+  final VoidCallback onOpenMeeting;
 
   @override
   Widget build(BuildContext context) {
@@ -572,6 +797,11 @@ class _ApplicationDetailSheet extends StatelessWidget {
                         'd MMMM yyyy',
                       ).format(application.updatedAt),
                     ),
+                    if ((application.interviewDurationMinutes ?? 0) > 0)
+                      _DetailRow(
+                        label: 'Durasi interview',
+                        value: '${application.interviewDurationMinutes} menit',
+                      ),
                     if (application.location != null)
                       _DetailRow(label: 'Lokasi', value: application.location!),
                     if (application.expectedSalary != null)
@@ -635,19 +865,57 @@ class _ApplicationDetailSheet extends StatelessWidget {
                           ),
                         ),
                       ),
+                      if ((application.meetingUrl ?? '').isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Card(
+                          child: ListTile(
+                            leading: const Icon(
+                              Icons.video_camera_front_outlined,
+                            ),
+                            title: const Text('Google Meet'),
+                            subtitle: Text(application.meetingUrl!),
+                            trailing: const Icon(Icons.open_in_new),
+                            onTap: onOpenMeeting,
+                          ),
+                        ),
+                      ],
+                      if ((application.interviewNotes ?? '').isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Card(
+                          child: ListTile(
+                            leading: const Icon(Icons.notes_outlined),
+                            title: const Text('Catatan Interview'),
+                            subtitle: Text(application.interviewNotes!),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 12),
-                      FilledButton.icon(
-                        onPressed: onSyncCalendar,
-                        icon: Icon(
-                          application.isSyncedToCandidateCalendar
-                              ? Icons.cloud_done_outlined
-                              : Icons.calendar_month_outlined,
-                        ),
-                        label: Text(
-                          application.isSyncedToCandidateCalendar
-                              ? 'Update di Google Calendar'
-                              : 'Tambah ke Google Calendar',
-                        ),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          FilledButton.icon(
+                            onPressed: onSyncCalendar,
+                            icon: Icon(
+                              application.isSyncedToCandidateCalendar
+                                  ? Icons.cloud_done_outlined
+                                  : Icons.calendar_month_outlined,
+                            ),
+                            label: Text(
+                              application.isSyncedToCandidateCalendar
+                                  ? 'Update di Google Calendar'
+                                  : 'Tambah ke Google Calendar',
+                            ),
+                          ),
+                          if ((application.meetingUrl ?? '').isNotEmpty)
+                            OutlinedButton.icon(
+                              onPressed: onOpenMeeting,
+                              icon: const Icon(
+                                Icons.video_camera_front_outlined,
+                              ),
+                              label: const Text('Buka Google Meet'),
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 16),
                     ],

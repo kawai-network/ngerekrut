@@ -1075,11 +1075,19 @@ class _LocalJobPostDetailScreenState extends State<_LocalJobPostDetailScreen> {
       time.minute,
     );
 
+    final details = await _askInterviewDetails(application);
+    if (details == null || !mounted) return;
+
     setState(() => _updatingApplicationId = application.id);
     try {
       await _jobApplicationRepository.addInterviewDate(
         application.id,
         schedule,
+      );
+      await _jobApplicationRepository.updateInterviewDetails(
+        application.id,
+        durationMinutes: details.durationMinutes,
+        notes: details.notes,
       );
       if (application.status != ApplicationStatus.interview) {
         await _jobApplicationRepository.updateStatus(
@@ -1102,6 +1110,73 @@ class _LocalJobPostDetailScreenState extends State<_LocalJobPostDetailScreen> {
         setState(() => _updatingApplicationId = null);
       }
     }
+  }
+
+  Future<_InterviewDetailsDraft?> _askInterviewDetails(
+    JobApplication application,
+  ) async {
+    final durationController = TextEditingController(
+      text: '${application.interviewDurationMinutes ?? 60}',
+    );
+    final notesController = TextEditingController(
+      text: application.interviewNotes ?? '',
+    );
+
+    final result = await showDialog<_InterviewDetailsDraft>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Detail interview'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: durationController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Durasi (menit)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: notesController,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  labelText: 'Catatan interview',
+                  hintText: 'Agenda, persiapan, atau instruksi singkat',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Batal'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final parsedDuration =
+                    int.tryParse(durationController.text.trim()) ?? 60;
+                Navigator.pop(
+                  context,
+                  _InterviewDetailsDraft(
+                    durationMinutes: parsedDuration <= 0 ? 60 : parsedDuration,
+                    notes: notesController.text.trim(),
+                  ),
+                );
+              },
+              child: const Text('Simpan'),
+            ),
+          ],
+        );
+      },
+    );
+
+    durationController.dispose();
+    notesController.dispose();
+    return result;
   }
 
   @override
@@ -1709,4 +1784,14 @@ class _LocalJobPostSummary {
     final normalized = job.status.toLowerCase();
     return normalized == JobPostingRepository.statusPublished;
   }
+}
+
+class _InterviewDetailsDraft {
+  const _InterviewDetailsDraft({
+    required this.durationMinutes,
+    required this.notes,
+  });
+
+  final int durationMinutes;
+  final String notes;
 }

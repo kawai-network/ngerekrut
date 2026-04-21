@@ -100,6 +100,56 @@ else
   echo ""
 fi
 
+# 4. ONESIGNAL_APP_ID (for push notifications)
+if [ -f ".env" ]; then
+  ONESIGNAL_APP_ID=$(grep "^ONESIGNAL_APP_ID=" .env | cut -d'=' -f2)
+  if [ -n "$ONESIGNAL_APP_ID" ] && [ "$ONESIGNAL_APP_ID" != "your_onesignal_app_id" ]; then
+    if [ "$AUTO_SET" = true ]; then
+      echo "📝 Setting ONESIGNAL_APP_ID secret..."
+      echo -n "$ONESIGNAL_APP_ID" | gh secret set ONESIGNAL_APP_ID
+      echo "✅ ONESIGNAL_APP_ID set successfully"
+    else
+      echo "============================================"
+      echo "4. ONESIGNAL_APP_ID"
+      echo "============================================"
+      echo "$ONESIGNAL_APP_ID"
+      echo ""
+    fi
+    echo ""
+  else
+    echo "⚠️  Skipping ONESIGNAL_APP_ID (not set in .env or still using placeholder)"
+    echo ""
+  fi
+else
+  echo "⚠️  Skipping ONESIGNAL_APP_ID (.env file not found)"
+  echo ""
+fi
+
+# 5. ONESIGNAL_API_KEY (for push notifications)
+if [ -f ".env" ]; then
+  ONESIGNAL_API_KEY=$(grep "^ONESIGNAL_API_KEY=" .env | cut -d'=' -f2)
+  if [ -n "$ONESIGNAL_API_KEY" ] && [ "$ONESIGNAL_API_KEY" != "your_onesignal_rest_api_key" ]; then
+    if [ "$AUTO_SET" = true ]; then
+      echo "📝 Setting ONESIGNAL_API_KEY secret..."
+      echo -n "$ONESIGNAL_API_KEY" | gh secret set ONESIGNAL_API_KEY
+      echo "✅ ONESIGNAL_API_KEY set successfully"
+    else
+      echo "============================================"
+      echo "5. ONESIGNAL_API_KEY"
+      echo "============================================"
+      echo "$ONESIGNAL_API_KEY"
+      echo ""
+    fi
+    echo ""
+  else
+    echo "⚠️  Skipping ONESIGNAL_API_KEY (not set in .env or still using placeholder)"
+    echo ""
+  fi
+else
+  echo "⚠️  Skipping ONESIGNAL_API_KEY (.env file not found)"
+  echo ""
+fi
+
 echo "============================================"
 if [ "$AUTO_SET" = true ]; then
   echo "✅ Done! All secrets have been set via 'gh' CLI"

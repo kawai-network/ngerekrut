@@ -33,6 +33,7 @@ import '../services/interview_guide_generation_service.dart';
 import '../services/resume_screening_service.dart';
 import '../services/scorecard_generation_service.dart';
 import '../services/shared_identity_service.dart';
+import '../services/onesignal_service.dart';
 import 'runtime_config.dart';
 
 class RecruiterApp extends StatelessWidget {
@@ -614,6 +615,8 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
         );
         return;
       case _HomeAction.signOut:
+        // Clear OneSignal subscription before signing out
+        await OneSignalService.instance.clearSubscription();
         await SharedIdentityService.signOut();
         return;
     }
