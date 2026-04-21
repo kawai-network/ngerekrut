@@ -137,6 +137,157 @@ class _RecruiterApplicationInboxScreenState
     return reason.isEmpty ? 'Tidak melanjutkan ke tahap berikutnya.' : reason;
   }
 
+  Future<void> _saveRecruiterNotes(JobApplication application) async {
+    final controller = TextEditingController(text: application.recruiterNotes);
+    final notes = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Recruiter Notes'),
+          content: TextField(
+            controller: controller,
+            maxLines: 5,
+            decoration: const InputDecoration(
+              hintText: 'Tulis catatan internal untuk lamaran ini',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Batal'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, controller.text.trim()),
+              child: const Text('Simpan'),
+            ),
+          ],
+        );
+      },
+    );
+    controller.dispose();
+    if (notes == null) return;
+
+    setState(() => _updatingApplicationId = application.id);
+    try {
+      await _applicationRepository.updateRecruiterNotes(application.id, notes);
+      await _loadApplications();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Recruiter notes diperbarui.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gagal menyimpan notes: $e')));
+    } finally {
+      if (mounted) {
+        setState(() => _updatingApplicationId = null);
+      }
+    }
+  }
+
+  Future<void> _setInternalRating(JobApplication application) async {
+    final rating = await showDialog<int>(
+      context: context,
+      builder: (context) {
+        return SimpleDialog(
+          title: const Text('Internal Rating'),
+          children: List.generate(5, (index) {
+            final value = index + 1;
+            return SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, value),
+              child: Row(
+                children: [
+                  Text('$value'),
+                  const SizedBox(width: 12),
+                  ...List.generate(
+                    value,
+                    (_) => const Icon(
+                      Icons.star,
+                      size: 16,
+                      color: Color(0xFFF59E0B),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        );
+      },
+    );
+    if (rating == null) return;
+
+    setState(() => _updatingApplicationId = application.id);
+    try {
+      await _applicationRepository.setInternalRating(application.id, rating);
+      await _loadApplications();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Rating internal diset ke $rating.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gagal menyimpan rating: $e')));
+    } finally {
+      if (mounted) {
+        setState(() => _updatingApplicationId = null);
+      }
+    }
+  }
+
+  Future<void> _addInterviewSchedule(JobApplication application) async {
+    final date = await showDatePicker(
+      context: context,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDate: DateTime.now().add(const Duration(days: 1)),
+    );
+    if (date == null || !mounted) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: const TimeOfDay(hour: 10, minute: 0),
+    );
+    if (time == null || !mounted) return;
+
+    final schedule = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+
+    setState(() => _updatingApplicationId = application.id);
+    try {
+      await _applicationRepository.addInterviewDate(application.id, schedule);
+      if (application.status != ApplicationStatus.interview) {
+        await _applicationRepository.updateStatus(
+          application.id,
+          ApplicationStatus.interview,
+        );
+      }
+      await _loadApplications();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Jadwal interview ditambahkan.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal menambah jadwal interview: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _updatingApplicationId = null);
+      }
+    }
+  }
+
   List<JobApplication> get _filteredApplications {
     return _applications.where((application) {
       if (_statusFilter != 'all' && application.status.name != _statusFilter) {
@@ -307,6 +458,9 @@ class _RecruiterApplicationInboxScreenState
                   isUpdating: _updatingApplicationId == application.id,
                   onStatusSelected: (status) =>
                       _updateApplicationStatus(application, status),
+                  onEditNotes: () => _saveRecruiterNotes(application),
+                  onSetRating: () => _setInternalRating(application),
+                  onAddInterviewDate: () => _addInterviewSchedule(application),
                   onTap: () => _showDetails(application, candidate),
                 ),
               );
@@ -393,6 +547,9 @@ class _InboxApplicationCard extends StatelessWidget {
     required this.candidate,
     required this.isUpdating,
     required this.onStatusSelected,
+    required this.onEditNotes,
+    required this.onSetRating,
+    required this.onAddInterviewDate,
     required this.onTap,
   });
 
@@ -400,6 +557,9 @@ class _InboxApplicationCard extends StatelessWidget {
   final RecruiterCandidate? candidate;
   final bool isUpdating;
   final ValueChanged<ApplicationStatus> onStatusSelected;
+  final VoidCallback onEditNotes;
+  final VoidCallback onSetRating;
+  final VoidCallback onAddInterviewDate;
   final VoidCallback onTap;
 
   @override
@@ -522,6 +682,28 @@ class _InboxApplicationCard extends StatelessWidget {
                   ),
                 ),
               ],
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: isUpdating ? null : onEditNotes,
+                    icon: const Icon(Icons.note_alt_outlined),
+                    label: const Text('Notes'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: isUpdating ? null : onSetRating,
+                    icon: const Icon(Icons.star_outline),
+                    label: const Text('Rating'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: isUpdating ? null : onAddInterviewDate,
+                    icon: const Icon(Icons.event_available),
+                    label: const Text('Jadwal'),
+                  ),
+                ],
+              ),
             ],
           ),
         ),

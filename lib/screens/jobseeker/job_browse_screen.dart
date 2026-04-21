@@ -3,8 +3,11 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../models/application_status.dart';
+import '../../models/candidate.dart';
 import '../../models/job_application.dart';
 import '../../models/recruiter_job.dart';
+import '../../repositories/candidate_repository.dart';
 import '../../repositories/job_application_repository.dart';
 import '../../repositories/job_posting_repository.dart';
 import '../../repositories/saved_job_repository.dart';
@@ -590,14 +593,21 @@ class _ApplyJobSheet extends StatefulWidget {
 
 class _ApplyJobSheetState extends State<_ApplyJobSheet> {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _headlineController = TextEditingController();
+  final _skillsController = TextEditingController();
   final _expectedSalaryController = TextEditingController();
   final _coverLetterController = TextEditingController();
   final _resumeIdController = TextEditingController();
   final JobApplicationRepository _repo = JobApplicationRepository();
+  final CandidateRepository _candidateRepository = CandidateRepository();
   bool _isSubmitting = false;
 
   @override
   void dispose() {
+    _nameController.dispose();
+    _headlineController.dispose();
+    _skillsController.dispose();
     _expectedSalaryController.dispose();
     _coverLetterController.dispose();
     _resumeIdController.dispose();
@@ -640,6 +650,38 @@ class _ApplyJobSheetState extends State<_ApplyJobSheet> {
             ? null
             : _resumeIdController.text.trim(),
       );
+      final candidateId = _repo.candidateId;
+      final existingCandidate = await _candidateRepository.getById(candidateId);
+      final parsedSkills = _skillsController.text
+          .split(',')
+          .map((skill) => skill.trim())
+          .where((skill) => skill.isNotEmpty)
+          .toList();
+      final coverLetter = _coverLetterController.text.trim();
+      final resumeId = _resumeIdController.text.trim();
+
+      await _candidateRepository.save(
+        RecruiterCandidate(
+          id: candidateId,
+          name: _nameController.text.trim(),
+          headline: _headlineController.text.trim().isEmpty
+              ? existingCandidate?.headline
+              : _headlineController.text.trim(),
+          yearsOfExperience: existingCandidate?.yearsOfExperience,
+          stage: ApplicationStatus.applied.name,
+          profile: CandidateProfile(
+            skills: parsedSkills.isEmpty
+                ? (existingCandidate?.profile?.skills ?? const [])
+                : parsedSkills,
+            summary: coverLetter.isEmpty
+                ? (existingCandidate?.profile?.summary ?? '')
+                : coverLetter,
+          ),
+          resume: resumeId.isEmpty
+              ? existingCandidate?.resume
+              : CandidateResume(id: resumeId, fileName: 'resume.pdf'),
+        ),
+      );
       await _repo.create(application);
       if (!mounted) return;
       Navigator.pop(context, application);
@@ -681,6 +723,43 @@ class _ApplyJobSheetState extends State<_ApplyJobSheet> {
                 ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700),
               ),
               const SizedBox(height: 16),
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Nama lengkap',
+                  hintText: 'Contoh: Budi Santoso',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Nama lengkap tidak boleh kosong.';
+                  }
+                  if (value.trim().length < 3) {
+                    return 'Tulis minimal 3 karakter.';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _headlineController,
+                decoration: const InputDecoration(
+                  labelText: 'Headline profesional',
+                  hintText: 'Contoh: Flutter Developer',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _skillsController,
+                decoration: const InputDecoration(
+                  labelText: 'Skill utama',
+                  hintText:
+                      'Pisahkan dengan koma, mis. Flutter, Dart, Firebase',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _expectedSalaryController,
                 decoration: const InputDecoration(

@@ -3,6 +3,7 @@ import '../flavors/flavor_manager.dart';
 import 'jobseeker/job_browse_screen.dart';
 import 'jobseeker/my_applications_screen.dart';
 import 'jobseeker/saved_jobs_screen.dart';
+import 'jobseeker/cv_upload_screen.dart';
 
 /// Home screen for Job Seeker app
 class JobSeekerHomeScreen extends StatefulWidget {
@@ -132,13 +133,15 @@ class _JobSeekerHomeScreenState extends State<JobSeekerHomeScreen> {
               const SizedBox(height: 12),
               OutlinedButton.icon(
                 onPressed: () {
-                  // TODO: Navigate to resume builder
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Resume Builder coming soon!')),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CVUploadScreen(),
+                    ),
                   );
                 },
                 icon: const Icon(Icons.edit_document),
-                label: const Text('Buat CV'),
+                label: const Text('Upload CV'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   textStyle: const TextStyle(fontSize: 16),
