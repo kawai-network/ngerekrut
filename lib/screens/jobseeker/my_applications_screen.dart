@@ -199,6 +199,41 @@ class _ApplicationCard extends StatelessWidget {
                   }).toList(),
                 ),
               ],
+              if ((application.recruiterNotes ?? '').isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.note_alt_outlined,
+                        size: 16,
+                        color: Color(0xFF475569),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          application.recruiterNotes!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: const Color(0xFF475569),
+                                height: 1.45,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -395,6 +430,8 @@ class _ApplicationDetailSheet extends StatelessWidget {
                     if (application.source != null)
                       _DetailRow(label: 'Sumber', value: application.source!),
                     const SizedBox(height: 24),
+                    _TimelineSection(application: application),
+                    const SizedBox(height: 24),
                     if (application.coverLetter != null) ...[
                       Text(
                         'Cover Letter',
@@ -403,6 +440,30 @@ class _ApplicationDetailSheet extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(application.coverLetter!),
+                      const SizedBox(height: 16),
+                    ],
+                    if ((application.recruiterNotes ?? '').isNotEmpty) ...[
+                      Text(
+                        'Catatan Recruiter',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Text(
+                          application.recruiterNotes!,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium?.copyWith(height: 1.5),
+                        ),
+                      ),
                       const SizedBox(height: 16),
                     ],
                     if (application.interviewDates?.isNotEmpty == true) ...[
@@ -498,6 +559,121 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
+class _TimelineSection extends StatelessWidget {
+  const _TimelineSection({required this.application});
+
+  final JobApplication application;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = <({IconData icon, String title, String subtitle})>[
+      (
+        icon: Icons.send,
+        title: 'Lamaran dikirim',
+        subtitle: DateFormat('d MMM yyyy, HH:mm').format(application.appliedAt),
+      ),
+      (
+        icon: Icons.sync,
+        title: 'Status saat ini: ${_statusLabel(application.status)}',
+        subtitle: DateFormat('d MMM yyyy, HH:mm').format(application.updatedAt),
+      ),
+      if (application.interviewDates?.isNotEmpty == true)
+        (
+          icon: Icons.event_available,
+          title: 'Interview terjadwal',
+          subtitle: application.interviewDates!
+              .map((date) => DateFormat('d MMM yyyy, HH:mm').format(date))
+              .join(' • '),
+        ),
+      if ((application.rejectionReason ?? '').isNotEmpty)
+        (
+          icon: Icons.info_outline,
+          title: 'Alasan penolakan',
+          subtitle: application.rejectionReason!,
+        ),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Timeline Lamaran',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        ...items.map(
+          (item) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    item.icon,
+                    size: 18,
+                    color: const Color(0xFF334155),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.title,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        item.subtitle,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.grey.shade700,
+                          height: 1.45,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _statusLabel(ApplicationStatus status) {
+    switch (status) {
+      case ApplicationStatus.applied:
+        return 'Terkirim';
+      case ApplicationStatus.screening:
+        return 'Screening';
+      case ApplicationStatus.interview:
+        return 'Interview';
+      case ApplicationStatus.underReview:
+        return 'Direview';
+      case ApplicationStatus.offered:
+        return 'Ditawarkan';
+      case ApplicationStatus.rejected:
+        return 'Ditolak';
+      case ApplicationStatus.withdrawn:
+        return 'Ditarik';
+      case ApplicationStatus.archived:
+        return 'Diarsipkan';
+    }
+  }
+}
+
 class _StatusFilterBar extends StatelessWidget {
   const _StatusFilterBar({
     required this.selectedFilter,
@@ -514,10 +690,12 @@ class _StatusFilterBar extends StatelessWidget {
     final filters = [
       ('all', 'Semua'),
       ('applied', 'Terkirim'),
+      ('screening', 'Screening'),
       ('underReview', 'Direview'),
       ('interview', 'Interview'),
       ('offered', 'Ditawarkan'),
-      ('hired', 'Diterima'),
+      ('withdrawn', 'Ditarik'),
+      ('archived', 'Diarsipkan'),
       ('rejected', 'Ditolak'),
     ];
 
