@@ -24,9 +24,9 @@ This project uses a **hybrid database approach**:
 | Repository | Entity | Purpose |
 |------------|--------|---------|
 | `ChatSessionRepository` | `ChatSessionRecord` | AI chat sessions |
-| `LocalShortlistRepository` | `RecruiterShortlistRecord` | Screening results cache |
-| `LocalScorecardRepository` | `CandidateScorecardRecord` | Interview scorecards |
-| `LocalInterviewGuideRepository` | `InterviewGuideRecord` | Generated interview guides |
+| `ShortlistArtifactRepository` | `RecruiterShortlistRecord` | Screening results cache |
+| `ScorecardArtifactRepository` | `CandidateScorecardRecord` | Interview scorecards |
+| `InterviewGuideArtifactRepository` | `InterviewGuideRecord` | Generated interview guides |
 
 ---
 
@@ -185,21 +185,25 @@ await repo.createSession(sessionId, title);
 # .env
 LIBSQL_URL=libsql://your-database.turso.io
 LIBSQL_URL_TOKEN=your_auth_token
+JOBSEEKER_USER_ID=jobseeker_123
+RECRUITER_USER_ID=recruiter_123
 ```
+
+`JOBSEEKER_USER_ID` and `RECRUITER_USER_ID` are temporary ownership identifiers for shared data until the app uses a real auth/session provider.
 
 ---
 
 ## Migration Status
 
 ### Repositories
-- ✅ `JobApplicationRepository` - Migrated to libsql_dart
-- ✅ `SavedJobRepository` - Migrated to libsql_dart
-- ✅ `JobPostingRepository` - Migrated to libsql_dart
-- ✅ `CandidateRepository` - Migrated to libsql_dart
+- ✅ `JobApplicationRepository` - Uses libsql_dart
+- ✅ `SavedJobRepository` - Uses libsql_dart
+- ✅ `JobPostingRepository` - Uses libsql_dart
+- ✅ `CandidateRepository` - Uses libsql_dart
 - ⚪ `ChatSessionRepository` - Stays on ObjectBox
-- ⚪ `LocalShortlistRepository` - Stays on ObjectBox
-- ⚪ `LocalScorecardRepository` - Stays on ObjectBox
-- ⚪ `LocalInterviewGuideRepository` - Stays on ObjectBox
+- ⚪ `ShortlistArtifactRepository` - Stays on ObjectBox
+- ⚪ `ScorecardArtifactRepository` - Stays on ObjectBox
+- ⚪ `InterviewGuideArtifactRepository` - Stays on ObjectBox
 
 ### Screens (Jobseeker)
 - ✅ `JobBrowseScreen` - Browse jobs from libsql_dart
@@ -208,7 +212,14 @@ LIBSQL_URL_TOKEN=your_auth_token
 - ✅ `JobSeekerHomeScreen` - Updated with navigation to new screens
 
 ### Screens (Recruiter)
-- ⚪ Existing screens still use ObjectBox for AI-generated content
-  - `LocalJobPostListScreen` - Uses ObjectBox (keeps AI artifacts: shortlist, scorecard, guide)
-  - `ShortlistResultScreen` - Uses ObjectBox (AI screening cache)
-  - `JobCandidatesScreen` - Uses ObjectBox (AI scorecard, guide)
+- ✅ Recruiter read path for job postings now uses `JobPostingRepository` / libsql_dart
+- ⚪ Recruiter AI artifacts still use ObjectBox
+  - `RecruiterJobPostListScreen` - Reads job postings from LibSQL, combines with local shortlist/scorecard/guide artifacts
+  - `ShortlistResultScreen` - Uses ObjectBox for AI screening cache
+  - `JobCandidatesScreen` - Uses ObjectBox for shortlist, scorecard, and interview guide artifacts
+  - `RecruiterScreeningListScreen` - Reads jobs from LibSQL, screening artifacts from ObjectBox
+  - `RecruiterInterviewListScreen` - Reads jobs from LibSQL, interview artifacts from ObjectBox
+
+### Current Boundary
+- `libsql_dart` is the source of truth for shared business entities.
+- `ObjectBox` is reserved for local recruiter artifacts and chat persistence.

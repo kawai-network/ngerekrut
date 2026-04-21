@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 
 import '../models/recruiter_job.dart';
 import '../models/recruiter_shortlist.dart';
-import '../repositories/local_interview_guide_repository.dart';
-import '../repositories/local_job_post_repository.dart';
-import '../repositories/local_scorecard_repository.dart';
-import '../repositories/local_shortlist_repository.dart';
+import '../repositories/interview_guide_artifact_repository.dart';
+import '../repositories/job_posting_repository.dart';
+import '../repositories/scorecard_artifact_repository.dart';
+import '../repositories/shortlist_artifact_repository.dart';
 
-class LocalInterviewListScreen extends StatefulWidget {
-  const LocalInterviewListScreen({
+class RecruiterInterviewListScreen extends StatefulWidget {
+  const RecruiterInterviewListScreen({
     super.key,
     required this.jobPostRepository,
     required this.shortlistRepository,
@@ -18,17 +18,18 @@ class LocalInterviewListScreen extends StatefulWidget {
     required this.interviewGuideRepository,
   });
 
-  final LocalJobPostRepository jobPostRepository;
-  final LocalShortlistRepository shortlistRepository;
-  final LocalScorecardRepository scorecardRepository;
-  final LocalInterviewGuideRepository interviewGuideRepository;
+  final JobPostingRepository jobPostRepository;
+  final ShortlistArtifactRepository shortlistRepository;
+  final ScorecardArtifactRepository scorecardRepository;
+  final InterviewGuideArtifactRepository interviewGuideRepository;
 
   @override
-  State<LocalInterviewListScreen> createState() =>
-      _LocalInterviewListScreenState();
+  State<RecruiterInterviewListScreen> createState() =>
+      _RecruiterInterviewListScreenState();
 }
 
-class _LocalInterviewListScreenState extends State<LocalInterviewListScreen> {
+class _RecruiterInterviewListScreenState
+    extends State<RecruiterInterviewListScreen> {
   bool _isLoading = true;
   List<_InterviewItem> _items = const [];
 
@@ -40,7 +41,7 @@ class _LocalInterviewListScreenState extends State<LocalInterviewListScreen> {
 
   Future<void> _load() async {
     setState(() => _isLoading = true);
-    final jobs = await widget.jobPostRepository.list();
+    final jobs = await widget.jobPostRepository.getAll();
     final items = <_InterviewItem>[];
 
     for (final job in jobs) {

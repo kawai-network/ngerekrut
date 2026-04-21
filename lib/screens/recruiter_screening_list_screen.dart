@@ -4,25 +4,26 @@ import 'package:flutter/material.dart';
 
 import '../models/recruiter_job.dart';
 import '../models/recruiter_shortlist.dart';
-import '../repositories/local_job_post_repository.dart';
-import '../repositories/local_shortlist_repository.dart';
+import '../repositories/job_posting_repository.dart';
+import '../repositories/shortlist_artifact_repository.dart';
 
-class LocalScreeningListScreen extends StatefulWidget {
-  const LocalScreeningListScreen({
+class RecruiterScreeningListScreen extends StatefulWidget {
+  const RecruiterScreeningListScreen({
     super.key,
     required this.jobPostRepository,
     required this.shortlistRepository,
   });
 
-  final LocalJobPostRepository jobPostRepository;
-  final LocalShortlistRepository shortlistRepository;
+  final JobPostingRepository jobPostRepository;
+  final ShortlistArtifactRepository shortlistRepository;
 
   @override
-  State<LocalScreeningListScreen> createState() =>
-      _LocalScreeningListScreenState();
+  State<RecruiterScreeningListScreen> createState() =>
+      _RecruiterScreeningListScreenState();
 }
 
-class _LocalScreeningListScreenState extends State<LocalScreeningListScreen> {
+class _RecruiterScreeningListScreenState
+    extends State<RecruiterScreeningListScreen> {
   bool _isLoading = true;
   String _selectedFilter = 'all';
   List<_ScreeningItem> _items = const [];
@@ -35,7 +36,7 @@ class _LocalScreeningListScreenState extends State<LocalScreeningListScreen> {
 
   Future<void> _load() async {
     setState(() => _isLoading = true);
-    final jobs = await widget.jobPostRepository.list();
+    final jobs = await widget.jobPostRepository.getAll();
     final items = <_ScreeningItem>[];
 
     for (final job in jobs) {

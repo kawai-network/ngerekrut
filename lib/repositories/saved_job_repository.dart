@@ -1,5 +1,5 @@
 /// Saved Job repository using libsql_dart
-/// Replaces local_saved_job_repository.dart for shared data (sync across devices)
+/// Source of truth for shared saved-job data (sync across devices)
 library;
 
 import '../models/saved_job_record.dart';

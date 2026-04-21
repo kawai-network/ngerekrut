@@ -4,7 +4,6 @@ import 'package:ngerekrut/langchain/langchain.dart';
 
 import '../models/hiring_models.dart';
 import '../models/interview_guide_record.dart';
-import '../models/job_post_record.dart';
 import '../models/candidate_scorecard_record.dart';
 import '../models/recruiter_shortlist.dart';
 import '../models/recruiter_shortlist_record.dart';
@@ -12,10 +11,10 @@ import '../models/chat_session_record.dart';
 import '../models/recruiter_job.dart';
 import '../objectbox_store_provider.dart';
 import '../repositories/chat_session_repository.dart';
-import '../repositories/local_interview_guide_repository.dart';
-import '../repositories/local_job_post_repository.dart';
-import '../repositories/local_scorecard_repository.dart';
-import '../repositories/local_shortlist_repository.dart';
+import '../repositories/interview_guide_artifact_repository.dart';
+import '../repositories/job_posting_repository.dart';
+import '../repositories/scorecard_artifact_repository.dart';
+import '../repositories/shortlist_artifact_repository.dart';
 
 class MockRecruiterDataSeed {
   MockRecruiterDataSeed._();
@@ -26,7 +25,7 @@ class MockRecruiterDataSeed {
     }
 
     if (resetExisting) {
-      _clearLocalData();
+      _clearLocalArtifacts();
     }
 
     await _seedChatSessions();
@@ -34,10 +33,9 @@ class MockRecruiterDataSeed {
     await _seedInterviewData();
   }
 
-  static void _clearLocalData() {
+  static void _clearLocalArtifacts() {
     ObjectBoxStoreProvider.box<ChatSessionRecord>().removeAll();
     ObjectBoxStoreProvider.box<ChatMessageRecord>().removeAll();
-    ObjectBoxStoreProvider.box<JobPostRecord>().removeAll();
     ObjectBoxStoreProvider.box<RecruiterShortlistRecord>().removeAll();
     ObjectBoxStoreProvider.box<CandidateScorecardRecord>().removeAll();
     ObjectBoxStoreProvider.box<InterviewGuideRecord>().removeAll();
@@ -55,8 +53,9 @@ class MockRecruiterDataSeed {
       lisa.sessionId,
       'Siap bantu bikin lowongan. Posisi yang akan kita buka: Senior Flutter Developer untuk tim Engineering.',
     );
-    ChatMessage.humanText('Tolong buat JD senior flutter developer remote.')
-        .save(lisa.sessionId);
+    ChatMessage.humanText(
+      'Tolong buat JD senior flutter developer remote.',
+    ).save(lisa.sessionId);
     repository.recordMessage(
       lisa.sessionId,
       'Tolong buat JD senior flutter developer remote.',
@@ -68,7 +67,10 @@ class MockRecruiterDataSeed {
       lisa.sessionId,
       'Draft lowongan sudah siap dengan requirement Flutter, state management, testing, dan kolaborasi lintas fungsi.',
     );
-    repository.setTitle(lisa.sessionId, 'Senior Flutter Developer - Engineering');
+    repository.setTitle(
+      lisa.sessionId,
+      'Senior Flutter Developer - Engineering',
+    );
 
     final raka = repository.createSession(title: 'Screening Backend Engineer');
     ChatMessage.ai(
@@ -92,10 +94,10 @@ class MockRecruiterDataSeed {
   }
 
   static Future<void> _seedScreeningData() async {
-    final shortlistRepository = LocalShortlistRepository();
-    final jobRepository = LocalJobPostRepository();
+    final shortlistRepository = ShortlistArtifactRepository();
+    final jobRepository = JobPostingRepository();
 
-    await jobRepository.save(
+    await jobRepository.create(
       const RecruiterJob(
         id: 'job_flutter_001',
         title: 'Senior Flutter Developer',
@@ -112,7 +114,7 @@ class MockRecruiterDataSeed {
       ),
     );
 
-    await jobRepository.save(
+    await jobRepository.create(
       const RecruiterJob(
         id: 'job_warehouse_001',
         title: 'Admin Gudang',
@@ -129,7 +131,7 @@ class MockRecruiterDataSeed {
       ),
     );
 
-    await jobRepository.save(
+    await jobRepository.create(
       const RecruiterJob(
         id: 'job_backend_001',
         title: 'Backend Engineer',
@@ -346,8 +348,8 @@ class MockRecruiterDataSeed {
   }
 
   static Future<void> _seedInterviewData() async {
-    final guideRepository = LocalInterviewGuideRepository();
-    final scorecardRepository = LocalScorecardRepository();
+    final guideRepository = InterviewGuideArtifactRepository();
+    final scorecardRepository = ScorecardArtifactRepository();
 
     await guideRepository.save(
       jobId: 'job_flutter_001',
@@ -390,7 +392,8 @@ class MockRecruiterDataSeed {
             competency: Competency.technicalSkills,
             weight: 35,
             score: 5,
-            evidence: 'Menjelaskan state management dan testing strategy dengan rinci.',
+            evidence:
+                'Menjelaskan state management dan testing strategy dengan rinci.',
             strongSignals: ['Architecture kuat', 'Testing mindset'],
             concerns: [],
           ),

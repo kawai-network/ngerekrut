@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 
 import '../models/recruiter_job.dart';
 import '../models/recruiter_shortlist.dart';
-import '../repositories/local_interview_guide_repository.dart';
-import '../repositories/local_job_post_repository.dart';
-import '../repositories/local_scorecard_repository.dart';
-import '../repositories/local_shortlist_repository.dart';
+import '../repositories/interview_guide_artifact_repository.dart';
+import '../repositories/job_posting_repository.dart';
+import '../repositories/scorecard_artifact_repository.dart';
+import '../repositories/shortlist_artifact_repository.dart';
 
-class LocalJobPostListScreen extends StatefulWidget {
-  const LocalJobPostListScreen({
+class RecruiterJobPostListScreen extends StatefulWidget {
+  const RecruiterJobPostListScreen({
     super.key,
     required this.jobPostRepository,
     required this.shortlistRepository,
@@ -18,16 +18,18 @@ class LocalJobPostListScreen extends StatefulWidget {
     required this.interviewGuideRepository,
   });
 
-  final LocalJobPostRepository jobPostRepository;
-  final LocalShortlistRepository shortlistRepository;
-  final LocalScorecardRepository scorecardRepository;
-  final LocalInterviewGuideRepository interviewGuideRepository;
+  final JobPostingRepository jobPostRepository;
+  final ShortlistArtifactRepository shortlistRepository;
+  final ScorecardArtifactRepository scorecardRepository;
+  final InterviewGuideArtifactRepository interviewGuideRepository;
 
   @override
-  State<LocalJobPostListScreen> createState() => _LocalJobPostListScreenState();
+  State<RecruiterJobPostListScreen> createState() =>
+      _RecruiterJobPostListScreenState();
 }
 
-class _LocalJobPostListScreenState extends State<LocalJobPostListScreen> {
+class _RecruiterJobPostListScreenState
+    extends State<RecruiterJobPostListScreen> {
   bool _isLoading = true;
   List<_LocalJobPostSummary> _items = const [];
   String _statusFilter = 'all';
@@ -40,7 +42,7 @@ class _LocalJobPostListScreenState extends State<LocalJobPostListScreen> {
 
   Future<void> _load() async {
     setState(() => _isLoading = true);
-    final jobs = await widget.jobPostRepository.list();
+    final jobs = await widget.jobPostRepository.getAll();
     final summaries = <_LocalJobPostSummary>[];
 
     for (final job in jobs) {

@@ -3,25 +3,26 @@ library;
 import 'package:flutter/material.dart';
 
 import '../models/recruiter_job.dart';
-import '../repositories/local_job_post_repository.dart';
-import '../repositories/local_shortlist_repository.dart';
+import '../repositories/job_posting_repository.dart';
+import '../repositories/shortlist_artifact_repository.dart';
 
-class LocalAssessmentListScreen extends StatefulWidget {
-  const LocalAssessmentListScreen({
+class RecruiterAssessmentListScreen extends StatefulWidget {
+  const RecruiterAssessmentListScreen({
     super.key,
     required this.jobPostRepository,
     required this.shortlistRepository,
   });
 
-  final LocalJobPostRepository jobPostRepository;
-  final LocalShortlistRepository shortlistRepository;
+  final JobPostingRepository jobPostRepository;
+  final ShortlistArtifactRepository shortlistRepository;
 
   @override
-  State<LocalAssessmentListScreen> createState() =>
-      _LocalAssessmentListScreenState();
+  State<RecruiterAssessmentListScreen> createState() =>
+      _RecruiterAssessmentListScreenState();
 }
 
-class _LocalAssessmentListScreenState extends State<LocalAssessmentListScreen> {
+class _RecruiterAssessmentListScreenState
+    extends State<RecruiterAssessmentListScreen> {
   bool _isLoading = true;
   List<_AssessmentItem> _items = const [];
 
@@ -33,10 +34,12 @@ class _LocalAssessmentListScreenState extends State<LocalAssessmentListScreen> {
 
   Future<void> _load() async {
     setState(() => _isLoading = true);
-    final jobs = await widget.jobPostRepository.list();
+    final jobs = await widget.jobPostRepository.getAll();
     final items = <_AssessmentItem>[];
     for (final job in jobs) {
-      final shortlist = await widget.shortlistRepository.getLatestForJob(job.id);
+      final shortlist = await widget.shortlistRepository.getLatestForJob(
+        job.id,
+      );
       if (shortlist != null) {
         items.add(
           _AssessmentItem(
@@ -63,16 +66,16 @@ class _LocalAssessmentListScreenState extends State<LocalAssessmentListScreen> {
         children: [
           Text(
             'Tes skill',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 8),
           Text(
             'Placeholder operasional untuk assessment per lowongan. Saat ini dihitung dari kandidat top shortlist.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey.shade700,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700),
           ),
           const SizedBox(height: 16),
           if (_isLoading)
@@ -81,7 +84,7 @@ class _LocalAssessmentListScreenState extends State<LocalAssessmentListScreen> {
               child: Center(child: CircularProgressIndicator()),
             )
           else if (_items.isEmpty)
-            _empty(context, 'Belum ada assessment lokal')
+            _empty(context, 'Belum ada assessment')
           else
             ..._items.map((item) => _buildCard(context, item)),
         ],
@@ -103,9 +106,7 @@ class _LocalAssessmentListScreenState extends State<LocalAssessmentListScreen> {
           item.job.title,
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
-        subtitle: Text(
-          '${item.candidateCount} kandidat siap masuk tes',
-        ),
+        subtitle: Text('${item.candidateCount} kandidat siap masuk tes'),
         trailing: Text(item.status),
       ),
     );
@@ -121,9 +122,9 @@ class _LocalAssessmentListScreenState extends State<LocalAssessmentListScreen> {
       ),
       child: Text(
         title,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+        style: Theme.of(
+          context,
+        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
       ),
     );
   }

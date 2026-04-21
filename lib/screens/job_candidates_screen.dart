@@ -5,9 +5,9 @@ import '../models/candidate.dart';
 import '../models/recruiter_job.dart';
 import '../models/recruiter_shortlist.dart';
 import '../repositories/hiring_repository.dart';
-import '../repositories/local_interview_guide_repository.dart';
-import '../repositories/local_scorecard_repository.dart';
-import '../repositories/local_shortlist_repository.dart';
+import '../repositories/interview_guide_artifact_repository.dart';
+import '../repositories/scorecard_artifact_repository.dart';
+import '../repositories/shortlist_artifact_repository.dart';
 import '../services/interview_guide_generation_service.dart';
 import '../services/resume_screening_service.dart';
 import '../services/scorecard_generation_service.dart';
@@ -15,9 +15,9 @@ import 'shortlist_result_screen.dart';
 
 class JobCandidatesScreen extends StatefulWidget {
   final HiringRepository repository;
-  final LocalInterviewGuideRepository localInterviewGuideRepository;
-  final LocalShortlistRepository localShortlistRepository;
-  final LocalScorecardRepository localScorecardRepository;
+  final InterviewGuideArtifactRepository interviewGuideArtifactRepository;
+  final ShortlistArtifactRepository shortlistArtifactRepository;
+  final ScorecardArtifactRepository scorecardArtifactRepository;
   final InterviewGuideGenerationService interviewGuideGenerationService;
   final ResumeScreeningService screeningService;
   final ScorecardGenerationService scorecardGenerationService;
@@ -25,9 +25,9 @@ class JobCandidatesScreen extends StatefulWidget {
   const JobCandidatesScreen({
     super.key,
     required this.repository,
-    required this.localInterviewGuideRepository,
-    required this.localShortlistRepository,
-    required this.localScorecardRepository,
+    required this.interviewGuideArtifactRepository,
+    required this.shortlistArtifactRepository,
+    required this.scorecardArtifactRepository,
     required this.interviewGuideGenerationService,
     required this.screeningService,
     required this.scorecardGenerationService,
@@ -67,7 +67,7 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
 
       final targetJob = _resolveSelectedJob(jobs, selectedJobId);
       final data = await widget.repository.fetchCandidates(targetJob.id);
-      final shortlists = await widget.localShortlistRepository.listForJob(
+      final shortlists = await widget.shortlistArtifactRepository.listForJob(
         data.job.id,
       );
 
@@ -116,8 +116,8 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
         candidates: _candidates,
         topN: 3,
       );
-      await widget.localShortlistRepository.save(shortlist);
-      final shortlists = await widget.localShortlistRepository.listForJob(
+      await widget.shortlistArtifactRepository.save(shortlist);
+      final shortlists = await widget.shortlistArtifactRepository.listForJob(
         job.id,
       );
       if (!mounted) return;
@@ -140,7 +140,9 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
     if (job == null) return;
 
     final messenger = ScaffoldMessenger.of(context);
-    final saved = await widget.localShortlistRepository.getLatestForJob(job.id);
+    final saved = await widget.shortlistArtifactRepository.getLatestForJob(
+      job.id,
+    );
     if (!mounted) return;
     if (saved == null) {
       messenger.showSnackBar(
@@ -164,9 +166,10 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
       MaterialPageRoute(
         builder: (context) => ShortlistResultScreen(
           repository: widget.repository,
-          localInterviewGuideRepository: widget.localInterviewGuideRepository,
-          localShortlistRepository: widget.localShortlistRepository,
-          localScorecardRepository: widget.localScorecardRepository,
+          interviewGuideArtifactRepository:
+              widget.interviewGuideArtifactRepository,
+          shortlistArtifactRepository: widget.shortlistArtifactRepository,
+          scorecardArtifactRepository: widget.scorecardArtifactRepository,
           interviewGuideGenerationService:
               widget.interviewGuideGenerationService,
           scorecardGenerationService: widget.scorecardGenerationService,

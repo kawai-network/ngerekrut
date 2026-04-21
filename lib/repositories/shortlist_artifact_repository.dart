@@ -5,7 +5,7 @@ import '../models/recruiter_shortlist_record.dart';
 import '../objectbox.g.dart';
 import '../objectbox_store_provider.dart';
 
-class LocalShortlistRepository {
+class ShortlistArtifactRepository {
   Future<void> save(RecruiterShortlistResult result) async {
     if (!ObjectBoxStoreProvider.isInitialized) {
       await ObjectBoxStoreProvider.initialize();
@@ -18,7 +18,8 @@ class LocalShortlistRepository {
         .build()
         .findFirst();
 
-    final record = existing ??
+    final record =
+        existing ??
         RecruiterShortlistRecord(
           screeningId: result.screeningId,
           jobId: result.jobId,
@@ -41,7 +42,8 @@ class LocalShortlistRepository {
     record.topCandidatesJson = jsonEncode(
       result.topCandidates.map(_entryToJson).toList(),
     );
-    record.createdAt = result.createdAt ?? DateTime.now().millisecondsSinceEpoch;
+    record.createdAt =
+        result.createdAt ?? DateTime.now().millisecondsSinceEpoch;
 
     box.put(record);
   }

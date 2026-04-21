@@ -20,7 +20,6 @@ import '../flyer_chat_system_message/flyer_chat_system_message.dart';
 import '../models/job_posting.dart';
 import '../models/recruiter_job.dart';
 import '../repositories/job_posting_repository.dart';
-import '../repositories/local_job_post_repository.dart';
 import '../services/hybrid_ai_service.dart';
 
 /// Chat screen untuk bikin lowongan sekali prompt.
@@ -36,14 +35,13 @@ class JobPostingChatScreen extends StatefulWidget {
 
 class _JobPostingChatScreenState extends State<JobPostingChatScreen> {
   late final InMemoryChatController _chatController;
-  final LocalJobPostRepository _jobPostRepository = LocalJobPostRepository();
   final JobPostingRepository _sharedJobPostRepository = JobPostingRepository();
   HybridAIService? _hybridService;
   JobPosting? _lastGenerated;
   bool _isGenerating = false;
   bool _isInitializing = false;
   bool _isSaving = false;
-  bool _isSavedLocally = false;
+  bool _isSaved = false;
   double _downloadProgress = 0.0;
 
   final _uuid = const Uuid();
@@ -204,7 +202,7 @@ Setelah lowongan jadi, Anda bisa:
     try {
       final result = await _hybridService!.generateJobPosting(position);
       _lastGenerated = result.jobPosting;
-      _isSavedLocally = false;
+      _isSaved = false;
 
       final responseText = _formatJobPosting(
         result.jobPosting,
@@ -256,7 +254,7 @@ Setelah lowongan jadi, Anda bisa:
         request,
       );
       _lastGenerated = result.jobPosting;
-      _isSavedLocally = false;
+      _isSaved = false;
 
       final responseText = _formatJobPosting(
         result.jobPosting,
@@ -337,13 +335,12 @@ Setelah lowongan jadi, Anda bisa:
         requirements: job.requirements,
         status: 'draft',
       );
-      await _jobPostRepository.save(savedJob);
       await _sharedJobPostRepository.create(savedJob);
       if (!mounted) return;
-      setState(() => _isSavedLocally = true);
+      setState(() => _isSaved = true);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Lowongan berhasil disimpan ke daftar lokal.'),
+          content: Text('Lowongan berhasil disimpan ke database shared.'),
         ),
       );
     } catch (e) {
@@ -454,7 +451,7 @@ Setelah lowongan jadi, Anda bisa:
           if (_lastGenerated != null && !_isInitializing)
             _GeneratedJobActionPanel(
               job: _lastGenerated!,
-              isSavedLocally: _isSavedLocally,
+              isSaved: _isSaved,
               isSaving: _isSaving,
               onSave: _saveJobPosting,
               onCopy: _copyToClipboard,
@@ -586,14 +583,14 @@ Setelah lowongan jadi, Anda bisa:
 class _GeneratedJobActionPanel extends StatelessWidget {
   const _GeneratedJobActionPanel({
     required this.job,
-    required this.isSavedLocally,
+    required this.isSaved,
     required this.isSaving,
     required this.onSave,
     required this.onCopy,
   });
 
   final JobPosting job;
-  final bool isSavedLocally;
+  final bool isSaved;
   final bool isSaving;
   final VoidCallback onSave;
   final Future<void> Function() onCopy;
@@ -639,15 +636,15 @@ class _GeneratedJobActionPanel extends StatelessWidget {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: isSavedLocally
+                  color: isSaved
                       ? const Color(0xFFDCFCE7)
                       : const Color(0xFFFEF3C7),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  isSavedLocally ? 'Tersimpan' : 'Belum disimpan',
+                  isSaved ? 'Tersimpan' : 'Belum disimpan',
                   style: TextStyle(
-                    color: isSavedLocally
+                    color: isSaved
                         ? const Color(0xFF166534)
                         : const Color(0xFFB45309),
                     fontWeight: FontWeight.w700,

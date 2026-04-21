@@ -19,7 +19,6 @@ import 'models/candidate_scorecard_record.dart';
 import 'models/chat_session_record.dart';
 import 'models/interview_guide_record.dart';
 import 'models/job_application_record.dart';
-import 'models/job_post_record.dart';
 import 'models/recruiter_shortlist_record.dart';
 import 'models/saved_job_record.dart';
 
@@ -317,76 +316,6 @@ final _entities = <obx_int.ModelEntity>[
     backlinks: <obx_int.ModelBacklink>[],
   ),
   obx_int.ModelEntity(
-    id: const obx_int.IdUid(10, 8969959986745170977),
-    name: 'JobPostRecord',
-    lastPropertyId: const obx_int.IdUid(10, 5809072660839361631),
-    flags: 0,
-    properties: <obx_int.ModelProperty>[
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(1, 800037097158100694),
-        name: 'id',
-        type: 6,
-        flags: 1,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(2, 3061842719188420887),
-        name: 'jobId',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(3, 2754621188149784392),
-        name: 'title',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(4, 624823159226967746),
-        name: 'department',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(5, 6639824955790379300),
-        name: 'location',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(6, 509033731412474970),
-        name: 'description',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(7, 862298806667932958),
-        name: 'requirementsJson',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(8, 236271528955060177),
-        name: 'status',
-        type: 9,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(9, 7906702866460494364),
-        name: 'createdAt',
-        type: 6,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
-        id: const obx_int.IdUid(10, 5809072660839361631),
-        name: 'updatedAt',
-        type: 6,
-        flags: 0,
-      ),
-    ],
-    relations: <obx_int.ModelRelation>[],
-    backlinks: <obx_int.ModelBacklink>[],
-  ),
-  obx_int.ModelEntity(
     id: const obx_int.IdUid(11, 8753400415785169320),
     name: 'JobApplicationRecord',
     lastPropertyId: const obx_int.IdUid(18, 3652278966804255296),
@@ -618,6 +547,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
       3771481167136907639,
       604602462602967945,
       8873902695905099242,
+      8969959986745170977,
     ],
     retiredIndexUids: const [],
     retiredPropertyUids: const [
@@ -678,6 +608,16 @@ obx_int.ModelDefinition getObjectBoxModel() {
       2551999332351935629,
       5297307485412032798,
       633213066595533854,
+      800037097158100694,
+      3061842719188420887,
+      2754621188149784392,
+      624823159226967746,
+      6639824955790379300,
+      509033731412474970,
+      862298806667932958,
+      236271528955060177,
+      7906702866460494364,
+      5809072660839361631,
     ],
     retiredRelationUids: const [],
     modelVersion: 5,
@@ -1080,102 +1020,8 @@ obx_int.ModelDefinition getObjectBoxModel() {
         return object;
       },
     ),
-    JobPostRecord: obx_int.EntityDefinition<JobPostRecord>(
-      model: _entities[5],
-      toOneRelations: (JobPostRecord object) => [],
-      toManyRelations: (JobPostRecord object) => {},
-      getId: (JobPostRecord object) => object.id,
-      setId: (JobPostRecord object, int id) {
-        object.id = id;
-      },
-      objectToFB: (JobPostRecord object, fb.Builder fbb) {
-        final jobIdOffset = fbb.writeString(object.jobId);
-        final titleOffset = fbb.writeString(object.title);
-        final departmentOffset = object.department == null
-            ? null
-            : fbb.writeString(object.department!);
-        final locationOffset = object.location == null
-            ? null
-            : fbb.writeString(object.location!);
-        final descriptionOffset = object.description == null
-            ? null
-            : fbb.writeString(object.description!);
-        final requirementsJsonOffset = fbb.writeString(object.requirementsJson);
-        final statusOffset = fbb.writeString(object.status);
-        fbb.startTable(11);
-        fbb.addInt64(0, object.id);
-        fbb.addOffset(1, jobIdOffset);
-        fbb.addOffset(2, titleOffset);
-        fbb.addOffset(3, departmentOffset);
-        fbb.addOffset(4, locationOffset);
-        fbb.addOffset(5, descriptionOffset);
-        fbb.addOffset(6, requirementsJsonOffset);
-        fbb.addOffset(7, statusOffset);
-        fbb.addInt64(8, object.createdAt);
-        fbb.addInt64(9, object.updatedAt);
-        fbb.finish(fbb.endTable());
-        return object.id;
-      },
-      objectFromFB: (obx.Store store, ByteData fbData) {
-        final buffer = fb.BufferContext(fbData);
-        final rootOffset = buffer.derefObject(0);
-        final idParam = const fb.Int64Reader().vTableGet(
-          buffer,
-          rootOffset,
-          4,
-          0,
-        );
-        final jobIdParam = const fb.StringReader(
-          asciiOptimization: true,
-        ).vTableGet(buffer, rootOffset, 6, '');
-        final titleParam = const fb.StringReader(
-          asciiOptimization: true,
-        ).vTableGet(buffer, rootOffset, 8, '');
-        final departmentParam = const fb.StringReader(
-          asciiOptimization: true,
-        ).vTableGetNullable(buffer, rootOffset, 10);
-        final locationParam = const fb.StringReader(
-          asciiOptimization: true,
-        ).vTableGetNullable(buffer, rootOffset, 12);
-        final descriptionParam = const fb.StringReader(
-          asciiOptimization: true,
-        ).vTableGetNullable(buffer, rootOffset, 14);
-        final requirementsJsonParam = const fb.StringReader(
-          asciiOptimization: true,
-        ).vTableGet(buffer, rootOffset, 16, '');
-        final statusParam = const fb.StringReader(
-          asciiOptimization: true,
-        ).vTableGet(buffer, rootOffset, 18, '');
-        final createdAtParam = const fb.Int64Reader().vTableGet(
-          buffer,
-          rootOffset,
-          20,
-          0,
-        );
-        final updatedAtParam = const fb.Int64Reader().vTableGet(
-          buffer,
-          rootOffset,
-          22,
-          0,
-        );
-        final object = JobPostRecord(
-          id: idParam,
-          jobId: jobIdParam,
-          title: titleParam,
-          department: departmentParam,
-          location: locationParam,
-          description: descriptionParam,
-          requirementsJson: requirementsJsonParam,
-          status: statusParam,
-          createdAt: createdAtParam,
-          updatedAt: updatedAtParam,
-        );
-
-        return object;
-      },
-    ),
     JobApplicationRecord: obx_int.EntityDefinition<JobApplicationRecord>(
-      model: _entities[6],
+      model: _entities[5],
       toOneRelations: (JobApplicationRecord object) => [],
       toManyRelations: (JobApplicationRecord object) => {},
       getId: (JobApplicationRecord object) => object.id,
@@ -1332,7 +1178,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
       },
     ),
     SavedJobRecord: obx_int.EntityDefinition<SavedJobRecord>(
-      model: _entities[7],
+      model: _entities[6],
       toOneRelations: (SavedJobRecord object) => [],
       toManyRelations: (SavedJobRecord object) => {},
       getId: (SavedJobRecord object) => object.id,
@@ -1638,150 +1484,97 @@ class ChatSessionRecord_ {
   );
 }
 
-/// [JobPostRecord] entity fields to define ObjectBox queries.
-class JobPostRecord_ {
-  /// See [JobPostRecord.id].
-  static final id = obx.QueryIntegerProperty<JobPostRecord>(
-    _entities[5].properties[0],
-  );
-
-  /// See [JobPostRecord.jobId].
-  static final jobId = obx.QueryStringProperty<JobPostRecord>(
-    _entities[5].properties[1],
-  );
-
-  /// See [JobPostRecord.title].
-  static final title = obx.QueryStringProperty<JobPostRecord>(
-    _entities[5].properties[2],
-  );
-
-  /// See [JobPostRecord.department].
-  static final department = obx.QueryStringProperty<JobPostRecord>(
-    _entities[5].properties[3],
-  );
-
-  /// See [JobPostRecord.location].
-  static final location = obx.QueryStringProperty<JobPostRecord>(
-    _entities[5].properties[4],
-  );
-
-  /// See [JobPostRecord.description].
-  static final description = obx.QueryStringProperty<JobPostRecord>(
-    _entities[5].properties[5],
-  );
-
-  /// See [JobPostRecord.requirementsJson].
-  static final requirementsJson = obx.QueryStringProperty<JobPostRecord>(
-    _entities[5].properties[6],
-  );
-
-  /// See [JobPostRecord.status].
-  static final status = obx.QueryStringProperty<JobPostRecord>(
-    _entities[5].properties[7],
-  );
-
-  /// See [JobPostRecord.createdAt].
-  static final createdAt = obx.QueryIntegerProperty<JobPostRecord>(
-    _entities[5].properties[8],
-  );
-
-  /// See [JobPostRecord.updatedAt].
-  static final updatedAt = obx.QueryIntegerProperty<JobPostRecord>(
-    _entities[5].properties[9],
-  );
-}
-
 /// [JobApplicationRecord] entity fields to define ObjectBox queries.
 class JobApplicationRecord_ {
   /// See [JobApplicationRecord.id].
   static final id = obx.QueryIntegerProperty<JobApplicationRecord>(
-    _entities[6].properties[0],
+    _entities[5].properties[0],
   );
 
   /// See [JobApplicationRecord.applicationId].
   static final applicationId = obx.QueryStringProperty<JobApplicationRecord>(
-    _entities[6].properties[1],
+    _entities[5].properties[1],
   );
 
   /// See [JobApplicationRecord.jobId].
   static final jobId = obx.QueryStringProperty<JobApplicationRecord>(
-    _entities[6].properties[2],
+    _entities[5].properties[2],
   );
 
   /// See [JobApplicationRecord.candidateId].
   static final candidateId = obx.QueryStringProperty<JobApplicationRecord>(
-    _entities[6].properties[3],
+    _entities[5].properties[3],
   );
 
   /// See [JobApplicationRecord.jobTitle].
   static final jobTitle = obx.QueryStringProperty<JobApplicationRecord>(
-    _entities[6].properties[4],
+    _entities[5].properties[4],
   );
 
   /// See [JobApplicationRecord.company].
   static final company = obx.QueryStringProperty<JobApplicationRecord>(
-    _entities[6].properties[5],
+    _entities[5].properties[5],
   );
 
   /// See [JobApplicationRecord.location].
   static final location = obx.QueryStringProperty<JobApplicationRecord>(
-    _entities[6].properties[6],
+    _entities[5].properties[6],
   );
 
   /// See [JobApplicationRecord.status].
   static final status = obx.QueryStringProperty<JobApplicationRecord>(
-    _entities[6].properties[7],
+    _entities[5].properties[7],
   );
 
   /// See [JobApplicationRecord.appliedAt].
   static final appliedAt = obx.QueryIntegerProperty<JobApplicationRecord>(
-    _entities[6].properties[8],
+    _entities[5].properties[8],
   );
 
   /// See [JobApplicationRecord.updatedAt].
   static final updatedAt = obx.QueryIntegerProperty<JobApplicationRecord>(
-    _entities[6].properties[9],
+    _entities[5].properties[9],
   );
 
   /// See [JobApplicationRecord.expectedSalary].
   static final expectedSalary = obx.QueryStringProperty<JobApplicationRecord>(
-    _entities[6].properties[10],
+    _entities[5].properties[10],
   );
 
   /// See [JobApplicationRecord.coverLetter].
   static final coverLetter = obx.QueryStringProperty<JobApplicationRecord>(
-    _entities[6].properties[11],
+    _entities[5].properties[11],
   );
 
   /// See [JobApplicationRecord.resumeId].
   static final resumeId = obx.QueryStringProperty<JobApplicationRecord>(
-    _entities[6].properties[12],
+    _entities[5].properties[12],
   );
 
   /// See [JobApplicationRecord.interviewDatesJson].
   static final interviewDatesJson =
       obx.QueryStringProperty<JobApplicationRecord>(
-        _entities[6].properties[13],
+        _entities[5].properties[13],
       );
 
   /// See [JobApplicationRecord.rejectionReason].
   static final rejectionReason = obx.QueryStringProperty<JobApplicationRecord>(
-    _entities[6].properties[14],
+    _entities[5].properties[14],
   );
 
   /// See [JobApplicationRecord.recruiterNotes].
   static final recruiterNotes = obx.QueryStringProperty<JobApplicationRecord>(
-    _entities[6].properties[15],
+    _entities[5].properties[15],
   );
 
   /// See [JobApplicationRecord.internalRating].
   static final internalRating = obx.QueryIntegerProperty<JobApplicationRecord>(
-    _entities[6].properties[16],
+    _entities[5].properties[16],
   );
 
   /// See [JobApplicationRecord.source].
   static final source = obx.QueryStringProperty<JobApplicationRecord>(
-    _entities[6].properties[17],
+    _entities[5].properties[17],
   );
 }
 
@@ -1789,41 +1582,41 @@ class JobApplicationRecord_ {
 class SavedJobRecord_ {
   /// See [SavedJobRecord.id].
   static final id = obx.QueryIntegerProperty<SavedJobRecord>(
-    _entities[7].properties[0],
+    _entities[6].properties[0],
   );
 
   /// See [SavedJobRecord.jobId].
   static final jobId = obx.QueryStringProperty<SavedJobRecord>(
-    _entities[7].properties[1],
+    _entities[6].properties[1],
   );
 
   /// See [SavedJobRecord.title].
   static final title = obx.QueryStringProperty<SavedJobRecord>(
-    _entities[7].properties[2],
+    _entities[6].properties[2],
   );
 
   /// See [SavedJobRecord.company].
   static final company = obx.QueryStringProperty<SavedJobRecord>(
-    _entities[7].properties[3],
+    _entities[6].properties[3],
   );
 
   /// See [SavedJobRecord.location].
   static final location = obx.QueryStringProperty<SavedJobRecord>(
-    _entities[7].properties[4],
+    _entities[6].properties[4],
   );
 
   /// See [SavedJobRecord.savedAt].
   static final savedAt = obx.QueryIntegerProperty<SavedJobRecord>(
-    _entities[7].properties[5],
+    _entities[6].properties[5],
   );
 
   /// See [SavedJobRecord.notes].
   static final notes = obx.QueryStringProperty<SavedJobRecord>(
-    _entities[7].properties[6],
+    _entities[6].properties[6],
   );
 
   /// See [SavedJobRecord.isActive].
   static final isActive = obx.QueryBooleanProperty<SavedJobRecord>(
-    _entities[7].properties[7],
+    _entities[6].properties[7],
   );
 }

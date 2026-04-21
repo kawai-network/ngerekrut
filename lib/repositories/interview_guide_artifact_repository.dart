@@ -21,7 +21,7 @@ class StoredInterviewGuide {
   });
 }
 
-class LocalInterviewGuideRepository {
+class InterviewGuideArtifactRepository {
   Future<void> save({
     required String jobId,
     required String candidateId,

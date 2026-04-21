@@ -5,17 +5,17 @@ import '../models/hiring_models.dart';
 import '../models/recruiter_job.dart';
 import '../models/recruiter_shortlist.dart';
 import '../repositories/hiring_repository.dart';
-import '../repositories/local_interview_guide_repository.dart';
-import '../repositories/local_scorecard_repository.dart';
-import '../repositories/local_shortlist_repository.dart';
+import '../repositories/interview_guide_artifact_repository.dart';
+import '../repositories/scorecard_artifact_repository.dart';
+import '../repositories/shortlist_artifact_repository.dart';
 import '../services/interview_guide_generation_service.dart';
 import '../services/scorecard_generation_service.dart';
 
 class ShortlistResultScreen extends StatefulWidget {
   final HiringRepository repository;
-  final LocalInterviewGuideRepository localInterviewGuideRepository;
-  final LocalShortlistRepository localShortlistRepository;
-  final LocalScorecardRepository localScorecardRepository;
+  final InterviewGuideArtifactRepository interviewGuideArtifactRepository;
+  final ShortlistArtifactRepository shortlistArtifactRepository;
+  final ScorecardArtifactRepository scorecardArtifactRepository;
   final InterviewGuideGenerationService interviewGuideGenerationService;
   final ScorecardGenerationService scorecardGenerationService;
   final RecruiterJob job;
@@ -24,9 +24,9 @@ class ShortlistResultScreen extends StatefulWidget {
   const ShortlistResultScreen({
     super.key,
     required this.repository,
-    required this.localInterviewGuideRepository,
-    required this.localShortlistRepository,
-    required this.localScorecardRepository,
+    required this.interviewGuideArtifactRepository,
+    required this.shortlistArtifactRepository,
+    required this.scorecardArtifactRepository,
     required this.interviewGuideGenerationService,
     required this.scorecardGenerationService,
     required this.job,
@@ -56,14 +56,13 @@ class _ShortlistResultScreenState extends State<ShortlistResultScreen> {
     try {
       final result =
           widget.initialResult ??
-          await widget.localShortlistRepository.getLatestForJob(
+          await widget.shortlistArtifactRepository.getLatestForJob(
             widget.job.id,
           ) ??
           await widget.repository.fetchLatestShortlist(widget.job.id);
-      final storedScorecards = await widget.localScorecardRepository.listForJob(
-        widget.job.id,
-      );
-      final storedGuides = await widget.localInterviewGuideRepository
+      final storedScorecards = await widget.scorecardArtifactRepository
+          .listForJob(widget.job.id);
+      final storedGuides = await widget.interviewGuideArtifactRepository
           .listForJob(widget.job.id);
 
       final groupedScorecards = <String, List<StoredInterviewScorecard>>{};
@@ -104,14 +103,14 @@ class _ShortlistResultScreenState extends State<ShortlistResultScreen> {
                 ? entry.gaps.take(2).toList()
                 : null,
           );
-      await widget.localInterviewGuideRepository.save(
+      await widget.interviewGuideArtifactRepository.save(
         jobId: widget.job.id,
         candidateId: entry.candidateId,
         candidateName: entry.candidateName,
         guide: generated.guide,
         usedMode: generated.usedMode.name,
       );
-      final updated = await widget.localInterviewGuideRepository
+      final updated = await widget.interviewGuideArtifactRepository
           .listForCandidate(
             jobId: widget.job.id,
             candidateId: entry.candidateId,
@@ -162,14 +161,14 @@ class _ShortlistResultScreenState extends State<ShortlistResultScreen> {
             candidateName: entry.candidateName,
             interviewType: interviewType,
           );
-      await widget.localScorecardRepository.save(
+      await widget.scorecardArtifactRepository.save(
         jobId: widget.job.id,
         candidateId: entry.candidateId,
         candidateName: entry.candidateName,
         scorecard: generated.scorecard,
         usedMode: generated.usedMode.name,
       );
-      final updated = await widget.localScorecardRepository.listForCandidate(
+      final updated = await widget.scorecardArtifactRepository.listForCandidate(
         jobId: widget.job.id,
         candidateId: entry.candidateId,
       );

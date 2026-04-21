@@ -1,6 +1,8 @@
 # ngerekrut
 
-Flutter chat app with ObjectBox persistence and optional vector search.
+Flutter recruiter/jobseeker app with:
+- `libsql_dart` for shared business data
+- `ObjectBox` for local chat and recruiter artifacts
 
 ## Quickstart
 
@@ -9,21 +11,34 @@ Flutter chat app with ObjectBox persistence and optional vector search.
 flutter pub get
 ```
 
-2. Generate ObjectBox code
+2. Generate code
 ```bash
 dart run build_runner build --delete-conflicting-outputs
 ```
 
-This generates `lib/objectbox.g.dart`.
+This regenerates files such as `lib/objectbox.g.dart` and JSON/Freezed outputs.
 
 3. Run the app
 ```bash
 flutter run --flavor recruiter -t lib/main_recruiter.dart
 ```
 
+## Storage Architecture
+
+- `libsql_dart`
+  - `job_postings`
+  - `job_applications`
+  - `saved_jobs`
+  - `candidates`
+- `ObjectBox`
+  - chat sessions/messages
+  - shortlist cache
+  - scorecards
+  - interview guides
+
 ## ObjectBox Setup
 
-Initialize ObjectBox once at app startup:
+Initialize ObjectBox once at app startup for local-only data:
 
 ```dart
 import 'package:ngerekrut/objectbox/objectbox.dart';
@@ -40,7 +55,9 @@ await controller.loadMessages(limit: 50);
 
 ## Features
 
-- Persistent chat storage via ObjectBox
+- Shared recruiter/jobseeker data via LibSQL/Turso
+- Persistent local chat storage via ObjectBox
+- Local recruiter artifacts via ObjectBox
 - In-memory cache for UI speed
 - Reactions and pagination
 - Optional vector search with HNSW index (see `lib/objectbox/objectbox/message_entity.dart`)

@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 
 import '../dev/mock_recruiter_data_seed.dart';
 import '../repositories/hiring_repository.dart';
-import '../repositories/local_interview_guide_repository.dart';
-import '../repositories/local_job_post_repository.dart';
-import '../repositories/local_scorecard_repository.dart';
-import '../repositories/local_shortlist_repository.dart';
+import '../repositories/interview_guide_artifact_repository.dart';
+import '../repositories/job_posting_repository.dart';
+import '../repositories/scorecard_artifact_repository.dart';
+import '../repositories/shortlist_artifact_repository.dart';
 import '../screens/full_chat_screen.dart';
 import '../screens/gemma_proof_screen.dart';
 import '../screens/hiring_screen.dart';
@@ -18,9 +18,9 @@ import '../ai/assistants/assistant_context.dart';
 import '../screens/assistant_chat_screen.dart';
 import '../models/recruiter_job.dart';
 import '../models/recruiter_shortlist.dart';
-import '../screens/local_interview_list_screen.dart';
-import '../screens/local_job_post_list_screen.dart';
-import '../screens/local_screening_list_screen.dart';
+import '../screens/recruiter_interview_list_screen.dart';
+import '../screens/recruiter_job_post_list_screen.dart';
+import '../screens/recruiter_screening_list_screen.dart';
 import '../screens/job_posting_chat_screen.dart';
 import '../services/api/candidates_api.dart';
 import '../services/api/cloudflare_kv_api_client.dart';
@@ -65,14 +65,13 @@ class RecruiterHomeScreen extends StatefulWidget {
 }
 
 class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
-  final LocalShortlistRepository _localShortlistRepository =
-      LocalShortlistRepository();
-  final LocalJobPostRepository _localJobPostRepository =
-      LocalJobPostRepository();
-  final LocalScorecardRepository _localScorecardRepository =
-      LocalScorecardRepository();
-  final LocalInterviewGuideRepository _localInterviewGuideRepository =
-      LocalInterviewGuideRepository();
+  final ShortlistArtifactRepository _shortlistArtifactRepository =
+      ShortlistArtifactRepository();
+  final JobPostingRepository _jobPostingRepository = JobPostingRepository();
+  final ScorecardArtifactRepository _scorecardArtifactRepository =
+      ScorecardArtifactRepository();
+  final InterviewGuideArtifactRepository _interviewGuideArtifactRepository =
+      InterviewGuideArtifactRepository();
 
   HybridAIService? _hybridService;
   HiringRepository? _hiringRepository;
@@ -140,9 +139,9 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
       setState(() => _isLoadingDashboard = true);
     }
 
-    final jobs = await _localJobPostRepository.list();
-    final scorecards = await _localScorecardRepository.listAll();
-    final guides = await _localInterviewGuideRepository.listAll();
+    final jobs = await _jobPostingRepository.getAll();
+    final scorecards = await _scorecardArtifactRepository.listAll();
+    final guides = await _interviewGuideArtifactRepository.listAll();
     final activeJobs = jobs.where((job) => _isActiveJob(job.status)).length;
     final draftJobs = jobs
         .where((job) => job.status.toLowerCase() == 'draft')
@@ -154,7 +153,9 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
     var readyForInterview = 0;
 
     for (final job in jobs) {
-      final shortlist = await _localShortlistRepository.getLatestForJob(job.id);
+      final shortlist = await _shortlistArtifactRepository.getLatestForJob(
+        job.id,
+      );
       final rankedCount = shortlist?.rankedCandidates.length ?? 0;
       final topCount = shortlist?.topCandidates.length ?? 0;
       final reviewCount = shortlist == null ? 0 : rankedCount - topCount;
@@ -307,21 +308,21 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
           _openHiringAssistant();
         },
       ),
-      LocalJobPostListScreen(
-        jobPostRepository: _localJobPostRepository,
-        shortlistRepository: _localShortlistRepository,
-        scorecardRepository: _localScorecardRepository,
-        interviewGuideRepository: _localInterviewGuideRepository,
+      RecruiterJobPostListScreen(
+        jobPostRepository: _jobPostingRepository,
+        shortlistRepository: _shortlistArtifactRepository,
+        scorecardRepository: _scorecardArtifactRepository,
+        interviewGuideRepository: _interviewGuideArtifactRepository,
       ),
-      LocalScreeningListScreen(
-        jobPostRepository: _localJobPostRepository,
-        shortlistRepository: _localShortlistRepository,
+      RecruiterScreeningListScreen(
+        jobPostRepository: _jobPostingRepository,
+        shortlistRepository: _shortlistArtifactRepository,
       ),
-      LocalInterviewListScreen(
-        jobPostRepository: _localJobPostRepository,
-        shortlistRepository: _localShortlistRepository,
-        scorecardRepository: _localScorecardRepository,
-        interviewGuideRepository: _localInterviewGuideRepository,
+      RecruiterInterviewListScreen(
+        jobPostRepository: _jobPostingRepository,
+        shortlistRepository: _shortlistArtifactRepository,
+        scorecardRepository: _scorecardArtifactRepository,
+        interviewGuideRepository: _interviewGuideArtifactRepository,
       ),
     ][_selectedIndex];
 
@@ -456,7 +457,7 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
   Future<AssistantContext> _buildAssistantContext() async {
     switch (_selectedIndex) {
       case 1: // Lowongan
-        final jobs = await _localJobPostRepository.list();
+        final jobs = await _jobPostingRepository.getAll();
         final firstJob = jobs.isNotEmpty ? jobs.first : null;
 
         if (firstJob == null) {
@@ -469,7 +470,7 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
           );
         }
 
-        final shortlist = await _localShortlistRepository.getLatestForJob(
+        final shortlist = await _shortlistArtifactRepository.getLatestForJob(
           firstJob.id,
         );
 
@@ -493,11 +494,11 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
         );
 
       case 2: // Kandidat
-        final jobs = await _localJobPostRepository.list();
+        final jobs = await _jobPostingRepository.getAll();
         final screenings = <_ScreeningData>[];
 
         for (final job in jobs) {
-          final shortlist = await _localShortlistRepository.getLatestForJob(
+          final shortlist = await _shortlistArtifactRepository.getLatestForJob(
             job.id,
           );
           if (shortlist != null && shortlist.rankedCandidates.isNotEmpty) {
@@ -535,8 +536,8 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
         );
 
       case 3: // Interview
-        final guides = await _localInterviewGuideRepository.listAll();
-        final scorecards = await _localScorecardRepository.listAll();
+        final guides = await _interviewGuideArtifactRepository.listAll();
+        final scorecards = await _scorecardArtifactRepository.listAll();
 
         return AssistantContext(
           extraData: {
@@ -549,7 +550,7 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
         );
 
       default:
-        final jobs = await _localJobPostRepository.list();
+        final jobs = await _jobPostingRepository.getAll();
         final readyForReview = _dashboardData?.reviewCandidates ?? 0;
         return AssistantContext(
           extraData: {
@@ -625,9 +626,9 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
       MaterialPageRoute(
         builder: (context) => JobCandidatesScreen(
           repository: repository,
-          localInterviewGuideRepository: _localInterviewGuideRepository,
-          localShortlistRepository: _localShortlistRepository,
-          localScorecardRepository: _localScorecardRepository,
+          interviewGuideArtifactRepository: _interviewGuideArtifactRepository,
+          shortlistArtifactRepository: _shortlistArtifactRepository,
+          scorecardArtifactRepository: _scorecardArtifactRepository,
           interviewGuideGenerationService: InterviewGuideGenerationService(
             aiService: service,
           ),

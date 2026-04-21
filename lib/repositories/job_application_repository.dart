@@ -1,5 +1,5 @@
 /// Job Application repository using libsql_dart
-/// Replaces local_job_application_repository.dart for shared data
+/// Source of truth for shared job application data
 library;
 
 import 'dart:convert';

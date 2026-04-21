@@ -21,7 +21,7 @@ class StoredInterviewScorecard {
   });
 }
 
-class LocalScorecardRepository {
+class ScorecardArtifactRepository {
   Future<void> save({
     required String jobId,
     required String candidateId,
