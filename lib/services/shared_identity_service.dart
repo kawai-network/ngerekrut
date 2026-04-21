@@ -10,10 +10,6 @@ import 'supabase_log_service.dart';
 class SharedIdentityService {
   const SharedIdentityService._();
 
-  static const List<String> _calendarScopes = [
-    'https://www.googleapis.com/auth/calendar.events',
-  ];
-
   static FirebaseAuth get _auth => FirebaseAuth.instance;
   static bool _googleInitialized = false;
 
@@ -45,7 +41,7 @@ class SharedIdentityService {
       currentUser?.getIdTokenResult();
 
   static Future<UserCredential> signInWithGoogle() async {
-    return signInWithGoogleCalendarAccess(requestCalendarAccess: true);
+    return signInWithGoogleCalendarAccess(requestCalendarAccess: false);
   }
 
   static Future<UserCredential> signInWithGoogleCalendarAccess({
@@ -53,12 +49,10 @@ class SharedIdentityService {
   }) async {
     try {
       await _ensureGoogleInitialized();
-      final googleUser = await GoogleSignIn.instance.authenticate(
-        scopeHint: requestCalendarAccess ? _calendarScopes : const <String>[],
-      );
-      if (requestCalendarAccess) {
-        await googleUser.authorizationClient.authorizeScopes(_calendarScopes);
-      }
+      // Keep account authentication separate from Calendar authorization.
+      // Calendar permission is requested later by GoogleCalendarService
+      // when the user explicitly uses Calendar sync features.
+      final googleUser = await GoogleSignIn.instance.authenticate();
       final googleAuth = googleUser.authentication;
       final idToken = googleAuth.idToken;
       if (idToken == null || idToken.isEmpty) {

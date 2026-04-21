@@ -95,6 +95,30 @@ jobs:
           # Verify key.properties
           cat android/key.properties
 
+      - name: Print signing certificate fingerprints
+        shell: bash
+        run: |
+          keytool -list -v \
+            -keystore android/app/release-keystore.jks \
+            -alias '${{ secrets.KEY_ALIAS }}' \
+            -storepass '${{ secrets.KEYSTORE_PASSWORD }}' \
+            -keypass '${{ secrets.KEY_PASSWORD }}' | grep -E 'Alias name:|SHA1:|SHA256:'
+
+      - name: Verify expected signing SHA1
+        if: ${{ secrets.EXPECTED_ANDROID_SHA1 != '' }}
+        shell: bash
+        run: |
+          ACTUAL_SHA1=$(keytool -list -v \
+            -keystore android/app/release-keystore.jks \
+            -alias '${{ secrets.KEY_ALIAS }}' \
+            -storepass '${{ secrets.KEYSTORE_PASSWORD }}' \
+            -keypass '${{ secrets.KEY_PASSWORD }}' | sed -n 's/.*SHA1: //p')
+          echo "CI signing SHA1: ${ACTUAL_SHA1}"
+          if [ "${ACTUAL_SHA1}" != "${{ secrets.EXPECTED_ANDROID_SHA1 }}" ]; then
+            echo "Expected SHA1 does not match CI signing certificate"
+            exit 1
+          fi
+
       - name: Setup environment variables
         shell: bash
         run: |

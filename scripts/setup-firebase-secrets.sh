@@ -150,6 +150,64 @@ else
   echo ""
 fi
 
+# 6. EXPECTED_ANDROID_SHA1 (optional - for CI signing verification)
+KEYSTORE_PATH=""
+KEYSTORE_ALIAS=""
+KEYSTORE_PASSWORD=""
+KEY_PASSWORD=""
+
+if [ -f "android/key.properties" ]; then
+  KEYSTORE_ALIAS=$(grep "^keyAlias=" android/key.properties | cut -d'=' -f2-)
+  KEYSTORE_PASSWORD=$(grep "^storePassword=" android/key.properties | cut -d'=' -f2-)
+  KEY_PASSWORD=$(grep "^keyPassword=" android/key.properties | cut -d'=' -f2-)
+  KEYSTORE_FILE=$(grep "^storeFile=" android/key.properties | cut -d'=' -f2-)
+  if [ -n "$KEYSTORE_FILE" ]; then
+    if [ -f "android/$KEYSTORE_FILE" ]; then
+      KEYSTORE_PATH="android/$KEYSTORE_FILE"
+    elif [ -f "android/app/$KEYSTORE_FILE" ]; then
+      KEYSTORE_PATH="android/app/$KEYSTORE_FILE"
+    elif [ -f "$KEYSTORE_FILE" ]; then
+      KEYSTORE_PATH="$KEYSTORE_FILE"
+    fi
+  fi
+fi
+
+if [ -n "$KEYSTORE_PATH" ] && [ -n "$KEYSTORE_ALIAS" ] && [ -n "$KEYSTORE_PASSWORD" ]; then
+  if [ -n "$KEY_PASSWORD" ]; then
+    EXPECTED_ANDROID_SHA1=$(keytool -list -v \
+      -keystore "$KEYSTORE_PATH" \
+      -alias "$KEYSTORE_ALIAS" \
+      -storepass "$KEYSTORE_PASSWORD" \
+      -keypass "$KEY_PASSWORD" | sed -n 's/.*SHA1: //p' | head -n 1)
+  else
+    EXPECTED_ANDROID_SHA1=$(keytool -list -v \
+      -keystore "$KEYSTORE_PATH" \
+      -alias "$KEYSTORE_ALIAS" \
+      -storepass "$KEYSTORE_PASSWORD" | sed -n 's/.*SHA1: //p' | head -n 1)
+  fi
+
+  if [ -n "$EXPECTED_ANDROID_SHA1" ]; then
+    if [ "$AUTO_SET" = true ]; then
+      echo "📝 Setting EXPECTED_ANDROID_SHA1 secret..."
+      echo -n "$EXPECTED_ANDROID_SHA1" | gh secret set EXPECTED_ANDROID_SHA1
+      echo "✅ EXPECTED_ANDROID_SHA1 set successfully"
+    else
+      echo "============================================"
+      echo "6. EXPECTED_ANDROID_SHA1"
+      echo "============================================"
+      echo "$EXPECTED_ANDROID_SHA1"
+      echo ""
+    fi
+    echo ""
+  else
+    echo "⚠️  Skipping EXPECTED_ANDROID_SHA1 (unable to extract SHA1 from keystore)"
+    echo ""
+  fi
+else
+  echo "⚠️  Skipping EXPECTED_ANDROID_SHA1 (android/key.properties or release keystore not available)"
+  echo ""
+fi
+
 echo "============================================"
 if [ "$AUTO_SET" = true ]; then
   echo "✅ Done! All secrets have been set via 'gh' CLI"
