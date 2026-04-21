@@ -357,6 +357,149 @@ class _RecruiterApplicationInboxScreenState
     }
   }
 
+  Future<void> _rescheduleInterview(JobApplication application) async {
+    final current = application.interviewDates?.isNotEmpty == true
+        ? application.interviewDates!.last
+        : null;
+    if (current == null) {
+      await _addInterviewSchedule(application);
+      return;
+    }
+
+    final date = await showDatePicker(
+      context: context,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDate: current.isAfter(DateTime.now()) ? current : DateTime.now(),
+    );
+    if (date == null || !mounted) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: current.hour, minute: current.minute),
+    );
+    if (time == null || !mounted) return;
+
+    final nextSchedule = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+    final details = await _askInterviewDetails(application);
+    if (details == null || !mounted) return;
+
+    setState(() => _updatingApplicationId = application.id);
+    try {
+      await _applicationRepository.rescheduleLatestInterviewDate(
+        application.id,
+        nextSchedule,
+      );
+      await _applicationRepository.updateInterviewDetails(
+        application.id,
+        durationMinutes: details.durationMinutes,
+        notes: details.notes,
+      );
+      final fallbackDates = List<DateTime>.from(
+        application.interviewDates ?? [],
+      );
+      if (fallbackDates.isEmpty) {
+        fallbackDates.add(nextSchedule);
+      } else {
+        fallbackDates.sort();
+        fallbackDates[fallbackDates.length - 1] = nextSchedule;
+      }
+      fallbackDates.sort();
+      final refreshed =
+          (await _applicationRepository.getById(application.id)) ??
+          application.copyWith(
+            interviewDates: fallbackDates,
+            interviewDurationMinutes: details.durationMinutes,
+            interviewNotes: details.notes,
+          );
+      if (application.calendarEventId != null &&
+          application.calendarEventId!.isNotEmpty) {
+        final result = await _calendarService.syncInterviewEvent(
+          application: refreshed,
+          interviewDate: nextSchedule,
+          existingEventId: application.calendarEventId,
+          createMeetConference: true,
+        );
+        if (result.success && (result.eventUrl ?? '').isNotEmpty) {
+          await _applicationRepository.updateMeetingUrl(
+            application.id,
+            result.eventUrl,
+          );
+        }
+      }
+      await _loadApplications();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Jadwal interview berhasil diubah.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal mengubah jadwal interview: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _updatingApplicationId = null);
+      }
+    }
+  }
+
+  Future<void> _cancelInterview(JobApplication application) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Batalkan interview?'),
+          content: const Text(
+            'Jadwal interview, link meeting, dan sinkronisasi kalender akan dihapus dari lamaran ini.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Batal'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Batalkan Interview'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true) return;
+
+    setState(() => _updatingApplicationId = application.id);
+    try {
+      await _applicationRepository.clearInterviewSchedule(application.id);
+      if (application.status == ApplicationStatus.interview) {
+        await _applicationRepository.updateStatus(
+          application.id,
+          ApplicationStatus.screening,
+        );
+      }
+      await _loadApplications();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Interview dibatalkan dari lamaran ini.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal membatalkan interview: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _updatingApplicationId = null);
+      }
+    }
+  }
+
   Future<_InterviewDetailsDraft?> _askInterviewDetails(
     JobApplication application,
   ) async {
@@ -802,6 +945,9 @@ class _RecruiterApplicationInboxScreenState
                   onEditNotes: () => _saveRecruiterNotes(application),
                   onSetRating: () => _setInternalRating(application),
                   onAddInterviewDate: () => _addInterviewSchedule(application),
+                  onRescheduleInterview: () =>
+                      _rescheduleInterview(application),
+                  onCancelInterview: () => _cancelInterview(application),
                   onSyncCalendar: () => _syncInterviewToCalendar(application),
                   onOpenMeeting: () => _openMeetingLink(application),
                   onOpenCandidate: () => _openCandidateProfile(candidate),
@@ -914,6 +1060,8 @@ class _InboxApplicationCard extends StatelessWidget {
     required this.onEditNotes,
     required this.onSetRating,
     required this.onAddInterviewDate,
+    required this.onRescheduleInterview,
+    required this.onCancelInterview,
     required this.onSyncCalendar,
     required this.onOpenMeeting,
     required this.onOpenCandidate,
@@ -928,6 +1076,8 @@ class _InboxApplicationCard extends StatelessWidget {
   final VoidCallback onEditNotes;
   final VoidCallback onSetRating;
   final VoidCallback onAddInterviewDate;
+  final VoidCallback onRescheduleInterview;
+  final VoidCallback onCancelInterview;
   final VoidCallback onSyncCalendar;
   final VoidCallback onOpenMeeting;
   final VoidCallback onOpenCandidate;
@@ -1133,6 +1283,18 @@ class _InboxApplicationCard extends StatelessWidget {
                     icon: const Icon(Icons.event_available),
                     label: const Text('Jadwal'),
                   ),
+                  if (application.interviewDates?.isNotEmpty == true)
+                    OutlinedButton.icon(
+                      onPressed: isUpdating ? null : onRescheduleInterview,
+                      icon: const Icon(Icons.edit_calendar_outlined),
+                      label: const Text('Reschedule'),
+                    ),
+                  if (application.interviewDates?.isNotEmpty == true)
+                    OutlinedButton.icon(
+                      onPressed: isUpdating ? null : onCancelInterview,
+                      icon: const Icon(Icons.event_busy_outlined),
+                      label: const Text('Batalkan'),
+                    ),
                   OutlinedButton.icon(
                     onPressed: isUpdating ? null : onSyncCalendar,
                     icon: Icon(

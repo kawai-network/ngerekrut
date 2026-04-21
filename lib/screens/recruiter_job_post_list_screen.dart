@@ -1,6 +1,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/application_status.dart';
 import '../models/candidate.dart';
@@ -1112,6 +1113,139 @@ class _LocalJobPostDetailScreenState extends State<_LocalJobPostDetailScreen> {
     }
   }
 
+  Future<void> _rescheduleInterview(JobApplication application) async {
+    final current = application.interviewDates?.isNotEmpty == true
+        ? application.interviewDates!.last
+        : null;
+    if (current == null) {
+      await _addInterviewSchedule(application);
+      return;
+    }
+
+    final date = await showDatePicker(
+      context: context,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDate: current.isAfter(DateTime.now()) ? current : DateTime.now(),
+    );
+    if (date == null || !mounted) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: current.hour, minute: current.minute),
+    );
+    if (time == null || !mounted) return;
+
+    final nextSchedule = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+    final details = await _askInterviewDetails(application);
+    if (details == null || !mounted) return;
+
+    setState(() => _updatingApplicationId = application.id);
+    try {
+      await _jobApplicationRepository.rescheduleLatestInterviewDate(
+        application.id,
+        nextSchedule,
+      );
+      await _jobApplicationRepository.updateInterviewDetails(
+        application.id,
+        durationMinutes: details.durationMinutes,
+        notes: details.notes,
+      );
+      await _loadApplications();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Jadwal interview berhasil diubah.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal mengubah jadwal interview: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _updatingApplicationId = null);
+      }
+    }
+  }
+
+  Future<void> _cancelInterview(JobApplication application) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Batalkan interview?'),
+          content: const Text(
+            'Jadwal, link meeting, dan detail interview akan dihapus dari lamaran ini.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Batal'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Batalkan Interview'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true) return;
+
+    setState(() => _updatingApplicationId = application.id);
+    try {
+      await _jobApplicationRepository.clearInterviewSchedule(application.id);
+      if (application.status == ApplicationStatus.interview) {
+        await _jobApplicationRepository.updateStatus(
+          application.id,
+          ApplicationStatus.screening,
+        );
+      }
+      await _loadApplications();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Interview dibatalkan dari lamaran ini.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal membatalkan interview: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _updatingApplicationId = null);
+      }
+    }
+  }
+
+  Future<void> _openMeetingLink(JobApplication application) async {
+    final meetingUrl = application.meetingUrl;
+    if (meetingUrl == null || meetingUrl.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Link meeting belum tersedia.')),
+      );
+      return;
+    }
+
+    final uri = Uri.tryParse(meetingUrl);
+    if (uri == null || !await canLaunchUrl(uri)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Link meeting tidak valid.')),
+      );
+      return;
+    }
+
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
   Future<_InterviewDetailsDraft?> _askInterviewDetails(
     JobApplication application,
   ) async {
@@ -1320,6 +1454,11 @@ class _LocalJobPostDetailScreenState extends State<_LocalJobPostDetailScreen> {
                           onSetRating: () => _setInternalRating(application),
                           onAddInterviewDate: () =>
                               _addInterviewSchedule(application),
+                          onRescheduleInterview: () =>
+                              _rescheduleInterview(application),
+                          onCancelInterview: () =>
+                              _cancelInterview(application),
+                          onOpenMeeting: () => _openMeetingLink(application),
                         ),
                       );
                     }).toList(),
@@ -1483,6 +1622,9 @@ class _ApplicationPreviewCard extends StatelessWidget {
     required this.onEditNotes,
     required this.onSetRating,
     required this.onAddInterviewDate,
+    required this.onRescheduleInterview,
+    required this.onCancelInterview,
+    required this.onOpenMeeting,
   });
 
   final JobApplication application;
@@ -1492,6 +1634,9 @@ class _ApplicationPreviewCard extends StatelessWidget {
   final VoidCallback onEditNotes;
   final VoidCallback onSetRating;
   final VoidCallback onAddInterviewDate;
+  final VoidCallback onRescheduleInterview;
+  final VoidCallback onCancelInterview;
+  final VoidCallback onOpenMeeting;
 
   @override
   Widget build(BuildContext context) {
@@ -1642,6 +1787,35 @@ class _ApplicationPreviewCard extends StatelessWidget {
               ),
             ),
           ],
+          if ((application.interviewDurationMinutes ?? 0) > 0) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Durasi interview: ${application.interviewDurationMinutes} menit',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.grey.shade700,
+              ),
+            ),
+          ],
+          if (application.isSyncedToCalendar) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Google Calendar tersinkron',
+              style: TextStyle(
+                color: Color(0xFF166534),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          if ((application.meetingUrl ?? '').isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Google Meet siap digunakan',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFF4338CA),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
           if ((application.coverLetter ?? '').isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
@@ -1649,6 +1823,18 @@ class _ApplicationPreviewCard extends StatelessWidget {
               maxLines: 4,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
+            ),
+          ],
+          if ((application.interviewNotes ?? '').isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Catatan interview: ${application.interviewNotes!}',
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFF475569),
+                height: 1.45,
+              ),
             ),
           ],
           if (application.candidateId != null && candidate == null) ...[
@@ -1680,6 +1866,24 @@ class _ApplicationPreviewCard extends StatelessWidget {
                 icon: const Icon(Icons.event_available),
                 label: const Text('Jadwal'),
               ),
+              if (application.interviewDates?.isNotEmpty == true)
+                OutlinedButton.icon(
+                  onPressed: isUpdating ? null : onRescheduleInterview,
+                  icon: const Icon(Icons.edit_calendar_outlined),
+                  label: const Text('Reschedule'),
+                ),
+              if (application.interviewDates?.isNotEmpty == true)
+                OutlinedButton.icon(
+                  onPressed: isUpdating ? null : onCancelInterview,
+                  icon: const Icon(Icons.event_busy_outlined),
+                  label: const Text('Batalkan'),
+                ),
+              if ((application.meetingUrl ?? '').isNotEmpty)
+                OutlinedButton.icon(
+                  onPressed: isUpdating ? null : onOpenMeeting,
+                  icon: const Icon(Icons.video_camera_front_outlined),
+                  label: const Text('Buka Meet'),
+                ),
             ],
           ),
         ],

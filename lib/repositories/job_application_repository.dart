@@ -161,6 +161,47 @@ class JobApplicationRepository {
     );
   }
 
+  Future<void> rescheduleLatestInterviewDate(
+    String id,
+    DateTime interviewDate,
+  ) async {
+    final app = await getById(id);
+    if (app == null) return;
+
+    final dates = List<DateTime>.from(app.interviewDates ?? []);
+    if (dates.isEmpty) {
+      dates.add(interviewDate);
+    } else {
+      dates.sort();
+      dates[dates.length - 1] = interviewDate;
+    }
+    dates.sort();
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await _db.rawQuery(
+      '''
+      UPDATE job_applications
+      SET interview_dates = ?, updated_at = ?
+      WHERE id = ?
+      ''',
+      positional: [_encodeDates(dates), now, id],
+    );
+  }
+
+  Future<void> clearInterviewSchedule(String id) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await _db.rawQuery(
+      '''
+      UPDATE job_applications
+      SET interview_dates = ?, meeting_url = ?, calendar_event_id = ?,
+          candidate_calendar_event_id = ?, interview_duration_minutes = ?,
+          interview_notes = ?, updated_at = ?
+      WHERE id = ?
+      ''',
+      positional: ['[]', null, null, null, null, null, now, id],
+    );
+  }
+
   /// Persist calendar event linkage for an interview application.
   Future<void> updateCalendarEventId(String id, String? eventId) async {
     final now = DateTime.now().millisecondsSinceEpoch;
