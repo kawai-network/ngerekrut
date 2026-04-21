@@ -37,13 +37,36 @@ class CandidateRepository {
 
   /// Get candidate by ID
   Future<RecruiterCandidate?> getById(String id) async {
-    final candidate = await _db.getCandidate(id);
-    return candidate != null ? _fromMap(candidate) : null;
+    final rows = await _db.rawQuery(
+      '''
+      SELECT * FROM candidates
+      WHERE id = ? AND recruiter_user_id = ?
+      ''',
+      positional: [id, _recruiterUserId],
+    );
+    if (rows.isEmpty) return null;
+    return _fromMap(rows.first);
   }
 
   /// Get all candidates
   Future<List<RecruiterCandidate>> getAll({String? stage}) async {
-    final rows = await _db.getCandidates(stage: stage);
+    final rows = stage != null
+        ? await _db.rawQuery(
+            '''
+            SELECT * FROM candidates
+            WHERE recruiter_user_id = ? AND stage = ?
+            ORDER BY name ASC
+            ''',
+            positional: [_recruiterUserId, stage],
+          )
+        : await _db.rawQuery(
+            '''
+            SELECT * FROM candidates
+            WHERE recruiter_user_id = ?
+            ORDER BY name ASC
+            ''',
+            positional: [_recruiterUserId],
+          );
     return rows.map((row) => _fromMap(row)).toList();
   }
 
@@ -63,8 +86,8 @@ class CandidateRepository {
     int? minYearsOfExperience,
     List<String>? requiredSkills,
   }) async {
-    var query = 'SELECT * FROM candidates WHERE 1=1';
-    final params = <Object?>[];
+    var query = 'SELECT * FROM candidates WHERE recruiter_user_id = ?';
+    final params = <Object?>[_recruiterUserId];
 
     if (stage != null) {
       query += ' AND stage = ?';
@@ -97,17 +120,28 @@ class CandidateRepository {
     final rows = await _db.rawQuery(
       '''
       SELECT * FROM candidates
-      WHERE name LIKE ? OR headline LIKE ?
+      WHERE recruiter_user_id = ?
+        AND (name LIKE ? OR headline LIKE ?)
       ORDER BY name ASC
     ''',
-      positional: ['%$query%', '%$query%'],
+      positional: [_recruiterUserId, '%$query%', '%$query%'],
     );
     return rows.map((row) => _fromMap(row)).toList();
   }
 
   /// Delete a candidate
   Future<void> delete(String id) async {
-    await _db.rawQuery('DELETE FROM candidates WHERE id = ?', positional: [id]);
+    await _db.rawQuery(
+      'DELETE FROM candidates WHERE id = ? AND recruiter_user_id = ?',
+      positional: [id, _recruiterUserId],
+    );
+  }
+
+  Future<void> clearOwnedSharedData() async {
+    await _db.rawQuery(
+      'DELETE FROM candidates WHERE recruiter_user_id = ?',
+      positional: [_recruiterUserId],
+    );
   }
 
   // ==================== Helpers ====================

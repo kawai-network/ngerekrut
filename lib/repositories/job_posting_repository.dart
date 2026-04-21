@@ -62,8 +62,11 @@ class JobPostingRepository {
   /// Get job posting by job ID
   Future<RecruiterJob?> getByJobId(String jobId) async {
     final rows = await _db.rawQuery(
-      'SELECT * FROM job_postings WHERE job_id = ?',
-      positional: [jobId],
+      '''
+      SELECT * FROM job_postings
+      WHERE job_id = ? AND recruiter_user_id = ?
+      ''',
+      positional: [jobId, _recruiterUserId],
     );
     if (rows.isEmpty) return null;
     return _fromMap(rows.first);
@@ -72,8 +75,11 @@ class JobPostingRepository {
   /// Get job posting by ID
   Future<RecruiterJob?> getById(String id) async {
     final rows = await _db.rawQuery(
-      'SELECT * FROM job_postings WHERE id = ?',
-      positional: [id],
+      '''
+      SELECT * FROM job_postings
+      WHERE id = ? AND recruiter_user_id = ?
+      ''',
+      positional: [id, _recruiterUserId],
     );
     if (rows.isEmpty) return null;
     return _fromMap(rows.first);
@@ -81,9 +87,24 @@ class JobPostingRepository {
 
   /// Get all job postings
   Future<List<RecruiterJob>> getAll({String? status}) async {
-    final rows = await _db.getJobPostings(
-      status: status == null ? null : normalizeStatus(status),
-    );
+    final normalizedStatus = status == null ? null : normalizeStatus(status);
+    final rows = normalizedStatus == null
+        ? await _db.rawQuery(
+            '''
+            SELECT * FROM job_postings
+            WHERE recruiter_user_id = ?
+            ORDER BY created_at DESC
+            ''',
+            positional: [_recruiterUserId],
+          )
+        : await _db.rawQuery(
+            '''
+            SELECT * FROM job_postings
+            WHERE recruiter_user_id = ? AND status = ?
+            ORDER BY created_at DESC
+            ''',
+            positional: [_recruiterUserId, normalizedStatus],
+          );
     return rows.map(_fromMap).toList();
   }
 
@@ -104,7 +125,15 @@ class JobPostingRepository {
 
   /// Update job posting status
   Future<void> updateStatus(String jobId, String status) async {
-    await _db.updateJobPostingStatus(jobId, normalizeStatus(status));
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await _db.rawQuery(
+      '''
+      UPDATE job_postings
+      SET status = ?, updated_at = ?
+      WHERE job_id = ? AND recruiter_user_id = ?
+      ''',
+      positional: [normalizeStatus(status), now, jobId, _recruiterUserId],
+    );
   }
 
   /// Publish a job posting
@@ -143,16 +172,20 @@ class JobPostingRepository {
   /// Delete a job posting
   Future<void> delete(String jobId) async {
     await _db.rawQuery(
-      'DELETE FROM job_postings WHERE job_id = ?',
-      positional: [jobId],
+      'DELETE FROM job_postings WHERE job_id = ? AND recruiter_user_id = ?',
+      positional: [jobId, _recruiterUserId],
     );
   }
 
   /// Get job postings by unit label (stored as `department` in the table).
   Future<List<RecruiterJob>> getByUnitLabel(String unitLabel) async {
     final rows = await _db.rawQuery(
-      'SELECT * FROM job_postings WHERE department = ? ORDER BY created_at DESC',
-      positional: [unitLabel],
+      '''
+      SELECT * FROM job_postings
+      WHERE recruiter_user_id = ? AND department = ?
+      ORDER BY created_at DESC
+      ''',
+      positional: [_recruiterUserId, unitLabel],
     );
     return rows.map(_fromMap).toList();
   }
@@ -160,8 +193,12 @@ class JobPostingRepository {
   /// Get job postings by location
   Future<List<RecruiterJob>> getByLocation(String location) async {
     final rows = await _db.rawQuery(
-      'SELECT * FROM job_postings WHERE location = ? ORDER BY created_at DESC',
-      positional: [location],
+      '''
+      SELECT * FROM job_postings
+      WHERE recruiter_user_id = ? AND location = ?
+      ORDER BY created_at DESC
+      ''',
+      positional: [_recruiterUserId, location],
     );
     return rows.map(_fromMap).toList();
   }
@@ -178,6 +215,13 @@ class JobPostingRepository {
       positional: ['%$query%', '%$query%'],
     );
     return rows.map(_fromMap).toList();
+  }
+
+  Future<void> clearOwnedSharedData() async {
+    await _db.rawQuery(
+      'DELETE FROM job_postings WHERE recruiter_user_id = ?',
+      positional: [_recruiterUserId],
+    );
   }
 
   // ==================== Helpers ====================

@@ -42,12 +42,39 @@ Optional fields:
 - `FIREBASE_*_AUTH_DOMAIN`
 - `FIREBASE_*_DATABASE_URL`
 - `FIREBASE_*_MEASUREMENT_ID`
-- `FIREBASE_*_ANDROID_CLIENT_ID`
-- `FIREBASE_*_IOS_CLIENT_ID`
 
 Jika credential tidak diisi, flavor akan memakai default config Firebase yang sekarang valid untuk project `ngerekrut`.
 
-### 2. Android release signing
+### 2. Firebase native config untuk CI
+
+Android dan iOS sekarang memakai model berikut:
+
+- Android: satu `android/app/google-services.json` yang memuat beberapa `client` untuk:
+  - `com.ngerekrut.recruiter`
+  - `com.ngerekrut.jobseeker`
+- iOS: plist terpisah per flavor:
+  - `ios/Runner/GoogleService-Info-Recruiter.plist`
+  - `ios/Runner/GoogleService-Info-JobSeeker.plist`
+
+GitHub Secrets yang relevan:
+
+- `GOOGLE_SERVICES_JSON`
+- `GOOGLE_SERVICE_INFO_PLIST_RECRUITER`
+- `GOOGLE_SERVICE_INFO_PLIST_JOBSEEKER`
+
+Script helper untuk generate/update secrets:
+
+```bash
+bash scripts/setup-firebase-secrets.sh
+bash scripts/setup-firebase-secrets.sh --auto
+```
+
+Catatan:
+
+- workflow Android CI saat ini hanya memakai `GOOGLE_SERVICES_JSON`
+- secret plist iOS sudah disiapkan untuk pipeline iOS flavor-aware, walau belum dipakai workflow aktif
+
+### 3. Android release signing
 
 Copy:
 
@@ -62,7 +89,7 @@ Lalu isi:
 - `keyAlias`
 - `keyPassword`
 
-### 3. Product scope Job Seeker
+### 4. Product scope Job Seeker
 
 UI home job seeker sudah dibedakan, tapi flow bisnisnya masih sederhana. Jangan launch sebagai produk publik kalau feature set inti belum dipastikan.
 
@@ -96,4 +123,5 @@ flutter run --flavor jobseeker -t lib/main_jobseeker.dart \
 ## Catatan
 
 - `firebase_options.dart` masih ada untuk app lama/default, tetapi flavor apps sekarang memakai `FlavorFirebaseOptions`
-- `android/app/google-services.json` sudah memuat app lama + recruiter + jobseeker
+- `android/app/google-services.json` sekarang harus memuat app lama + recruiter + jobseeker sekaligus
+- Google Sign-In Android bergantung pada `oauth_client` di file itu, jadi setelah update SHA fingerprint di Firebase Console file ini harus diunduh ulang

@@ -174,6 +174,7 @@ class HybridDatabaseService {
         cover_letter TEXT,
         resume_id TEXT,
         interview_dates TEXT, -- JSON array
+        calendar_event_id TEXT,
         rejection_reason TEXT,
         recruiter_notes TEXT,
         internal_rating INTEGER,
@@ -285,6 +286,11 @@ class HybridDatabaseService {
       column: 'unit_label',
       definition: 'TEXT',
     );
+    await _ensureColumnExists(
+      table: 'job_applications',
+      column: 'calendar_event_id',
+      definition: 'TEXT',
+    );
 
     await _client!.query('''
       UPDATE job_postings
@@ -358,8 +364,9 @@ class HybridDatabaseService {
       INSERT INTO job_applications (
         id, job_id, candidate_id, job_title, unit_label, location, status,
         applied_at, updated_at, expected_salary, cover_letter, resume_id,
-        interview_dates, rejection_reason, recruiter_notes, internal_rating, source
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        interview_dates, calendar_event_id, rejection_reason, recruiter_notes,
+        internal_rating, source
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''',
       positional: [
         data['id'],
@@ -375,6 +382,7 @@ class HybridDatabaseService {
         data['cover_letter'],
         data['resume_id'],
         data['interview_dates'],
+        data['calendar_event_id'],
         data['rejection_reason'],
         data['recruiter_notes'],
         data['internal_rating'],

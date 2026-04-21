@@ -12,12 +12,17 @@ import '../services/shared_identity_service.dart';
 class JobApplicationRepository {
   final HybridDatabaseService _db;
   final String _candidateId;
+  final String _recruiterUserId;
 
   String get candidateId => _candidateId;
 
-  JobApplicationRepository({HybridDatabaseService? db, String? candidateId})
-    : _db = db ?? hybridDatabase,
-      _candidateId = candidateId ?? SharedIdentityService.currentUid;
+  JobApplicationRepository({
+    HybridDatabaseService? db,
+    String? candidateId,
+    String? recruiterUserId,
+  }) : _db = db ?? hybridDatabase,
+       _candidateId = candidateId ?? SharedIdentityService.currentUid,
+       _recruiterUserId = recruiterUserId ?? SharedIdentityService.currentUid;
 
   /// Create a new job application
   Future<void> create(JobApplication application) async {
@@ -34,9 +39,16 @@ class JobApplicationRepository {
   }
 
   /// Get all applications across jobs (recruiter inbox view)
-  Future<List<JobApplication>> getAll() async {
+  Future<List<JobApplication>> getAllForOwnedJobs() async {
     final rows = await _db.rawQuery(
-      'SELECT * FROM job_applications ORDER BY applied_at DESC',
+      '''
+      SELECT a.*
+      FROM job_applications a
+      INNER JOIN job_postings p ON p.job_id = a.job_id
+      WHERE p.recruiter_user_id = ?
+      ORDER BY a.applied_at DESC
+      ''',
+      positional: [_recruiterUserId],
     );
     return rows.map(_fromMap).toList();
   }
@@ -105,6 +117,19 @@ class JobApplicationRepository {
       WHERE id = ?
     ''',
       positional: [_encodeDates(dates), now, id],
+    );
+  }
+
+  /// Persist calendar event linkage for an interview application.
+  Future<void> updateCalendarEventId(String id, String? eventId) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await _db.rawQuery(
+      '''
+      UPDATE job_applications
+      SET calendar_event_id = ?, updated_at = ?
+      WHERE id = ?
+      ''',
+      positional: [eventId, now, id],
     );
   }
 
@@ -233,6 +258,7 @@ class JobApplicationRepository {
       'cover_letter': app.coverLetter,
       'resume_id': app.resumeId,
       'interview_dates': _encodeDates(app.interviewDates),
+      'calendar_event_id': app.calendarEventId,
       'rejection_reason': app.rejectionReason,
       'recruiter_notes': app.recruiterNotes,
       'internal_rating': app.internalRating,
@@ -255,6 +281,7 @@ class JobApplicationRepository {
       coverLetter: map['cover_letter'] as String?,
       resumeId: map['resume_id'] as String?,
       interviewDates: _decodeDates(map['interview_dates'] as String?),
+      calendarEventId: map['calendar_event_id'] as String?,
       rejectionReason: map['rejection_reason'] as String?,
       recruiterNotes: map['recruiter_notes'] as String?,
       internalRating: map['internal_rating'] as int?,

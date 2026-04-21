@@ -39,6 +39,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
       final jobs = await Future.wait(
         jobIds.map((jobId) => _jobPostingRepository.getById(jobId)),
       );
+
       if (mounted) {
         setState(() {
           _applications = apps;
@@ -82,41 +83,49 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: _loadApplications,
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _applications.isEmpty
-            ? _EmptyState(onRefresh: _loadApplications)
-            : Column(
-                children: [
-                  _StatusFilterBar(
-                    selectedFilter: _statusFilter,
-                    onFilterChanged: (filter) =>
-                        setState(() => _statusFilter = filter),
-                    applications: _applications,
-                  ),
-                  Expanded(
-                    child: _filteredApplications.isEmpty
-                        ? const Center(
-                            child: Text('Tidak ada lamaran untuk filter ini'),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: _filteredApplications.length,
-                            itemBuilder: (context, index) {
-                              return _ApplicationCard(
-                                application: _filteredApplications[index],
-                                jobStatus:
-                                    _jobStatusesById[_filteredApplications[index]
-                                        .jobId],
-                                onTap: () => _showApplicationDetail(
-                                  _filteredApplications[index],
+        child: Column(
+          children: [
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _applications.isEmpty
+                  ? _EmptyState(onRefresh: _loadApplications)
+                  : Column(
+                      children: [
+                        _StatusFilterBar(
+                          selectedFilter: _statusFilter,
+                          onFilterChanged: (filter) =>
+                              setState(() => _statusFilter = filter),
+                          applications: _applications,
+                        ),
+                        Expanded(
+                          child: _filteredApplications.isEmpty
+                              ? const Center(
+                                  child: Text(
+                                    'Tidak ada lamaran untuk filter ini',
+                                  ),
+                                )
+                              : ListView.builder(
+                                  padding: const EdgeInsets.all(16),
+                                  itemCount: _filteredApplications.length,
+                                  itemBuilder: (context, index) {
+                                    return _ApplicationCard(
+                                      application: _filteredApplications[index],
+                                      jobStatus:
+                                          _jobStatusesById[_filteredApplications[index]
+                                              .jobId],
+                                      onTap: () => _showApplicationDetail(
+                                        _filteredApplications[index],
+                                      ),
+                                    );
+                                  },
                                 ),
-                              );
-                            },
-                          ),
-                  ),
-                ],
-              ),
+                        ),
+                      ],
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

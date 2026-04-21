@@ -39,27 +39,7 @@ else
   echo ""
 fi
 
-# 1. FIREBASE_JSON (optional)
-if [ -f "firebase.json" ]; then
-  FIREBASE_JSON=$(base64 < firebase.json | tr -d '\n')
-  if [ "$AUTO_SET" = true ]; then
-    echo "📝 Setting FIREBASE_JSON secret..."
-    gh secret set FIREBASE_JSON --body "$FIREBASE_JSON"
-    echo "✅ FIREBASE_JSON set successfully"
-  else
-    echo "============================================"
-    echo "1. FIREBASE_JSON"
-    echo "============================================"
-    echo "$FIREBASE_JSON"
-    echo ""
-  fi
-  echo ""
-else
-  echo "⚠️  Skipping FIREBASE_JSON (firebase.json not found)"
-  echo ""
-fi
-
-# 2. GOOGLE_SERVICES_JSON (required for Android)
+# 1. GOOGLE_SERVICES_JSON (required for Android, shared across flavors)
 if [ -f "android/app/google-services.json" ]; then
   GOOGLE_SERVICES_JSON=$(base64 < android/app/google-services.json | tr -d '\n')
   if [ "$AUTO_SET" = true ]; then
@@ -76,27 +56,47 @@ if [ -f "android/app/google-services.json" ]; then
   echo ""
 else
   echo "❌ ERROR: android/app/google-services.json not found!"
-  echo "   This is required for Android builds."
+  echo "   This is required for Android builds and should contain recruiter + jobseeker clients."
   exit 1
 fi
 
-# 3. GOOGLE_SERVICE_INFO_PLIST (optional - for iOS/macOS)
-if [ -f "ios/Runner/GoogleService-Info.plist" ]; then
-  GOOGLE_SERVICE_INFO_PLIST=$(base64 < ios/Runner/GoogleService-Info.plist | tr -d '\n')
+# 2. GOOGLE_SERVICE_INFO_PLIST_RECRUITER (optional - for iOS recruiter flavor)
+if [ -f "ios/Runner/GoogleService-Info-Recruiter.plist" ]; then
+  GOOGLE_SERVICE_INFO_PLIST_RECRUITER=$(base64 < ios/Runner/GoogleService-Info-Recruiter.plist | tr -d '\n')
   if [ "$AUTO_SET" = true ]; then
-    echo "📝 Setting GOOGLE_SERVICE_INFO_PLIST secret..."
-    gh secret set GOOGLE_SERVICE_INFO_PLIST --body "$GOOGLE_SERVICE_INFO_PLIST"
-    echo "✅ GOOGLE_SERVICE_INFO_PLIST set successfully"
+    echo "📝 Setting GOOGLE_SERVICE_INFO_PLIST_RECRUITER secret..."
+    gh secret set GOOGLE_SERVICE_INFO_PLIST_RECRUITER --body "$GOOGLE_SERVICE_INFO_PLIST_RECRUITER"
+    echo "✅ GOOGLE_SERVICE_INFO_PLIST_RECRUITER set successfully"
   else
     echo "============================================"
-    echo "2. GOOGLE_SERVICE_INFO_PLIST"
+    echo "2. GOOGLE_SERVICE_INFO_PLIST_RECRUITER"
     echo "============================================"
-    echo "$GOOGLE_SERVICE_INFO_PLIST"
+    echo "$GOOGLE_SERVICE_INFO_PLIST_RECRUITER"
     echo ""
   fi
   echo ""
 else
-  echo "⚠️  Skipping GOOGLE_SERVICE_INFO_PLIST (GoogleService-Info.plist not found)"
+  echo "⚠️  Skipping GOOGLE_SERVICE_INFO_PLIST_RECRUITER (GoogleService-Info-Recruiter.plist not found)"
+  echo ""
+fi
+
+# 3. GOOGLE_SERVICE_INFO_PLIST_JOBSEEKER (optional - for iOS jobseeker flavor)
+if [ -f "ios/Runner/GoogleService-Info-JobSeeker.plist" ]; then
+  GOOGLE_SERVICE_INFO_PLIST_JOBSEEKER=$(base64 < ios/Runner/GoogleService-Info-JobSeeker.plist | tr -d '\n')
+  if [ "$AUTO_SET" = true ]; then
+    echo "📝 Setting GOOGLE_SERVICE_INFO_PLIST_JOBSEEKER secret..."
+    gh secret set GOOGLE_SERVICE_INFO_PLIST_JOBSEEKER --body "$GOOGLE_SERVICE_INFO_PLIST_JOBSEEKER"
+    echo "✅ GOOGLE_SERVICE_INFO_PLIST_JOBSEEKER set successfully"
+  else
+    echo "============================================"
+    echo "3. GOOGLE_SERVICE_INFO_PLIST_JOBSEEKER"
+    echo "============================================"
+    echo "$GOOGLE_SERVICE_INFO_PLIST_JOBSEEKER"
+    echo ""
+  fi
+  echo ""
+else
+  echo "⚠️  Skipping GOOGLE_SERVICE_INFO_PLIST_JOBSEEKER (GoogleService-Info-JobSeeker.plist not found)"
   echo ""
 fi
 

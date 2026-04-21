@@ -6,7 +6,9 @@ list(APPEND FLUTTER_PLUGIN_LIST
   firebase_auth
   firebase_core
   flutter_gemma
+  flutter_secure_storage_windows
   objectbox_flutter_libs
+  url_launcher_windows
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

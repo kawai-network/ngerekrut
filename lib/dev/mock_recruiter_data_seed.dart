@@ -17,6 +17,8 @@ import '../repositories/interview_guide_artifact_repository.dart';
 import '../repositories/job_posting_repository.dart';
 import '../repositories/scorecard_artifact_repository.dart';
 import '../repositories/shortlist_artifact_repository.dart';
+import '../services/hybrid_database_service.dart';
+import '../services/shared_identity_service.dart';
 
 class MockRecruiterDataSeed {
   MockRecruiterDataSeed._();
@@ -27,6 +29,7 @@ class MockRecruiterDataSeed {
     }
 
     if (resetExisting) {
+      await _clearOwnedSharedData();
       _clearLocalArtifacts();
     }
 
@@ -41,6 +44,28 @@ class MockRecruiterDataSeed {
     ObjectBoxStoreProvider.box<RecruiterShortlistRecord>().removeAll();
     ObjectBoxStoreProvider.box<CandidateScorecardRecord>().removeAll();
     ObjectBoxStoreProvider.box<InterviewGuideRecord>().removeAll();
+  }
+
+  static Future<void> _clearOwnedSharedData() async {
+    final candidateRepository = CandidateRepository();
+    final jobRepository = JobPostingRepository();
+    final currentUid = SharedIdentityService.currentUid;
+    const seededJobIds = [
+      'job_flutter_001',
+      'job_warehouse_001',
+      'job_backend_001',
+    ];
+
+    await jobRepository.clearOwnedSharedData();
+    await candidateRepository.clearOwnedSharedData();
+    await hybridDatabase.rawQuery(
+      'DELETE FROM job_applications WHERE job_id IN (?, ?, ?)',
+      positional: seededJobIds,
+    );
+    await hybridDatabase.rawQuery(
+      'DELETE FROM saved_jobs WHERE user_id = ? AND job_id IN (?, ?, ?)',
+      positional: [currentUid, ...seededJobIds],
+    );
   }
 
   static Future<void> _seedChatSessions() async {

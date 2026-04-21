@@ -8,6 +8,7 @@ import '../models/job_application.dart';
 import '../repositories/candidate_repository.dart';
 import '../repositories/job_application_repository.dart';
 import '../repositories/job_posting_repository.dart';
+import '../services/google_calendar_service.dart';
 import 'recruiter_candidate_profile_screen.dart';
 
 class RecruiterApplicationInboxScreen extends StatefulWidget {
@@ -24,6 +25,7 @@ class _RecruiterApplicationInboxScreenState
       JobApplicationRepository();
   final CandidateRepository _candidateRepository = CandidateRepository();
   final JobPostingRepository _jobPostingRepository = JobPostingRepository();
+  final GoogleCalendarService _calendarService = GoogleCalendarService.instance;
 
   bool _isLoading = true;
   String _statusFilter = 'all';
@@ -42,7 +44,7 @@ class _RecruiterApplicationInboxScreenState
   Future<void> _loadApplications() async {
     setState(() => _isLoading = true);
     try {
-      final applications = await _applicationRepository.getAll();
+      final applications = await _applicationRepository.getAllForOwnedJobs();
       final candidateIds = applications
           .map((application) => application.candidateId)
           .whereType<String>()
@@ -276,6 +278,7 @@ class _RecruiterApplicationInboxScreenState
     );
 
     setState(() => _updatingApplicationId = application.id);
+    var syncSucceeded = false;
     try {
       await _applicationRepository.addInterviewDate(application.id, schedule);
       if (application.status != ApplicationStatus.interview) {
@@ -284,15 +287,120 @@ class _RecruiterApplicationInboxScreenState
           ApplicationStatus.interview,
         );
       }
+      final shouldSync = await _askToSyncInterviewSchedule();
+      if (shouldSync == true) {
+        final refreshedApplication =
+            (await _applicationRepository.getById(application.id)) ??
+            application.addInterviewDate(schedule);
+        final result = await _calendarService.syncInterviewEvent(
+          application: refreshedApplication,
+          interviewDate: schedule,
+        );
+        if (result.success) {
+          await _applicationRepository.updateCalendarEventId(
+            application.id,
+            result.eventId,
+          );
+          syncSucceeded = true;
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                result.error ?? 'Gagal sinkron ke Google Calendar.',
+              ),
+            ),
+          );
+        }
+      }
       await _loadApplications();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Jadwal interview ditambahkan.')),
+        SnackBar(
+          content: Text(
+            shouldSync == true && syncSucceeded
+                ? 'Jadwal interview ditambahkan dan dikirim ke Google Calendar.'
+                : 'Jadwal interview ditambahkan.',
+          ),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Gagal menambah jadwal interview: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _updatingApplicationId = null);
+      }
+    }
+  }
+
+  Future<bool?> _askToSyncInterviewSchedule() {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Kirim ke Google Calendar?'),
+          content: const Text(
+            'Jadwal interview ini bisa langsung dibuat sebagai event di Google Calendar recruiter.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Nanti Saja'),
+            ),
+            FilledButton.icon(
+              onPressed: () => Navigator.pop(context, true),
+              icon: const Icon(Icons.event_available),
+              label: const Text('Sinkronkan'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _syncInterviewToCalendar(JobApplication application) async {
+    final interviewDate = application.interviewDates?.isNotEmpty == true
+        ? application.interviewDates!.last
+        : null;
+    if (interviewDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tambahkan jadwal interview dulu sebelum sinkron.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _updatingApplicationId = application.id);
+    try {
+      final result = await _calendarService.syncInterviewEvent(
+        application: application,
+        interviewDate: interviewDate,
+      );
+      if (!result.success) {
+        throw result.error ?? 'Google Calendar sync gagal.';
+      }
+      await _applicationRepository.updateCalendarEventId(
+        application.id,
+        result.eventId,
+      );
+      await _loadApplications();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            application.calendarEventId == null
+                ? 'Event interview berhasil dibuat di Google Calendar.'
+                : 'Event interview di Google Calendar berhasil diperbarui.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal sinkron ke Google Calendar: $e')),
       );
     } finally {
       if (mounted) {
@@ -570,6 +678,7 @@ class _RecruiterApplicationInboxScreenState
                   onEditNotes: () => _saveRecruiterNotes(application),
                   onSetRating: () => _setInternalRating(application),
                   onAddInterviewDate: () => _addInterviewSchedule(application),
+                  onSyncCalendar: () => _syncInterviewToCalendar(application),
                   onOpenCandidate: () => _openCandidateProfile(candidate),
                   onTap: () => _showDetails(application, candidate),
                 ),
@@ -680,6 +789,7 @@ class _InboxApplicationCard extends StatelessWidget {
     required this.onEditNotes,
     required this.onSetRating,
     required this.onAddInterviewDate,
+    required this.onSyncCalendar,
     required this.onOpenCandidate,
     required this.onTap,
   });
@@ -692,6 +802,7 @@ class _InboxApplicationCard extends StatelessWidget {
   final VoidCallback onEditNotes;
   final VoidCallback onSetRating;
   final VoidCallback onAddInterviewDate;
+  final VoidCallback onSyncCalendar;
   final VoidCallback onOpenCandidate;
   final VoidCallback onTap;
 
@@ -801,6 +912,11 @@ class _InboxApplicationCard extends StatelessWidget {
                       label:
                           'Interview ${_formatScheduleDate(application.interviewDates!.last)}',
                     ),
+                  if (application.isSyncedToCalendar)
+                    const _InboxMetaText(
+                      icon: Icons.cloud_done_outlined,
+                      label: 'Google Calendar',
+                    ),
                 ],
               ),
               if (_showClosedWarning(jobStatus, application.status)) ...[
@@ -867,6 +983,19 @@ class _InboxApplicationCard extends StatelessWidget {
                     onPressed: isUpdating ? null : onAddInterviewDate,
                     icon: const Icon(Icons.event_available),
                     label: const Text('Jadwal'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: isUpdating ? null : onSyncCalendar,
+                    icon: Icon(
+                      application.isSyncedToCalendar
+                          ? Icons.cloud_done_outlined
+                          : Icons.calendar_month_outlined,
+                    ),
+                    label: Text(
+                      application.isSyncedToCalendar
+                          ? 'Update Calendar'
+                          : 'Calendar',
+                    ),
                   ),
                   OutlinedButton.icon(
                     onPressed: onOpenCandidate,

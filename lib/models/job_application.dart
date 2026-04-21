@@ -57,6 +57,10 @@ class JobApplication {
   @JsonKey(name: 'interview_dates')
   final List<DateTime>? interviewDates;
 
+  /// Google Calendar event ID (if synced)
+  @JsonKey(name: 'calendar_event_id')
+  final String? calendarEventId;
+
   /// Rejection reason (if rejected)
   @JsonKey(name: 'rejection_reason')
   final String? rejectionReason;
@@ -86,6 +90,7 @@ class JobApplication {
     this.coverLetter,
     this.resumeId,
     this.interviewDates,
+    this.calendarEventId,
     this.rejectionReason,
     this.recruiterNotes,
     this.internalRating,
@@ -111,6 +116,7 @@ class JobApplication {
     String? coverLetter,
     String? resumeId,
     List<DateTime>? interviewDates,
+    String? calendarEventId,
     String? rejectionReason,
     String? recruiterNotes,
     int? internalRating,
@@ -130,6 +136,7 @@ class JobApplication {
       coverLetter: coverLetter ?? this.coverLetter,
       resumeId: resumeId ?? this.resumeId,
       interviewDates: interviewDates ?? this.interviewDates,
+      calendarEventId: calendarEventId ?? this.calendarEventId,
       rejectionReason: rejectionReason ?? this.rejectionReason,
       recruiterNotes: recruiterNotes ?? this.recruiterNotes,
       internalRating: internalRating ?? this.internalRating,
@@ -184,6 +191,7 @@ class JobApplication {
       coverLetter: coverLetter,
       resumeId: resumeId,
       interviewDates: interviewDates,
+      calendarEventId: calendarEventId,
       rejectionReason: rejectionReason ?? this.rejectionReason,
       recruiterNotes: recruiterNotes,
       internalRating: internalRating,
@@ -209,12 +217,40 @@ class JobApplication {
       coverLetter: coverLetter,
       resumeId: resumeId,
       interviewDates: dates,
+      calendarEventId: calendarEventId,
       rejectionReason: rejectionReason,
       recruiterNotes: recruiterNotes,
       internalRating: internalRating,
       source: source,
     );
   }
+
+  /// Update calendar event ID (when synced to Google Calendar)
+  JobApplication withCalendarEventId(String? eventId) {
+    return JobApplication(
+      id: id,
+      jobId: jobId,
+      candidateId: candidateId,
+      jobTitle: jobTitle,
+      unitLabel: unitLabel,
+      location: location,
+      status: status,
+      appliedAt: appliedAt,
+      updatedAt: updatedAt,
+      expectedSalary: expectedSalary,
+      coverLetter: coverLetter,
+      resumeId: resumeId,
+      interviewDates: interviewDates,
+      calendarEventId: eventId,
+      rejectionReason: rejectionReason,
+      recruiterNotes: recruiterNotes,
+      internalRating: internalRating,
+      source: source,
+    );
+  }
+
+  /// Check if interview is synced to calendar
+  bool get isSyncedToCalendar => calendarEventId != null && calendarEventId!.isNotEmpty;
 
   /// Get days since application
   int get daysSinceApplied {

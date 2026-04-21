@@ -68,9 +68,6 @@ jobs:
       - name: Setup Firebase config
         shell: bash
         run: |
-          # Decode and write firebase.json
-          echo '${{ secrets.FIREBASE_JSON }}' | base64 -d > firebase.json
-
           # Decode and write google-services.json
           mkdir -p android/app
           echo '${{ secrets.GOOGLE_SERVICES_JSON }}' | base64 -d > android/app/google-services.json
