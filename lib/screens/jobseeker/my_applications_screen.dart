@@ -31,9 +31,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
   Future<void> _loadApplications() async {
     setState(() => _isLoading = true);
     try {
-      // TODO: Get actual candidate ID from user profile
-      final candidateId = 'candidate_123';
-      final apps = await _repo.getByCandidateId(candidateId);
+      final apps = await _repo.getByCandidateId(_repo.candidateId);
       if (mounted) {
         setState(() {
           _applications = apps;
@@ -54,7 +52,9 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
 
   List<JobApplication> get _filteredApplications {
     if (_statusFilter == 'all') return _applications;
-    return _applications.where((app) => app.status.name == _statusFilter).toList();
+    return _applications
+        .where((app) => app.status.name == _statusFilter)
+        .toList();
   }
 
   @override
@@ -74,30 +74,35 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _applications.isEmpty
-                ? _EmptyState(onRefresh: _loadApplications)
-                : Column(
-                    children: [
-                      _StatusFilterBar(
-                        selectedFilter: _statusFilter,
-                        onFilterChanged: (filter) => setState(() => _statusFilter = filter),
-                        applications: _applications,
-                      ),
-                      Expanded(
-                        child: _filteredApplications.isEmpty
-                            ? const Center(child: Text('Tidak ada lamaran untuk filter ini'))
-                            : ListView.builder(
-                                padding: const EdgeInsets.all(16),
-                                itemCount: _filteredApplications.length,
-                                itemBuilder: (context, index) {
-                                  return _ApplicationCard(
-                                    application: _filteredApplications[index],
-                                    onTap: () => _showApplicationDetail(_filteredApplications[index]),
-                                  );
-                                },
-                              ),
-                      ),
-                    ],
+            ? _EmptyState(onRefresh: _loadApplications)
+            : Column(
+                children: [
+                  _StatusFilterBar(
+                    selectedFilter: _statusFilter,
+                    onFilterChanged: (filter) =>
+                        setState(() => _statusFilter = filter),
+                    applications: _applications,
                   ),
+                  Expanded(
+                    child: _filteredApplications.isEmpty
+                        ? const Center(
+                            child: Text('Tidak ada lamaran untuk filter ini'),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _filteredApplications.length,
+                            itemBuilder: (context, index) {
+                              return _ApplicationCard(
+                                application: _filteredApplications[index],
+                                onTap: () => _showApplicationDetail(
+                                  _filteredApplications[index],
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
       ),
     );
   }
@@ -112,10 +117,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
 }
 
 class _ApplicationCard extends StatelessWidget {
-  const _ApplicationCard({
-    required this.application,
-    required this.onTap,
-  });
+  const _ApplicationCard({required this.application, required this.onTap});
 
   final JobApplication application;
   final VoidCallback onTap;
@@ -139,17 +141,15 @@ class _ApplicationCard extends StatelessWidget {
                       children: [
                         Text(
                           application.jobTitle,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         if (application.company != null) ...[
                           const SizedBox(height: 4),
                           Text(
                             application.company!,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Colors.grey.shade700,
-                                ),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: Colors.grey.shade700),
                           ),
                         ],
                       ],
@@ -161,21 +161,25 @@ class _ApplicationCard extends StatelessWidget {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Icon(Icons.calendar_today, size: 16, color: Colors.grey.shade600),
+                  Icon(
+                    Icons.calendar_today,
+                    size: 16,
+                    color: Colors.grey.shade600,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     'Dilamar ${_formatDate(application.appliedAt)}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey.shade600,
-                        ),
+                      color: Colors.grey.shade600,
+                    ),
                   ),
                   const Spacer(),
                   if (application.daysSinceUpdate > 0)
                     Text(
                       '${application.daysSinceUpdate} hari yang lalu',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.grey.shade500,
-                          ),
+                        color: Colors.grey.shade500,
+                      ),
                     ),
                 ],
               ),
@@ -355,17 +359,15 @@ class _ApplicationDetailSheet extends StatelessWidget {
                   children: [
                     Text(
                       application.jobTitle,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     if (application.company != null) ...[
                       const SizedBox(height: 4),
                       Text(
                         application.company!,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: Colors.grey.shade700,
-                            ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(color: Colors.grey.shade700),
                       ),
                     ],
                     const SizedBox(height: 16),
@@ -373,25 +375,31 @@ class _ApplicationDetailSheet extends StatelessWidget {
                     const SizedBox(height: 24),
                     _DetailRow(
                       label: 'Tanggal melamar',
-                      value: DateFormat('d MMMM yyyy').format(application.appliedAt),
+                      value: DateFormat(
+                        'd MMMM yyyy',
+                      ).format(application.appliedAt),
                     ),
                     _DetailRow(
                       label: 'Update terakhir',
-                      value: DateFormat('d MMMM yyyy').format(application.updatedAt),
+                      value: DateFormat(
+                        'd MMMM yyyy',
+                      ).format(application.updatedAt),
                     ),
                     if (application.location != null)
                       _DetailRow(label: 'Lokasi', value: application.location!),
                     if (application.expectedSalary != null)
-                      _DetailRow(label: 'Gaji yang diharapkan', value: application.expectedSalary!),
+                      _DetailRow(
+                        label: 'Gaji yang diharapkan',
+                        value: application.expectedSalary!,
+                      ),
                     if (application.source != null)
                       _DetailRow(label: 'Sumber', value: application.source!),
                     const SizedBox(height: 24),
                     if (application.coverLetter != null) ...[
                       Text(
                         'Cover Letter',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       Text(application.coverLetter!),
@@ -400,16 +408,17 @@ class _ApplicationDetailSheet extends StatelessWidget {
                     if (application.interviewDates?.isNotEmpty == true) ...[
                       Text(
                         'Jadwal Interview',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       ...application.interviewDates!.map(
                         (date) => Card(
                           child: ListTile(
                             leading: const Icon(Icons.calendar_today),
-                            title: Text(DateFormat('d MMMM yyyy, HH:mm').format(date)),
+                            title: Text(
+                              DateFormat('d MMMM yyyy, HH:mm').format(date),
+                            ),
                           ),
                         ),
                       ),
@@ -427,11 +436,15 @@ class _ApplicationDetailSheet extends StatelessWidget {
                           children: [
                             Row(
                               children: [
-                                const Icon(Icons.info_outline, color: Color(0xFFDC2626)),
+                                const Icon(
+                                  Icons.info_outline,
+                                  color: Color(0xFFDC2626),
+                                ),
                                 const SizedBox(width: 8),
                                 Text(
                                   'Alasan Penolakan',
-                                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  style: Theme.of(context).textTheme.titleSmall
+                                      ?.copyWith(
                                         color: const Color(0xFFDC2626),
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -531,11 +544,15 @@ class _StatusFilterBar extends StatelessWidget {
               selectedColor: const Color(0xFFDCFCE7),
               backgroundColor: Colors.grey.shade100,
               side: BorderSide(
-                color: isSelected ? const Color(0xFF86EFAC) : Colors.transparent,
+                color: isSelected
+                    ? const Color(0xFF86EFAC)
+                    : Colors.transparent,
               ),
               labelStyle: TextStyle(
                 fontWeight: FontWeight.w600,
-                color: isSelected ? const Color(0xFF166534) : Colors.grey.shade700,
+                color: isSelected
+                    ? const Color(0xFF166534)
+                    : Colors.grey.shade700,
                 fontSize: 12,
               ),
               onSelected: (_) => onFilterChanged(value),
@@ -566,21 +583,25 @@ class _EmptyState extends StatelessWidget {
                 color: const Color(0xFFF3F4F6),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.description_outlined, size: 48, color: Color(0xFF9CA3AF)),
+              child: const Icon(
+                Icons.description_outlined,
+                size: 48,
+                color: Color(0xFF9CA3AF),
+              ),
             ),
             const SizedBox(height: 24),
             Text(
               'Belum ada lamaran',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               'Mulai melamar pekerjaan dan lacak statusnya di sini.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey.shade600,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),

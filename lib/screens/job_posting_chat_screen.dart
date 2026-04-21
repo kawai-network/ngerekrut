@@ -19,6 +19,7 @@ import '../flyer_chat_text_stream_message/flyer_chat_text_stream_message.dart';
 import '../flyer_chat_system_message/flyer_chat_system_message.dart';
 import '../models/job_posting.dart';
 import '../models/recruiter_job.dart';
+import '../repositories/job_posting_repository.dart';
 import '../repositories/local_job_post_repository.dart';
 import '../services/hybrid_ai_service.dart';
 
@@ -36,6 +37,7 @@ class JobPostingChatScreen extends StatefulWidget {
 class _JobPostingChatScreenState extends State<JobPostingChatScreen> {
   late final InMemoryChatController _chatController;
   final LocalJobPostRepository _jobPostRepository = LocalJobPostRepository();
+  final JobPostingRepository _sharedJobPostRepository = JobPostingRepository();
   HybridAIService? _hybridService;
   JobPosting? _lastGenerated;
   bool _isGenerating = false;
@@ -336,6 +338,7 @@ Setelah lowongan jadi, Anda bisa:
         status: 'draft',
       );
       await _jobPostRepository.save(savedJob);
+      await _sharedJobPostRepository.create(savedJob);
       if (!mounted) return;
       setState(() => _isSavedLocally = true);
       ScaffoldMessenger.of(context).showSnackBar(

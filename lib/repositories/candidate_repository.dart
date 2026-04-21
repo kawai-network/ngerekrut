@@ -2,23 +2,33 @@
 /// Shared candidate profiles (jobseeker → recruiter)
 library;
 
+import 'dart:convert';
+
 import '../models/candidate.dart';
 import '../services/hybrid_database_service.dart';
+import '../services/shared_identity_service.dart';
 
 class CandidateRepository {
   final HybridDatabaseService _db;
+  final String _recruiterUserId;
 
-  CandidateRepository({HybridDatabaseService? db}) : _db = db ?? hybridDatabase;
+  CandidateRepository({HybridDatabaseService? db, String? recruiterUserId})
+    : _db = db ?? hybridDatabase,
+      _recruiterUserId =
+          recruiterUserId ?? SharedIdentityService.recruiterUserId;
 
   /// Create or update a candidate profile
   Future<void> save(RecruiterCandidate candidate) async {
     await _db.insertCandidate({
       'id': candidate.id,
+      'recruiter_user_id': _recruiterUserId,
       'name': candidate.name,
       'headline': candidate.headline,
       'years_of_experience': candidate.yearsOfExperience,
       'stage': candidate.stage,
-      'skills_json': candidate.profile != null ? _encodeSkills(candidate.profile!.skills) : null,
+      'skills_json': candidate.profile != null
+          ? _encodeSkills(candidate.profile!.skills)
+          : null,
       'summary': candidate.profile?.summary,
       'resume_id': candidate.resume?.id,
       'resume_file_name': candidate.resume?.fileName,
@@ -85,11 +95,14 @@ class CandidateRepository {
 
   /// Search candidates by name or headline
   Future<List<RecruiterCandidate>> search(String query) async {
-    final rows = await _db.rawQuery('''
+    final rows = await _db.rawQuery(
+      '''
       SELECT * FROM candidates
       WHERE name LIKE ? OR headline LIKE ?
       ORDER BY name ASC
-    ''', positional: ['%$query%', '%$query%']);
+    ''',
+      positional: ['%$query%', '%$query%'],
+    );
     return rows.map((row) => _fromMap(row)).toList();
   }
 
@@ -124,14 +137,17 @@ class CandidateRepository {
   }
 
   String _encodeSkills(List<String> skills) {
-    return '[${skills.map((s) => '"$s"').join(',')}]';
+    return jsonEncode(skills);
   }
 
   List<String> _decodeSkills(String? encoded) {
     if (encoded == null || encoded.isEmpty || encoded == '[]') return [];
     try {
-      final clean = encoded.replaceAll('[', '').replaceAll(']', '').replaceAll('"', '');
-      return clean.split(',').where((s) => s.isNotEmpty).toList();
+      final decoded = jsonDecode(encoded);
+      if (decoded is List) {
+        return decoded.map((item) => item.toString()).toList();
+      }
+      return [];
     } catch (_) {
       return [];
     }

@@ -3,7 +3,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../../models/recruiter_job.dart';
 import '../../repositories/job_posting_repository.dart';
 import '../../repositories/saved_job_repository.dart';
@@ -51,9 +50,9 @@ class _JobBrowseScreenState extends State<JobBrowseScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error loading jobs: $e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error loading jobs: $e')));
         }
       }
     }
@@ -84,9 +83,9 @@ class _JobBrowseScreenState extends State<JobBrowseScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -98,7 +97,10 @@ class _JobBrowseScreenState extends State<JobBrowseScreen> {
     if (_searchQuery.isNotEmpty) {
       jobs = jobs.where((job) {
         return job.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            (job.description?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
+            (job.description?.toLowerCase().contains(
+                  _searchQuery.toLowerCase(),
+                ) ??
+                false);
       }).toList();
     }
 
@@ -111,7 +113,9 @@ class _JobBrowseScreenState extends State<JobBrowseScreen> {
   }
 
   List<String> get _departments {
-    final depts = _jobs.map((j) => j.department).whereType<String>().toSet().toList()..sort();
+    final depts =
+        _jobs.map((j) => j.department).whereType<String>().toSet().toList()
+          ..sort();
     return ['all', ...depts];
   }
 
@@ -121,10 +125,7 @@ class _JobBrowseScreenState extends State<JobBrowseScreen> {
       appBar: AppBar(
         title: const Text('Cari Pekerjaan'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadData,
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
         ],
       ),
       body: Column(
@@ -142,19 +143,19 @@ class _JobBrowseScreenState extends State<JobBrowseScreen> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _filteredJobs.isEmpty
-                    ? _EmptyState(onRefresh: _loadData)
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _filteredJobs.length,
-                        itemBuilder: (context, index) {
-                          return _JobCard(
-                            job: _filteredJobs[index],
-                            isSaved: _savedJobIds.contains(_filteredJobs[index].id),
-                            onSave: () => _toggleSave(_filteredJobs[index]),
-                            onTap: () => _showJobDetail(_filteredJobs[index]),
-                          );
-                        },
-                      ),
+                ? _EmptyState(onRefresh: _loadData)
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _filteredJobs.length,
+                    itemBuilder: (context, index) {
+                      return _JobCard(
+                        job: _filteredJobs[index],
+                        isSaved: _savedJobIds.contains(_filteredJobs[index].id),
+                        onSave: () => _toggleSave(_filteredJobs[index]),
+                        onTap: () => _showJobDetail(_filteredJobs[index]),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -207,17 +208,15 @@ class _JobCard extends StatelessWidget {
                       children: [
                         Text(
                           job.title,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 4),
                         if (job.department != null)
                           Text(
                             job.department!,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Colors.grey.shade700,
-                                ),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: Colors.grey.shade700),
                           ),
                       ],
                     ),
@@ -225,7 +224,9 @@ class _JobCard extends StatelessWidget {
                   IconButton(
                     icon: Icon(
                       isSaved ? Icons.bookmark : Icons.bookmark_border,
-                      color: isSaved ? const Color(0xFF6366F1) : Colors.grey.shade600,
+                      color: isSaved
+                          ? const Color(0xFF6366F1)
+                          : Colors.grey.shade600,
                     ),
                     onPressed: onSave,
                     tooltip: isSaved ? 'Hapus dari saved' : 'Simpan',
@@ -236,13 +237,17 @@ class _JobCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.location_on_outlined, size: 16, color: Color(0xFF6B7280)),
+                    const Icon(
+                      Icons.location_on_outlined,
+                      size: 16,
+                      color: Color(0xFF6B7280),
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       job.location!,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: const Color(0xFF6B7280),
-                          ),
+                        color: const Color(0xFF6B7280),
+                      ),
                     ),
                   ],
                 ),
@@ -253,9 +258,9 @@ class _JobCard extends StatelessWidget {
                   job.description!,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.grey.shade700,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700),
                 ),
               ],
               const SizedBox(height: 12),
@@ -263,10 +268,8 @@ class _JobCard extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  if (job.department != null)
-                    _Chip(label: job.department!),
-                  if (job.location != null)
-                    _Chip(label: job.location!),
+                  if (job.department != null) _Chip(label: job.department!),
+                  if (job.location != null) _Chip(label: job.location!),
                   if (job.requirements.isNotEmpty)
                     ...job.requirements.take(2).map((req) => _Chip(label: req)),
                 ],
@@ -301,10 +304,7 @@ class _Chip extends StatelessWidget {
 }
 
 class _SearchBar extends StatelessWidget {
-  const _SearchBar({
-    required this.query,
-    required this.onChanged,
-  });
+  const _SearchBar({required this.query, required this.onChanged});
 
   final String query;
   final Function(String) onChanged;
@@ -323,9 +323,7 @@ class _SearchBar extends StatelessWidget {
                   onPressed: () => onChanged(''),
                 )
               : null,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           filled: true,
           fillColor: Colors.grey.shade50,
         ),
@@ -366,11 +364,15 @@ class _DepartmentFilter extends StatelessWidget {
               selectedColor: const Color(0xFFDCFCE7),
               backgroundColor: Colors.grey.shade100,
               side: BorderSide(
-                color: isSelected ? const Color(0xFF86EFAC) : Colors.transparent,
+                color: isSelected
+                    ? const Color(0xFF86EFAC)
+                    : Colors.transparent,
               ),
               labelStyle: TextStyle(
                 fontWeight: FontWeight.w600,
-                color: isSelected ? const Color(0xFF166534) : Colors.grey.shade700,
+                color: isSelected
+                    ? const Color(0xFF166534)
+                    : Colors.grey.shade700,
                 fontSize: 12,
               ),
               onSelected: (_) => onSelected(dept),
@@ -401,21 +403,25 @@ class _EmptyState extends StatelessWidget {
                 color: const Color(0xFFF3F4F6),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.work_outline, size: 48, color: Color(0xFF9CA3AF)),
+              child: const Icon(
+                Icons.work_outline,
+                size: 48,
+                color: Color(0xFF9CA3AF),
+              ),
             ),
             const SizedBox(height: 24),
             Text(
               'Tidak ada lowongan ditemukan',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               'Coba kata kunci atau filter lainnya.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey.shade600,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
@@ -457,23 +463,31 @@ class _JobDetailScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (job.department != null) _InfoRow(icon: Icons.business, label: job.department!),
-          if (job.location != null) _InfoRow(icon: Icons.location_on, label: job.location!),
+          if (job.department != null)
+            _InfoRow(icon: Icons.business, label: job.department!),
+          if (job.location != null)
+            _InfoRow(icon: Icons.location_on, label: job.location!),
           const SizedBox(height: 24),
           Text(
             'Deskripsi',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           Text(
             job.description ?? 'Tidak ada deskripsi.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.5),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(height: 1.5),
           ),
           if (job.requirements.isNotEmpty) ...[
             const SizedBox(height: 24),
             Text(
               'Kualifikasi',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             ...job.requirements.map(
@@ -529,9 +543,9 @@ class _InfoRow extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             label,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey.shade700,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700),
           ),
         ],
       ),

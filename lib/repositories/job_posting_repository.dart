@@ -2,24 +2,32 @@
 /// Uses RecruiterJob model for compatibility with existing code
 library;
 
+import 'dart:convert';
+
 import '../models/recruiter_job.dart';
 import '../services/hybrid_database_service.dart';
+import '../services/shared_identity_service.dart';
 
 class JobPostingRepository {
   final HybridDatabaseService _db;
+  final String _recruiterUserId;
 
-  JobPostingRepository({HybridDatabaseService? db}) : _db = db ?? hybridDatabase;
+  JobPostingRepository({HybridDatabaseService? db, String? recruiterUserId})
+    : _db = db ?? hybridDatabase,
+      _recruiterUserId =
+          recruiterUserId ?? SharedIdentityService.recruiterUserId;
 
   /// Create a new job posting
   Future<void> create(RecruiterJob posting) async {
     await _db.insertJobPosting({
       'id': posting.id,
       'job_id': posting.id,
+      'recruiter_user_id': _recruiterUserId,
       'title': posting.title,
       'department': posting.department,
       'location': posting.location,
       'description': posting.description,
-      'requirements_json': posting.requirements.toString(),
+      'requirements_json': jsonEncode(posting.requirements),
       'status': posting.status,
       'created_at': DateTime.now().millisecondsSinceEpoch,
       'updated_at': DateTime.now().millisecondsSinceEpoch,
@@ -28,14 +36,20 @@ class JobPostingRepository {
 
   /// Get job posting by job ID
   Future<RecruiterJob?> getByJobId(String jobId) async {
-    final rows = await _db.rawQuery('SELECT * FROM job_postings WHERE job_id = ?', positional: [jobId]);
+    final rows = await _db.rawQuery(
+      'SELECT * FROM job_postings WHERE job_id = ?',
+      positional: [jobId],
+    );
     if (rows.isEmpty) return null;
     return _fromMap(rows.first);
   }
 
   /// Get job posting by ID
   Future<RecruiterJob?> getById(String id) async {
-    final rows = await _db.rawQuery('SELECT * FROM job_postings WHERE id = ?', positional: [id]);
+    final rows = await _db.rawQuery(
+      'SELECT * FROM job_postings WHERE id = ?',
+      positional: [id],
+    );
     if (rows.isEmpty) return null;
     return _fromMap(rows.first);
   }
@@ -79,52 +93,63 @@ class JobPostingRepository {
   /// Update job posting content
   Future<void> update(RecruiterJob posting) async {
     final now = DateTime.now().millisecondsSinceEpoch;
-    await _db.rawQuery('''
+    await _db.rawQuery(
+      '''
       UPDATE job_postings
       SET title = ?, department = ?, location = ?, description = ?,
           requirements_json = ?, status = ?, updated_at = ?
       WHERE job_id = ?
-    ''', positional: [
-      posting.title,
-      posting.department,
-      posting.location,
-      posting.description,
-      posting.requirements.toString(),
-      posting.status,
-      now,
-      posting.id,
-    ]);
+    ''',
+      positional: [
+        posting.title,
+        posting.department,
+        posting.location,
+        posting.description,
+        jsonEncode(posting.requirements),
+        posting.status,
+        now,
+        posting.id,
+      ],
+    );
   }
 
   /// Delete a job posting
   Future<void> delete(String jobId) async {
-    await _db.rawQuery('DELETE FROM job_postings WHERE job_id = ?', positional: [jobId]);
+    await _db.rawQuery(
+      'DELETE FROM job_postings WHERE job_id = ?',
+      positional: [jobId],
+    );
   }
 
   /// Get job postings by department
   Future<List<RecruiterJob>> getByDepartment(String department) async {
     final rows = await _db.rawQuery(
-        'SELECT * FROM job_postings WHERE department = ? ORDER BY created_at DESC',
-        positional: [department]);
+      'SELECT * FROM job_postings WHERE department = ? ORDER BY created_at DESC',
+      positional: [department],
+    );
     return rows.map(_fromMap).toList();
   }
 
   /// Get job postings by location
   Future<List<RecruiterJob>> getByLocation(String location) async {
     final rows = await _db.rawQuery(
-        'SELECT * FROM job_postings WHERE location = ? ORDER BY created_at DESC',
-        positional: [location]);
+      'SELECT * FROM job_postings WHERE location = ? ORDER BY created_at DESC',
+      positional: [location],
+    );
     return rows.map(_fromMap).toList();
   }
 
   /// Search job postings by title or description
   Future<List<RecruiterJob>> search(String query) async {
-    final rows = await _db.rawQuery('''
+    final rows = await _db.rawQuery(
+      '''
       SELECT * FROM job_postings
       WHERE status = 'published'
         AND (title LIKE ? OR description LIKE ?)
       ORDER BY created_at DESC
-    ''', positional: ['%$query%', '%$query%']);
+    ''',
+      positional: ['%$query%', '%$query%'],
+    );
     return rows.map(_fromMap).toList();
   }
 
@@ -138,11 +163,21 @@ class JobPostingRepository {
       if (req is String) {
         try {
           // Remove brackets and split by comma
-          final clean = req.replaceAll('[', '').replaceAll(']', '').replaceAll('"', '');
-          if (clean.isEmpty) return [];
-          return clean.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+          final decoded = jsonDecode(req);
+          if (decoded is List) {
+            return decoded.map((e) => e.toString()).toList();
+          }
         } catch (_) {
-          return [];
+          final clean = req
+              .replaceAll('[', '')
+              .replaceAll(']', '')
+              .replaceAll('"', '');
+          if (clean.isEmpty) return [];
+          return clean
+              .split(',')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
         }
       }
       return [];

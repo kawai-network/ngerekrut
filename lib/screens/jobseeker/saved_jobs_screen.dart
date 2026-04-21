@@ -21,7 +21,7 @@ class _SavedJobsScreenState extends State<SavedJobsScreen> {
 
   bool _isLoading = true;
   List<SavedJob> _savedJobs = [];
-  Set<String> _expandedNotes = {};
+  final Set<String> _expandedNotes = {};
 
   @override
   void initState() {
@@ -51,7 +51,12 @@ class _SavedJobsScreenState extends State<SavedJobsScreen> {
     }
   }
 
-  Future<void> _toggleSave(String jobId, String title, String? company, String? location) async {
+  Future<void> _toggleSave(
+    String jobId,
+    String title,
+    String? company,
+    String? location,
+  ) async {
     try {
       final isSaved = await _repo.toggle(
         jobId,
@@ -71,9 +76,9 @@ class _SavedJobsScreenState extends State<SavedJobsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -87,6 +92,7 @@ class _SavedJobsScreenState extends State<SavedJobsScreen> {
           if (index >= 0) {
             _savedJobs[index] = SavedJob(
               id: _savedJobs[index].id,
+              userId: _savedJobs[index].userId,
               jobId: _savedJobs[index].jobId,
               title: _savedJobs[index].title,
               company: _savedJobs[index].company,
@@ -97,15 +103,15 @@ class _SavedJobsScreenState extends State<SavedJobsScreen> {
             );
           }
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Catatan disimpan')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Catatan disimpan')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving notes: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error saving notes: $e')));
       }
     }
   }
@@ -125,37 +131,40 @@ class _SavedJobsScreenState extends State<SavedJobsScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _savedJobs.isEmpty
-              ? _EmptyState(onRefresh: _loadSavedJobs)
-              : RefreshIndicator(
-                  onRefresh: _loadSavedJobs,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _savedJobs.length,
-                    itemBuilder: (context, index) {
-                      return _SavedJobCard(
-                        job: _savedJobs[index],
-                        isNotesExpanded: _expandedNotes.contains(_savedJobs[index].jobId),
-                        onToggleSave: () => _toggleSave(
-                          _savedJobs[index].jobId,
-                          _savedJobs[index].title,
-                          _savedJobs[index].company,
-                          _savedJobs[index].location,
-                        ),
-                        onToggleNotes: () {
-                          setState(() {
-                            final jobId = _savedJobs[index].jobId;
-                            if (_expandedNotes.contains(jobId)) {
-                              _expandedNotes.remove(jobId);
-                            } else {
-                              _expandedNotes.add(jobId);
-                            }
-                          });
-                        },
-                        onSaveNotes: (notes) => _updateNotes(_savedJobs[index].jobId, notes),
-                      );
+          ? _EmptyState(onRefresh: _loadSavedJobs)
+          : RefreshIndicator(
+              onRefresh: _loadSavedJobs,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _savedJobs.length,
+                itemBuilder: (context, index) {
+                  return _SavedJobCard(
+                    job: _savedJobs[index],
+                    isNotesExpanded: _expandedNotes.contains(
+                      _savedJobs[index].jobId,
+                    ),
+                    onToggleSave: () => _toggleSave(
+                      _savedJobs[index].jobId,
+                      _savedJobs[index].title,
+                      _savedJobs[index].company,
+                      _savedJobs[index].location,
+                    ),
+                    onToggleNotes: () {
+                      setState(() {
+                        final jobId = _savedJobs[index].jobId;
+                        if (_expandedNotes.contains(jobId)) {
+                          _expandedNotes.remove(jobId);
+                        } else {
+                          _expandedNotes.add(jobId);
+                        }
+                      });
                     },
-                  ),
-                ),
+                    onSaveNotes: (notes) =>
+                        _updateNotes(_savedJobs[index].jobId, notes),
+                  );
+                },
+              ),
+            ),
     );
   }
 }
@@ -192,26 +201,23 @@ class _SavedJobCard extends StatelessWidget {
                     children: [
                       Text(
                         job.title,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       if (job.company != null) ...[
                         const SizedBox(height: 4),
                         Text(
                           job.company!,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Colors.grey.shade700,
-                              ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: Colors.grey.shade700),
                         ),
                       ],
                       if (job.location != null) ...[
                         const SizedBox(height: 2),
                         Text(
                           job.location!,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Colors.grey.shade600,
-                              ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: Colors.grey.shade600),
                         ),
                       ],
                     ],
@@ -231,9 +237,9 @@ class _SavedJobCard extends StatelessWidget {
                 const SizedBox(width: 4),
                 Text(
                   'Disimpan ${DateFormat('d MMM yyyy').format(job.savedAt)}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey.shade600,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
                 ),
                 const Spacer(),
                 TextButton.icon(
@@ -300,21 +306,25 @@ class _EmptyState extends StatelessWidget {
                 color: const Color(0xFFF3F4F6),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.bookmark_border, size: 48, color: Color(0xFF9CA3AF)),
+              child: const Icon(
+                Icons.bookmark_border,
+                size: 48,
+                color: Color(0xFF9CA3AF),
+              ),
             ),
             const SizedBox(height: 24),
             Text(
               'Belum ada pekerjaan disimpan',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               'Simpan pekerjaan yang menarik untuk melamar nanti.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey.shade600,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),

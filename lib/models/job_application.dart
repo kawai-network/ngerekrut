@@ -140,6 +140,7 @@ class JobApplication {
   factory JobApplication.create({
     required String jobId,
     required String jobTitle,
+    String? candidateId,
     String? company,
     String? location,
     String? expectedSalary,
@@ -150,6 +151,7 @@ class JobApplication {
     return JobApplication(
       id: 'app_${now.millisecondsSinceEpoch}$jobId',
       jobId: jobId,
+      candidateId: candidateId,
       jobTitle: jobTitle,
       company: company,
       location: location,
@@ -163,7 +165,10 @@ class JobApplication {
   }
 
   /// Update the application status
-  JobApplication updateStatus(ApplicationStatus newStatus, {String? rejectionReason}) {
+  JobApplication updateStatus(
+    ApplicationStatus newStatus, {
+    String? rejectionReason,
+  }) {
     return JobApplication(
       id: id,
       jobId: jobId,
