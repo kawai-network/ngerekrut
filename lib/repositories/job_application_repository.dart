@@ -17,7 +17,7 @@ class JobApplicationRepository {
 
   JobApplicationRepository({HybridDatabaseService? db, String? candidateId})
     : _db = db ?? hybridDatabase,
-      _candidateId = candidateId ?? SharedIdentityService.jobseekerUserId;
+      _candidateId = candidateId ?? SharedIdentityService.currentUid;
 
   /// Create a new job application
   Future<void> create(JobApplication application) async {

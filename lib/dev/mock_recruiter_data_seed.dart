@@ -175,7 +175,7 @@ class MockRecruiterDataSeed {
       const RecruiterJob(
         id: 'job_flutter_001',
         title: 'Senior Flutter Developer',
-        department: 'Engineering',
+        unitLabel: 'Engineering',
         location: 'Jakarta / Remote',
         description:
             'Memimpin pengembangan aplikasi Flutter, menjaga code quality, dan berkolaborasi dengan product dan design.',
@@ -184,7 +184,7 @@ class MockRecruiterDataSeed {
           'Paham state management dan testing',
           'Mampu memimpin delivery fitur',
         ],
-        status: 'active',
+        status: 'published',
       ),
     );
 
@@ -192,7 +192,7 @@ class MockRecruiterDataSeed {
       const RecruiterJob(
         id: 'job_warehouse_001',
         title: 'Admin Gudang',
-        department: 'Operations',
+        unitLabel: 'Operations',
         location: 'Depok',
         description:
             'Menangani administrasi gudang, stok masuk/keluar, dan koordinasi operasional harian.',
@@ -201,7 +201,7 @@ class MockRecruiterDataSeed {
           'Pengalaman administrasi gudang',
           'Terbiasa dengan WMS menjadi nilai tambah',
         ],
-        status: 'active',
+        status: 'published',
       ),
     );
 
@@ -209,7 +209,7 @@ class MockRecruiterDataSeed {
       const RecruiterJob(
         id: 'job_backend_001',
         title: 'Backend Engineer',
-        department: 'Engineering',
+        unitLabel: 'Engineering',
         location: 'Bandung / Hybrid',
         description:
             'Mengembangkan service backend yang scalable untuk produk inti perusahaan.',

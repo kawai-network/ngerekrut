@@ -561,7 +561,7 @@ class _JobOverview extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               [
-                if ((job.department ?? '').isNotEmpty) job.department!,
+                if ((job.unitLabel ?? '').isNotEmpty) job.unitLabel!,
                 if ((job.location ?? '').isNotEmpty) job.location!,
                 job.status,
               ].join(' • '),

@@ -35,6 +35,7 @@ dependencies:
   diffutil_dart: ^4.0.1
   dio: ^5.9.0
   firebase_core: ^4.6.0
+  firebase_auth: ^6.4.0
   firebase_messaging: ^16.1.3
   flutter:
     sdk: flutter

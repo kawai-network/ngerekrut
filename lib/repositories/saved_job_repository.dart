@@ -34,7 +34,7 @@ class SavedJob {
   factory SavedJob.fromRecord(SavedJobRecord record) {
     return SavedJob(
       id: record.id.toString(),
-      userId: SharedIdentityService.jobseekerUserId,
+      userId: SharedIdentityService.currentUid,
       jobId: record.jobId,
       title: record.title,
       unitLabel: record.unitLabel,
@@ -66,7 +66,7 @@ class SavedJobRepository {
 
   SavedJobRepository({HybridDatabaseService? db, String? userId})
     : _db = db ?? hybridDatabase,
-      _userId = userId ?? SharedIdentityService.jobseekerUserId;
+      _userId = userId ?? SharedIdentityService.currentUid;
 
   /// Save a job (bookmark)
   Future<void> save(SavedJob job) async {

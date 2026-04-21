@@ -80,7 +80,7 @@ class _JobBrowseScreenState extends State<JobBrowseScreen> {
     setState(() => _isLoadingRecommendations = true);
     try {
       final recommendations = await _matchingService.getRecommendedJobs(
-        userId: SharedIdentityService.jobseekerUserId,
+        userId: SharedIdentityService.currentUid,
         minScore: 30, // Show jobs with at least 30% match
         limit: 5,
       );
@@ -111,7 +111,7 @@ class _JobBrowseScreenState extends State<JobBrowseScreen> {
       final isSaved = await _savedRepo.toggle(
         job.id,
         title: job.title,
-        unitLabel: job.department,
+        unitLabel: job.unitLabel,
         location: job.location,
       );
       setState(() {
@@ -152,9 +152,9 @@ class _JobBrowseScreenState extends State<JobBrowseScreen> {
       }).toList();
     }
 
-    // Filter by department
+    // Filter by hiring unit
     if (_departmentFilter != 'all') {
-      jobs = jobs.where((job) => job.department == _departmentFilter).toList();
+      jobs = jobs.where((job) => job.unitLabel == _departmentFilter).toList();
     }
 
     return jobs;
@@ -162,7 +162,7 @@ class _JobBrowseScreenState extends State<JobBrowseScreen> {
 
   List<String> get _departments {
     final depts =
-        _jobs.map((j) => j.department).whereType<String>().toSet().toList()
+        _jobs.map((j) => j.unitLabel).whereType<String>().toSet().toList()
           ..sort();
     return ['all', ...depts];
   }
@@ -593,9 +593,9 @@ class _RecommendedJobCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
-                if (match.job.department != null)
+                if (match.job.unitLabel != null)
                   Text(
-                    match.job.department!,
+                    match.job.unitLabel!,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Colors.grey.shade700,
                     ),
@@ -766,9 +766,9 @@ class _JobCard extends StatelessWidget {
                               ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 4),
-                        if (job.department != null)
+                        if (job.unitLabel != null)
                           Text(
-                            job.department!,
+                            job.unitLabel!,
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(color: Colors.grey.shade700),
                           ),
@@ -822,7 +822,7 @@ class _JobCard extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  if (job.department != null) _Chip(label: job.department!),
+                  if (job.unitLabel != null) _Chip(label: job.unitLabel!),
                   if (job.location != null) _Chip(label: job.location!),
                   if (job.requirements.isNotEmpty)
                     ...job.requirements.take(2).map((req) => _Chip(label: req)),
@@ -1011,8 +1011,7 @@ class _JobDetailScreenState extends State<_JobDetailScreen> {
   bool _hasApplied = false;
 
   bool get _canApply {
-    final normalized = widget.job.status.toLowerCase();
-    return normalized == 'published' || normalized == 'active';
+    return JobPostingRepository.isPublishedStatus(widget.job.status);
   }
 
   String get _applyButtonLabel {
@@ -1020,7 +1019,7 @@ class _JobDetailScreenState extends State<_JobDetailScreen> {
     if (_hasApplied) return 'Sudah Dilamar';
     if (!_canApply) {
       final normalized = widget.job.status.toLowerCase();
-      if (normalized == 'closed' || normalized == 'ditutup') {
+      if (JobPostingRepository.isClosedStatus(normalized)) {
         return 'Lowongan Ditutup';
       }
       if (normalized == 'draft') return 'Belum Dibuka';
@@ -1115,8 +1114,8 @@ class _JobDetailScreenState extends State<_JobDetailScreen> {
             ),
             const SizedBox(height: 16),
           ],
-          if (widget.job.department != null)
-            _InfoRow(icon: Icons.business, label: widget.job.department!),
+          if (widget.job.unitLabel != null)
+            _InfoRow(icon: Icons.business, label: widget.job.unitLabel!),
           if (widget.job.location != null)
             _InfoRow(icon: Icons.location_on, label: widget.job.location!),
           const SizedBox(height: 24),
@@ -1193,11 +1192,11 @@ class _JobDetailScreenState extends State<_JobDetailScreen> {
   }
 
   String _buildAvailabilityMessage() {
-    final normalized = widget.job.status.toLowerCase();
-    if (normalized == 'closed' || normalized == 'ditutup') {
+    final normalized = JobPostingRepository.normalizeStatus(widget.job.status);
+    if (normalized == JobPostingRepository.statusClosed) {
       return 'Lowongan ini sudah ditutup oleh recruiter dan tidak menerima lamaran baru.';
     }
-    if (normalized == 'draft') {
+    if (normalized == JobPostingRepository.statusDraft) {
       return 'Lowongan ini masih draft dan belum dibuka untuk pelamar.';
     }
     return 'Lowongan ini belum tersedia untuk lamaran baru.';
@@ -1238,8 +1237,8 @@ class _ApplyJobSheetState extends State<_ApplyJobSheet> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate() || _isSubmitting) return;
-    final status = widget.job.status.toLowerCase();
-    if (status != 'published' && status != 'active') {
+    final status = JobPostingRepository.normalizeStatus(widget.job.status);
+    if (status != JobPostingRepository.statusPublished) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Lowongan ini tidak menerima lamaran baru.'),
@@ -1270,7 +1269,7 @@ class _ApplyJobSheetState extends State<_ApplyJobSheet> {
         jobId: widget.job.id,
         jobTitle: widget.job.title,
         candidateId: _repo.candidateId,
-        unitLabel: widget.job.department,
+        unitLabel: widget.job.unitLabel,
         location: widget.job.location,
         expectedSalary: _expectedSalaryController.text.trim().isEmpty
             ? null

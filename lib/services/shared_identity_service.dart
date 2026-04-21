@@ -1,17 +1,32 @@
 library;
 
-import '../app/runtime_config.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SharedIdentityService {
   const SharedIdentityService._();
 
-  static String get jobseekerUserId {
-    final configured = readConfig('JOBSEEKER_USER_ID');
-    return configured.isNotEmpty ? configured : 'demo_jobseeker';
+  static FirebaseAuth get _auth => FirebaseAuth.instance;
+
+  static User? get currentUser => _auth.currentUser;
+
+  static String get currentUid {
+    final uid = currentUser?.uid;
+    if (uid == null || uid.isEmpty) {
+      throw StateError('User not authenticated');
+    }
+    return uid;
   }
 
-  static String get recruiterUserId {
-    final configured = readConfig('RECRUITER_USER_ID');
-    return configured.isNotEmpty ? configured : 'demo_recruiter';
-  }
+  static String get jobseekerUserId => currentUid;
+
+  static String get recruiterUserId => currentUid;
+
+  static Stream<User?> authStateChanges() => _auth.authStateChanges();
+
+  static Stream<User?> idTokenChanges() => _auth.idTokenChanges();
+
+  static Future<IdTokenResult?> getIdTokenResult() async =>
+      currentUser?.getIdTokenResult();
+
+  static Future<void> signOut() => _auth.signOut();
 }

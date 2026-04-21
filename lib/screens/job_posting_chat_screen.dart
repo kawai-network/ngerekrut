@@ -328,7 +328,7 @@ Setelah lowongan jadi, Anda bisa:
       final savedJob = RecruiterJob(
         id: 'local_job_${DateTime.now().millisecondsSinceEpoch}',
         title: job.title,
-        department: null,
+        unitLabel: null,
         location: job.location,
         description:
             '${job.description}\n\nTanggung jawab:\n- ${job.responsibilities.join('\n- ')}\n\nEstimasi gaji: ${job.salaryRange}\nTipe kerja: ${job.employmentType}',

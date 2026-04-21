@@ -32,16 +32,19 @@ import '../services/hybrid_ai_service.dart';
 import '../services/interview_guide_generation_service.dart';
 import '../services/resume_screening_service.dart';
 import '../services/scorecard_generation_service.dart';
+import '../services/shared_identity_service.dart';
 import 'runtime_config.dart';
 
 class RecruiterApp extends StatelessWidget {
   final String title;
   final bool enableAIInitialization;
+  final Widget? homeOverride;
 
   const RecruiterApp({
     super.key,
     this.title = 'NgeRekrut',
     this.enableAIInitialization = true,
+    this.homeOverride,
   });
 
   @override
@@ -52,7 +55,9 @@ class RecruiterApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF18CD5B)),
         useMaterial3: true,
       ),
-      home: RecruiterHomeScreen(enableAIInitialization: enableAIInitialization),
+      home:
+          homeOverride ??
+          RecruiterHomeScreen(enableAIInitialization: enableAIInitialization),
     );
   }
 }
@@ -378,6 +383,11 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
                   value: _HomeAction.legacyChat,
                   child: Text('Buka Legacy Chat'),
                 ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: _HomeAction.signOut,
+                child: Text('Keluar'),
+              ),
             ],
           ),
         ],
@@ -488,7 +498,7 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
           selectedJob: AssistantJobContext(
             id: firstJob.id,
             title: firstJob.title,
-            department: firstJob.department,
+            unitLabel: firstJob.unitLabel,
             location: firstJob.location,
             description: firstJob.description,
             requirements: firstJob.requirements,
@@ -603,6 +613,9 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
           ),
         );
         return;
+      case _HomeAction.signOut:
+        await SharedIdentityService.signOut();
+        return;
     }
   }
 
@@ -705,10 +718,7 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
   }
 
   bool _isActiveJob(String status) {
-    final normalized = status.toLowerCase();
-    return normalized == 'active' ||
-        normalized == 'aktif' ||
-        normalized == 'open';
+    return JobPostingRepository.isPublishedStatus(status);
   }
 }
 
@@ -727,6 +737,7 @@ enum _HomeAction {
   gemmaProof,
   seedMockData,
   legacyChat,
+  signOut,
 }
 
 class _RecruiterDashboardData {
@@ -1250,8 +1261,7 @@ class _JobSummaryCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               [
-                if ((item.job.department ?? '').isNotEmpty)
-                  item.job.department!,
+                if ((item.job.unitLabel ?? '').isNotEmpty) item.job.unitLabel!,
                 if ((item.job.location ?? '').isNotEmpty) item.job.location!,
               ].join(' • '),
               style: Theme.of(
@@ -1377,16 +1387,22 @@ class _StatusPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final normalized = status.toLowerCase();
     final background = switch (normalized) {
-      'active' || 'aktif' || 'open' => const Color(0xFFDCFCE7),
+      'published' => const Color(0xFFDCFCE7),
       'draft' => const Color(0xFFF3F4F6),
-      'closed' || 'ditutup' => const Color(0xFFFEE2E2),
+      'closed' => const Color(0xFFFEE2E2),
       _ => const Color(0xFFE0F2FE),
     };
     final foreground = switch (normalized) {
-      'active' || 'aktif' || 'open' => const Color(0xFF166534),
+      'published' => const Color(0xFF166534),
       'draft' => const Color(0xFF4B5563),
-      'closed' || 'ditutup' => const Color(0xFFB91C1C),
+      'closed' => const Color(0xFFB91C1C),
       _ => const Color(0xFF1D4ED8),
+    };
+    final label = switch (normalized) {
+      'published' => 'Aktif',
+      'draft' => 'Draft',
+      'closed' => 'Ditutup',
+      _ => status,
     };
 
     return Container(
@@ -1396,7 +1412,7 @@ class _StatusPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        status,
+        label,
         style: TextStyle(color: foreground, fontWeight: FontWeight.w700),
       ),
     );

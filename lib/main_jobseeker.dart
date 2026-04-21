@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'auth/auth_gate.dart';
 import 'app/gemma_bootstrap.dart';
 import 'app/runtime_config.dart';
 import 'flavors/app_flavor_config.dart';
@@ -25,11 +26,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 Future<void> _initializeFirebaseMessaging() async {
   final messaging = FirebaseMessaging.instance;
 
-  await messaging.requestPermission(
-    alert: true,
-    badge: true,
-    sound: true,
-  );
+  await messaging.requestPermission(alert: true, badge: true, sound: true);
 
   final token = await messaging.getToken();
   debugPrint('FCM token: $token');
@@ -60,8 +57,8 @@ void main() async {
     environment: FlavorEnvironment.fromConfig(),
   );
   // Only initialize Firebase on supported platforms
-  final isSupportedPlatform = kIsWeb ||
-      (Platform.isAndroid || Platform.isIOS || Platform.isMacOS);
+  final isSupportedPlatform =
+      kIsWeb || (Platform.isAndroid || Platform.isIOS || Platform.isMacOS);
   if (isSupportedPlatform) {
     try {
       final options = FlavorFirebaseOptions.currentPlatform;
@@ -72,7 +69,9 @@ void main() async {
         );
       } else {
         await Firebase.initializeApp(options: options);
-        FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+        FirebaseMessaging.onBackgroundMessage(
+          firebaseMessagingBackgroundHandler,
+        );
         await _initializeFirebaseMessaging();
       }
     } on Exception catch (e) {
@@ -95,7 +94,12 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const JobSeekerHomeScreen(),
+      home: const AuthGate(
+        title: 'Masuk ke NgeRekrut Jobseeker',
+        description:
+            'Gunakan akun Firebase Auth untuk menyimpan lamaran, lowongan tersimpan, dan profil kandidat Anda.',
+        child: JobSeekerHomeScreen(),
+      ),
     );
   }
 }

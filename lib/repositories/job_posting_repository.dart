@@ -14,8 +14,33 @@ class JobPostingRepository {
 
   JobPostingRepository({HybridDatabaseService? db, String? recruiterUserId})
     : _db = db ?? hybridDatabase,
-      _recruiterUserId =
-          recruiterUserId ?? SharedIdentityService.recruiterUserId;
+      _recruiterUserId = recruiterUserId ?? SharedIdentityService.currentUid;
+
+  static const String statusDraft = 'draft';
+  static const String statusPublished = 'published';
+  static const String statusClosed = 'closed';
+
+  static String normalizeStatus(String? status) {
+    switch ((status ?? '').trim().toLowerCase()) {
+      case 'published':
+      case 'active':
+      case 'aktif':
+      case 'open':
+        return statusPublished;
+      case 'closed':
+      case 'ditutup':
+        return statusClosed;
+      case 'draft':
+      default:
+        return statusDraft;
+    }
+  }
+
+  static bool isPublishedStatus(String? status) =>
+      normalizeStatus(status) == statusPublished;
+
+  static bool isClosedStatus(String? status) =>
+      normalizeStatus(status) == statusClosed;
 
   /// Create a new job posting
   Future<void> create(RecruiterJob posting) async {
@@ -24,11 +49,11 @@ class JobPostingRepository {
       'job_id': posting.id,
       'recruiter_user_id': _recruiterUserId,
       'title': posting.title,
-      'department': posting.department,
+      'department': posting.unitLabel,
       'location': posting.location,
       'description': posting.description,
       'requirements_json': jsonEncode(posting.requirements),
-      'status': posting.status,
+      'status': normalizeStatus(posting.status),
       'created_at': DateTime.now().millisecondsSinceEpoch,
       'updated_at': DateTime.now().millisecondsSinceEpoch,
     });
@@ -56,7 +81,9 @@ class JobPostingRepository {
 
   /// Get all job postings
   Future<List<RecruiterJob>> getAll({String? status}) async {
-    final rows = await _db.getJobPostings(status: status);
+    final rows = await _db.getJobPostings(
+      status: status == null ? null : normalizeStatus(status),
+    );
     return rows.map(_fromMap).toList();
   }
 
@@ -67,27 +94,27 @@ class JobPostingRepository {
 
   /// Get draft job postings (for recruiters)
   Future<List<RecruiterJob>> getDrafts() async {
-    return await getAll(status: 'draft');
+    return await getAll(status: statusDraft);
   }
 
   /// Get closed job postings
   Future<List<RecruiterJob>> getClosed() async {
-    return await getAll(status: 'closed');
+    return await getAll(status: statusClosed);
   }
 
   /// Update job posting status
   Future<void> updateStatus(String jobId, String status) async {
-    await _db.updateJobPostingStatus(jobId, status);
+    await _db.updateJobPostingStatus(jobId, normalizeStatus(status));
   }
 
   /// Publish a job posting
   Future<void> publish(String jobId) async {
-    await updateStatus(jobId, 'published');
+    await updateStatus(jobId, statusPublished);
   }
 
   /// Close a job posting
   Future<void> close(String jobId) async {
-    await updateStatus(jobId, 'closed');
+    await updateStatus(jobId, statusClosed);
   }
 
   /// Update job posting content
@@ -102,11 +129,11 @@ class JobPostingRepository {
     ''',
       positional: [
         posting.title,
-        posting.department,
+        posting.unitLabel,
         posting.location,
         posting.description,
         jsonEncode(posting.requirements),
-        posting.status,
+        normalizeStatus(posting.status),
         now,
         posting.id,
       ],
@@ -121,11 +148,11 @@ class JobPostingRepository {
     );
   }
 
-  /// Get job postings by department
-  Future<List<RecruiterJob>> getByDepartment(String department) async {
+  /// Get job postings by unit label (stored as `department` in the table).
+  Future<List<RecruiterJob>> getByUnitLabel(String unitLabel) async {
     final rows = await _db.rawQuery(
       'SELECT * FROM job_postings WHERE department = ? ORDER BY created_at DESC',
-      positional: [department],
+      positional: [unitLabel],
     );
     return rows.map(_fromMap).toList();
   }
@@ -186,11 +213,11 @@ class JobPostingRepository {
     return RecruiterJob(
       id: map['id'] as String,
       title: map['title'] as String,
-      department: map['department'] as String?,
+      unitLabel: map['department'] as String?,
       location: map['location'] as String?,
       description: map['description'] as String?,
       requirements: parseRequirements(map['requirements_json']),
-      status: map['status'] as String? ?? 'draft',
+      status: normalizeStatus(map['status'] as String?),
     );
   }
 }

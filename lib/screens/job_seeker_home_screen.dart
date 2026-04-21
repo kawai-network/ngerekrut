@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../flavors/flavor_manager.dart';
+import '../services/shared_identity_service.dart';
 import 'jobseeker/job_browse_screen.dart';
 import 'jobseeker/my_applications_screen.dart';
 import 'jobseeker/saved_jobs_screen.dart';
@@ -29,6 +30,13 @@ class _JobSeekerHomeScreenState extends State<JobSeekerHomeScreen> {
             Text(FlavorManager.flavor.appName),
           ],
         ),
+        actions: [
+          IconButton(
+            onPressed: SharedIdentityService.signOut,
+            icon: const Icon(Icons.logout),
+            tooltip: 'Keluar',
+          ),
+        ],
       ),
       body: SafeArea(
         child: Padding(
@@ -73,7 +81,9 @@ class _JobSeekerHomeScreenState extends State<JobSeekerHomeScreen> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const JobBrowseScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const JobBrowseScreen(),
+                    ),
                   );
                 },
                 icon: const Icon(Icons.search),
@@ -88,7 +98,9 @@ class _JobSeekerHomeScreenState extends State<JobSeekerHomeScreen> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const MyApplicationsScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const MyApplicationsScreen(),
+                    ),
                   );
                 },
                 icon: const Icon(Icons.description),
@@ -105,7 +117,9 @@ class _JobSeekerHomeScreenState extends State<JobSeekerHomeScreen> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const SavedJobsScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const SavedJobsScreen(),
+                    ),
                   );
                 },
                 icon: const Icon(Icons.bookmark),
@@ -191,10 +205,7 @@ class _JobSeekerHomeScreenState extends State<JobSeekerHomeScreen> {
         },
         type: BottomNavigationBarType.fixed,
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(
             icon: Icon(Icons.search),
             label: 'Cari Kerja',
@@ -203,10 +214,7 @@ class _JobSeekerHomeScreenState extends State<JobSeekerHomeScreen> {
             icon: Icon(Icons.description),
             label: 'Lamaran',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profil',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
         ],
       ),
     );

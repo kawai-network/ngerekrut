@@ -21,8 +21,6 @@ String readConfig(String key) {
     'HUGGINGFACE_TOKEN': String.fromEnvironment('HUGGINGFACE_TOKEN'),
     'LIBSQL_URL': String.fromEnvironment('LIBSQL_URL'),
     'LIBSQL_URL_TOKEN': String.fromEnvironment('LIBSQL_URL_TOKEN'),
-    'JOBSEEKER_USER_ID': String.fromEnvironment('JOBSEEKER_USER_ID'),
-    'RECRUITER_USER_ID': String.fromEnvironment('RECRUITER_USER_ID'),
   };
 
   final envValue = dotenv.isInitialized ? dotenv.maybeGet(key) : null;

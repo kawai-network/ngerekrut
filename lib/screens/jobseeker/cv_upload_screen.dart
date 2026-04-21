@@ -132,7 +132,7 @@ class _CVUploadScreenState extends State<CVUploadScreen> {
       );
 
       // Generate candidate ID
-      final candidateId = SharedIdentityService.jobseekerUserId;
+      final candidateId = SharedIdentityService.currentUid;
       final resumeId = 'cv_${DateTime.now().millisecondsSinceEpoch}';
 
       // Create RecruiterCandidate for storage
@@ -244,9 +244,9 @@ class _CVUploadScreenState extends State<CVUploadScreen> {
       children: [
         Text(
           'Data yang Diekstrak',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
         TextFormField(
@@ -309,9 +309,9 @@ class _CVUploadScreenState extends State<CVUploadScreen> {
         const SizedBox(height: 24),
         Text(
           'Raw Text dari CV',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         Container(
@@ -339,10 +339,7 @@ class _CVUploadScreenState extends State<CVUploadScreen> {
 
 /// Success screen shown after CV is saved
 class _SuccessScreen extends StatelessWidget {
-  const _SuccessScreen({
-    required this.onBrowseJobs,
-    required this.onClose,
-  });
+  const _SuccessScreen({required this.onBrowseJobs, required this.onClose});
 
   final VoidCallback onBrowseJobs;
   final VoidCallback onClose;
@@ -372,16 +369,16 @@ class _SuccessScreen extends StatelessWidget {
               Text(
                 'CV Berhasil Disimpan!',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 24,
-                    ),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 24,
+                ),
               ),
               const SizedBox(height: 16),
               Text(
                 'AI akan merekomendasikan lowongan yang cocok dengan skill dan pengalaman kamu.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey.shade700,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 48),
@@ -441,16 +438,16 @@ class _EmptyState extends StatelessWidget {
             const SizedBox(height: 24),
             Text(
               'Upload CV Anda',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               'Upload file PDF untuk mengekstrak data profil, skills, dan pengalaman Anda secara otomatis.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey.shade700,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -473,10 +470,7 @@ class _EmptyState extends StatelessWidget {
 }
 
 class _CVFileCard extends StatelessWidget {
-  const _CVFileCard({
-    required this.fileName,
-    required this.onReupload,
-  });
+  const _CVFileCard({required this.fileName, required this.onReupload});
 
   final String fileName;
   final VoidCallback onReupload;
@@ -494,10 +488,7 @@ class _CVFileCard extends StatelessWidget {
                 color: const Color(0xFF6366F1).withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.picture_as_pdf,
-                color: Color(0xFF6366F1),
-              ),
+              child: const Icon(Icons.picture_as_pdf, color: Color(0xFF6366F1)),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -507,8 +498,8 @@ class _CVFileCard extends StatelessWidget {
                   Text(
                     fileName,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   const Text(

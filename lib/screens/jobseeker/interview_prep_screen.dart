@@ -284,10 +284,10 @@ class _JobSelectionView extends StatelessWidget {
           (s) => RecruiterJob(
             id: s.jobId,
             title: s.title,
-            department: s.unitLabel,
+            unitLabel: s.unitLabel,
             location: s.location,
             requirements: [],
-            status: 'active',
+            status: 'published',
           ),
         )
         .toList();
@@ -299,7 +299,7 @@ class _JobSelectionView extends StatelessWidget {
           (a) => RecruiterJob(
             id: a.jobId,
             title: a.jobTitle,
-            department: a.unitLabel,
+            unitLabel: a.unitLabel,
             location: a.location,
             requirements: [],
             status: 'applied',
@@ -375,9 +375,9 @@ class _JobSelectionView extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(job.title, style: const TextStyle(fontSize: 14)),
-                    if (job.department != null)
+                    if (job.unitLabel != null)
                       Text(
-                        job.department!,
+                        job.unitLabel!,
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey.shade600,

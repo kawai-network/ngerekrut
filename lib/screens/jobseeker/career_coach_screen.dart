@@ -36,7 +36,7 @@ class _CareerCoachScreenState extends State<CareerCoachScreen> {
   Future<void> _loadCandidateData() async {
     try {
       final candidate = await _candidateRepo.getById(
-        SharedIdentityService.jobseekerUserId,
+        SharedIdentityService.currentUid,
       );
       if (mounted) {
         setState(() {
@@ -54,16 +54,14 @@ class _CareerCoachScreenState extends State<CareerCoachScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return AssistantChatScreen(
       assistant: DinaAssistant.config,
       aiService: _aiService,
       context: _buildAssistantContext(),
-      sessionId: 'career_coach_${SharedIdentityService.jobseekerUserId}',
+      sessionId: 'career_coach_${SharedIdentityService.currentUid}',
     );
   }
 
@@ -97,7 +95,8 @@ class _CareerCoachScreenState extends State<CareerCoachScreen> {
         'headline': _candidate!.headline ?? '',
         'stage': _candidate!.stage,
         'has_cv': 'true',
-        'hint': 'User profile dengan CV tersedia. Berikan saran yang personalized.',
+        'hint':
+            'User profile dengan CV tersedia. Berikan saran yang personalized.',
         'skills': _candidate!.profile?.skills.join(', ') ?? '',
         'summary': _candidate!.profile?.summary ?? '',
       },

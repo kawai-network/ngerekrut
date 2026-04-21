@@ -46,7 +46,7 @@ class AssistantCandidateContext {
 class AssistantJobContext {
   final String id;
   final String title;
-  final String? department;
+  final String? unitLabel;
   final String? location;
   final String? description;
   final List<String>? requirements;
@@ -59,7 +59,7 @@ class AssistantJobContext {
   const AssistantJobContext({
     required this.id,
     required this.title,
-    this.department,
+    this.unitLabel,
     this.location,
     this.description,
     this.requirements,
@@ -73,14 +73,22 @@ class AssistantJobContext {
   String toSummary() {
     final buffer = StringBuffer();
     buffer.writeln('Lowongan: $title');
-    if (department != null) buffer.writeln('Departemen: $department');
+    if (unitLabel != null) buffer.writeln('Unit: $unitLabel');
     if (location != null) buffer.writeln('Lokasi: $location');
     if (status != null) buffer.writeln('Status: $status');
-    if (candidateCount != null) buffer.writeln('Total Kandidat: $candidateCount');
+    if (candidateCount != null) {
+      buffer.writeln('Total Kandidat: $candidateCount');
+    }
     if (shortlistCount != null) buffer.writeln('Shortlist: $shortlistCount');
     if (scorecardCount != null) buffer.writeln('Scorecard: $scorecardCount');
-    if (interviewGuideCount != null) buffer.writeln('Interview Guide: $interviewGuideCount');
-    if (description != null) buffer.writeln('Deskripsi: ${description!.length > 100 ? '${description!.substring(0, 100)}...' : description}');
+    if (interviewGuideCount != null) {
+      buffer.writeln('Interview Guide: $interviewGuideCount');
+    }
+    if (description != null) {
+      buffer.writeln(
+        'Deskripsi: ${description!.length > 100 ? '${description!.substring(0, 100)}...' : description}',
+      );
+    }
     if (requirements != null && requirements!.isNotEmpty) {
       buffer.writeln('Requirements: ${requirements!.take(5).join(", ")}');
     }
@@ -138,4 +146,3 @@ class AssistantContext {
     return buffer.toString();
   }
 }
-

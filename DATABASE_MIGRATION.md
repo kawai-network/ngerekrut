@@ -160,7 +160,7 @@ await repo.create(JobPosting(
 // Recruiter: Publish
 await repo.publish('job_456');
 
-// Jobseeker: Browse active jobs
+// Jobseeker: Browse published jobs
 final jobs = await repo.getActive();
 
 // Jobseeker: Search
@@ -185,11 +185,9 @@ await repo.createSession(sessionId, title);
 # .env
 LIBSQL_URL=libsql://your-database.turso.io
 LIBSQL_URL_TOKEN=your_auth_token
-JOBSEEKER_USER_ID=jobseeker_123
-RECRUITER_USER_ID=recruiter_123
 ```
 
-`JOBSEEKER_USER_ID` and `RECRUITER_USER_ID` are temporary ownership identifiers for shared data until the app uses a real auth/session provider.
+Identity now comes from Firebase Auth `uid`, not from environment variables.
 
 ---
 

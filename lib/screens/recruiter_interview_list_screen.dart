@@ -358,8 +358,7 @@ class _InterviewJobCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               [
-                if ((item.job.department ?? '').isNotEmpty)
-                  item.job.department!,
+                if ((item.job.unitLabel ?? '').isNotEmpty) item.job.unitLabel!,
                 if ((item.job.location ?? '').isNotEmpty) item.job.location!,
                 item.job.status,
               ].join(' • '),

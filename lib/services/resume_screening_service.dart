@@ -11,9 +11,8 @@ import 'hybrid_ai_service.dart';
 class ResumeScreeningService {
   final HybridAIService _aiService;
 
-  const ResumeScreeningService({
-    required HybridAIService aiService,
-  }) : _aiService = aiService;
+  const ResumeScreeningService({required HybridAIService aiService})
+    : _aiService = aiService;
 
   Future<RecruiterShortlistResult> screenCandidates({
     required RecruiterJob job,
@@ -28,18 +27,11 @@ class ResumeScreeningService {
       prompt: _buildPrompt(job: job, candidates: candidates, topN: topN),
       tools: [_screeningTool],
       systemPrompt: _systemPrompt,
-      parser: (response) => LocalToolCallParser.parse(
-        response,
-        (json) => json,
-      ),
+      parser: (response) => LocalToolCallParser.parse(response, (json) => json),
       errorBuilder: (_) => 'Gagal parse hasil resume screening dari AI',
     );
 
-    final normalized = _normalizeResult(
-      raw: result.data,
-      job: job,
-      topN: topN,
-    );
+    final normalized = _normalizeResult(raw: result.data, job: job, topN: topN);
     return RecruiterShortlistResult.fromJson(normalized);
   }
 
@@ -52,28 +44,25 @@ class ResumeScreeningService {
         .whereType<Map<String, dynamic>>()
         .toList();
 
-    final ranked = rawRanked
-        .map((entry) => _normalizeEntry(entry))
-        .toList()
+    final ranked = rawRanked.map((entry) => _normalizeEntry(entry)).toList()
       ..sort((a, b) {
         final scoreCompare = ((b['total_score'] as num?)?.toDouble() ?? 0)
             .compareTo(((a['total_score'] as num?)?.toDouble() ?? 0));
         if (scoreCompare != 0) return scoreCompare;
-        return ((b['score_breakdown'] as Map<String, dynamic>?)?['relevant_experience']
+        return ((b['score_breakdown']
+                        as Map<String, dynamic>?)?['relevant_experience']
                     as num? ??
                 0)
             .compareTo(
-              ((a['score_breakdown'] as Map<String, dynamic>?)?['relevant_experience']
+              ((a['score_breakdown']
+                          as Map<String, dynamic>?)?['relevant_experience']
                       as num? ??
                   0),
             );
       });
 
     final reranked = ranked.asMap().entries.map((entry) {
-      return {
-        ...entry.value,
-        'rank': entry.key + 1,
-      };
+      return {...entry.value, 'rank': entry.key + 1};
     }).toList();
 
     return {
@@ -96,7 +85,8 @@ class ResumeScreeningService {
     final scoreBreakdown =
         raw['score_breakdown'] as Map<String, dynamic>? ?? const {};
 
-    double readScore(String key) => (scoreBreakdown[key] as num?)?.toDouble() ?? 0;
+    double readScore(String key) =>
+        (scoreBreakdown[key] as num?)?.toDouble() ?? 0;
 
     final normalizedScoreBreakdown = {
       'skill_match': readScore('skill_match'),
@@ -136,7 +126,7 @@ class ResumeScreeningService {
     buffer.writeln('Lakukan resume screening untuk lowongan berikut.');
     buffer.writeln('Job ID: ${job.id}');
     buffer.writeln('Role: ${job.title}');
-    if (job.department != null) buffer.writeln('Department: ${job.department}');
+    if (job.unitLabel != null) buffer.writeln('Unit: ${job.unitLabel}');
     if (job.location != null) buffer.writeln('Location: ${job.location}');
     if (job.description != null) {
       buffer.writeln('Description: ${job.description}');
@@ -148,7 +138,9 @@ class ResumeScreeningService {
       }
     }
 
-    buffer.writeln('\nPilih dan ranking semua kandidat, lalu siapkan Top $topN.');
+    buffer.writeln(
+      '\nPilih dan ranking semua kandidat, lalu siapkan Top $topN.',
+    );
     buffer.writeln('Kandidat:');
     for (final candidate in candidates) {
       buffer.writeln('\nCandidate ID: ${candidate.id}');
@@ -157,9 +149,7 @@ class ResumeScreeningService {
         buffer.writeln('Headline: ${candidate.headline}');
       }
       if (candidate.yearsOfExperience != null) {
-        buffer.writeln(
-          'Years of experience: ${candidate.yearsOfExperience}',
-        );
+        buffer.writeln('Years of experience: ${candidate.yearsOfExperience}');
       }
       if (candidate.profile?.skills.isNotEmpty ?? false) {
         buffer.writeln('Skills: ${candidate.profile!.skills.join(', ')}');

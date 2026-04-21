@@ -14,8 +14,7 @@ class CandidateRepository {
 
   CandidateRepository({HybridDatabaseService? db, String? recruiterUserId})
     : _db = db ?? hybridDatabase,
-      _recruiterUserId =
-          recruiterUserId ?? SharedIdentityService.recruiterUserId;
+      _recruiterUserId = recruiterUserId ?? SharedIdentityService.currentUid;
 
   /// Create or update a candidate profile
   Future<void> save(RecruiterCandidate candidate) async {

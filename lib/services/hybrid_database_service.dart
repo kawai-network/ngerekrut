@@ -286,6 +286,17 @@ class HybridDatabaseService {
       definition: 'TEXT',
     );
 
+    await _client!.query('''
+      UPDATE job_postings
+      SET status = 'published'
+      WHERE lower(trim(status)) IN ('active', 'aktif', 'open')
+      ''');
+    await _client!.query('''
+      UPDATE job_postings
+      SET status = 'closed'
+      WHERE lower(trim(status)) IN ('ditutup')
+      ''');
+
     // Normalize legacy ad-hoc serialized data to JSON for safer parsing.
     final legacyJobPostings = await rawQuery(
       'SELECT id, requirements_json FROM job_postings',

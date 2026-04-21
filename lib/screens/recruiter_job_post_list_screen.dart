@@ -96,10 +96,8 @@ class _RecruiterJobPostListScreenState
   List<_LocalJobPostSummary> get _filteredItems {
     if (_statusFilter == 'all') return _items;
     return _items.where((item) {
-      final normalized = item.job.status.toLowerCase();
-      return normalized == _statusFilter ||
-          (_statusFilter == 'active' && normalized == 'aktif') ||
-          (_statusFilter == 'closed' && normalized == 'ditutup');
+      final normalized = JobPostingRepository.normalizeStatus(item.job.status);
+      return normalized == _statusFilter;
     }).toList();
   }
 
@@ -107,8 +105,10 @@ class _RecruiterJobPostListScreenState
     _LocalJobPostSummary item,
     String nextStatus,
   ) async {
-    final currentStatus = item.job.status.toLowerCase();
-    if (currentStatus == nextStatus.toLowerCase()) return;
+    final currentStatus = JobPostingRepository.normalizeStatus(item.job.status);
+    if (currentStatus == JobPostingRepository.normalizeStatus(nextStatus)) {
+      return;
+    }
     if (nextStatus == 'closed') {
       final applications = await _jobApplicationRepository.getByJobId(
         item.job.id,
@@ -133,7 +133,10 @@ class _RecruiterJobPostListScreenState
           await widget.jobPostRepository.close(item.job.id);
           break;
         case 'draft':
-          await widget.jobPostRepository.updateStatus(item.job.id, 'draft');
+          await widget.jobPostRepository.updateStatus(
+            item.job.id,
+            JobPostingRepository.statusDraft,
+          );
           break;
         default:
           await widget.jobPostRepository.updateStatus(item.job.id, nextStatus);
@@ -160,15 +163,12 @@ class _RecruiterJobPostListScreenState
   }
 
   String _jobStatusLabel(String status) {
-    switch (status.toLowerCase()) {
-      case 'published':
-      case 'active':
-      case 'aktif':
-        return 'Published';
-      case 'closed':
-      case 'ditutup':
-        return 'Closed';
-      case 'draft':
+    switch (JobPostingRepository.normalizeStatus(status)) {
+      case JobPostingRepository.statusPublished:
+        return 'Aktif';
+      case JobPostingRepository.statusClosed:
+        return 'Ditutup';
+      case JobPostingRepository.statusDraft:
         return 'Draft';
       default:
         return status;
@@ -284,7 +284,7 @@ class _RecruiterJobPostListScreenState
             runSpacing: 8,
             children: [
               _buildFilterChip('all', 'Semua'),
-              _buildFilterChip('active', 'Aktif'),
+              _buildFilterChip(JobPostingRepository.statusPublished, 'Aktif'),
               _buildFilterChip('draft', 'Draft'),
               _buildFilterChip('closed', 'Ditutup'),
             ],
@@ -368,8 +368,8 @@ class _RecruiterJobPostListScreenState
                         const SizedBox(height: 6),
                         Text(
                           [
-                            if ((job.department ?? '').isNotEmpty)
-                              job.department!,
+                            if ((job.unitLabel ?? '').isNotEmpty)
+                              job.unitLabel!,
                             if ((job.location ?? '').isNotEmpty) job.location!,
                           ].join(' • '),
                           style: Theme.of(context).textTheme.bodyMedium
@@ -389,10 +389,10 @@ class _RecruiterJobPostListScreenState
                         onSelected: (status) => _changeJobStatus(item, status),
                         itemBuilder: (context) {
                           final actions = <PopupMenuEntry<String>>[];
-                          final normalized = job.status.toLowerCase();
-                          if (normalized != 'published' &&
-                              normalized != 'active' &&
-                              normalized != 'aktif') {
+                          final normalized =
+                              JobPostingRepository.normalizeStatus(job.status);
+                          if (normalized !=
+                              JobPostingRepository.statusPublished) {
                             actions.add(
                               const PopupMenuItem<String>(
                                 value: 'published',
@@ -400,7 +400,7 @@ class _RecruiterJobPostListScreenState
                               ),
                             );
                           }
-                          if (normalized != 'draft') {
+                          if (normalized != JobPostingRepository.statusDraft) {
                             actions.add(
                               const PopupMenuItem<String>(
                                 value: 'draft',
@@ -408,8 +408,7 @@ class _RecruiterJobPostListScreenState
                               ),
                             );
                           }
-                          if (normalized != 'closed' &&
-                              normalized != 'ditutup') {
+                          if (normalized != JobPostingRepository.statusClosed) {
                             actions.add(
                               const PopupMenuItem<String>(
                                 value: 'closed',
@@ -646,16 +645,22 @@ class _StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final normalized = status.toLowerCase();
     final background = switch (normalized) {
-      'active' || 'aktif' => const Color(0xFFDCFCE7),
+      'published' => const Color(0xFFDCFCE7),
       'draft' => const Color(0xFFDBEAFE),
-      'closed' || 'ditutup' => const Color(0xFFF3F4F6),
+      'closed' => const Color(0xFFF3F4F6),
       _ => const Color(0xFFE2E8F0),
     };
     final foreground = switch (normalized) {
-      'active' || 'aktif' => const Color(0xFF166534),
+      'published' => const Color(0xFF166534),
       'draft' => const Color(0xFF1D4ED8),
-      'closed' || 'ditutup' => const Color(0xFF4B5563),
+      'closed' => const Color(0xFF4B5563),
       _ => const Color(0xFF334155),
+    };
+    final label = switch (normalized) {
+      'published' => 'Aktif',
+      'closed' => 'Ditutup',
+      'draft' => 'Draft',
+      _ => status,
     };
 
     return Container(
@@ -665,7 +670,7 @@ class _StatusChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        status,
+        label,
         style: TextStyle(color: foreground, fontWeight: FontWeight.w700),
       ),
     );
@@ -771,8 +776,10 @@ class _LocalJobPostDetailScreenState extends State<_LocalJobPostDetailScreen> {
   }
 
   Future<void> _changeJobStatus(String nextStatus) async {
-    final currentStatus = _job.status.toLowerCase();
-    if (currentStatus == nextStatus.toLowerCase()) return;
+    final currentStatus = JobPostingRepository.normalizeStatus(_job.status);
+    if (currentStatus == JobPostingRepository.normalizeStatus(nextStatus)) {
+      return;
+    }
     if (nextStatus == 'closed') {
       final activeApplications = _applications
           .where((application) => application.status.isActive)
@@ -794,7 +801,10 @@ class _LocalJobPostDetailScreenState extends State<_LocalJobPostDetailScreen> {
           await widget.jobPostRepository.close(_job.id);
           break;
         case 'draft':
-          await widget.jobPostRepository.updateStatus(_job.id, 'draft');
+          await widget.jobPostRepository.updateStatus(
+            _job.id,
+            JobPostingRepository.statusDraft,
+          );
           break;
         default:
           await widget.jobPostRepository.updateStatus(_job.id, nextStatus);
@@ -826,15 +836,12 @@ class _LocalJobPostDetailScreenState extends State<_LocalJobPostDetailScreen> {
   }
 
   String _jobStatusLabel(String status) {
-    switch (status.toLowerCase()) {
-      case 'published':
-      case 'active':
-      case 'aktif':
-        return 'Published';
-      case 'closed':
-      case 'ditutup':
-        return 'Closed';
-      case 'draft':
+    switch (JobPostingRepository.normalizeStatus(status)) {
+      case JobPostingRepository.statusPublished:
+        return 'Aktif';
+      case JobPostingRepository.statusClosed:
+        return 'Ditutup';
+      case JobPostingRepository.statusDraft:
         return 'Draft';
       default:
         return status;
@@ -1111,10 +1118,10 @@ class _LocalJobPostDetailScreenState extends State<_LocalJobPostDetailScreen> {
             onSelected: _changeJobStatus,
             itemBuilder: (context) {
               final actions = <PopupMenuEntry<String>>[];
-              final normalized = job.status.toLowerCase();
-              if (normalized != 'published' &&
-                  normalized != 'active' &&
-                  normalized != 'aktif') {
+              final normalized = JobPostingRepository.normalizeStatus(
+                job.status,
+              );
+              if (normalized != JobPostingRepository.statusPublished) {
                 actions.add(
                   const PopupMenuItem<String>(
                     value: 'published',
@@ -1122,7 +1129,7 @@ class _LocalJobPostDetailScreenState extends State<_LocalJobPostDetailScreen> {
                   ),
                 );
               }
-              if (normalized != 'draft') {
+              if (normalized != JobPostingRepository.statusDraft) {
                 actions.add(
                   const PopupMenuItem<String>(
                     value: 'draft',
@@ -1130,7 +1137,7 @@ class _LocalJobPostDetailScreenState extends State<_LocalJobPostDetailScreen> {
                   ),
                 );
               }
-              if (normalized != 'closed' && normalized != 'ditutup') {
+              if (normalized != JobPostingRepository.statusClosed) {
                 actions.add(
                   const PopupMenuItem<String>(
                     value: 'closed',
@@ -1165,7 +1172,7 @@ class _LocalJobPostDetailScreenState extends State<_LocalJobPostDetailScreen> {
           const SizedBox(height: 8),
           Text(
             [
-              if ((job.department ?? '').isNotEmpty) job.department!,
+              if ((job.unitLabel ?? '').isNotEmpty) job.unitLabel!,
               if ((job.location ?? '').isNotEmpty) job.location!,
               job.status,
             ].join(' • '),
@@ -1700,6 +1707,6 @@ class _LocalJobPostSummary {
 
   bool get isActive {
     final normalized = job.status.toLowerCase();
-    return normalized == 'active' || normalized == 'aktif';
+    return normalized == JobPostingRepository.statusPublished;
   }
 }
