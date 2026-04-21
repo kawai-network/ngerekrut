@@ -36,11 +36,11 @@ Future<void> _initializeOneSignal() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await loadEnv();
-  SupabaseLogService.instance.prime();
   await runWithErrorReporting(
     appEntrypoint: 'main_recruiter',
     appFlavor: AppFlavorType.recruiter.name,
     body: () async {
+      SupabaseLogService.instance.prime();
       await bootstrapGemma();
 
       // Initialize hybrid database (libsql_dart for shared data)

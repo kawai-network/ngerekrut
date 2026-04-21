@@ -98,7 +98,10 @@ class SupabaseLogService {
       await initialize();
       await Supabase.instance.client.from('app_logs').insert(payload);
     } catch (e, st) {
-      debugPrint('[SupabaseLogService] Failed to send log: $e');
+      debugPrint(
+        '[SupabaseLogService] Failed to send log '
+        'eventType=$eventType level=$level error=$e payload=$payload',
+      );
       debugPrintStack(stackTrace: st);
     }
   }
