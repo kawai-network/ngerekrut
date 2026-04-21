@@ -19,6 +19,8 @@ String readConfig(String key) {
     'CLOUDFLARE_API_TOKEN': String.fromEnvironment('CLOUDFLARE_API_TOKEN'),
     'OPENAI_API_KEY': String.fromEnvironment('OPENAI_API_KEY'),
     'HUGGINGFACE_TOKEN': String.fromEnvironment('HUGGINGFACE_TOKEN'),
+    'LIBSQL_URL': String.fromEnvironment('LIBSQL_URL'),
+    'LIBSQL_URL_TOKEN': String.fromEnvironment('LIBSQL_URL_TOKEN'),
   };
 
   final envValue = dotenv.isInitialized ? dotenv.maybeGet(key) : null;
