@@ -8,6 +8,7 @@ import '../../models/application_status.dart';
 import '../../models/job_application.dart';
 import '../../repositories/job_application_repository.dart';
 import '../../repositories/job_posting_repository.dart';
+import '../../services/google_calendar_service.dart';
 
 class MyApplicationsScreen extends StatefulWidget {
   const MyApplicationsScreen({super.key});
@@ -19,6 +20,7 @@ class MyApplicationsScreen extends StatefulWidget {
 class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
   final JobApplicationRepository _repo = JobApplicationRepository();
   final JobPostingRepository _jobPostingRepository = JobPostingRepository();
+  final GoogleCalendarService _calendarService = GoogleCalendarService.instance;
 
   bool _isLoading = true;
   List<JobApplication> _applications = [];
@@ -137,8 +139,54 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
       builder: (context) => _ApplicationDetailSheet(
         application: application,
         jobStatus: _jobStatusesById[application.jobId],
+        onSyncCalendar: () => _syncInterviewToCalendar(application),
       ),
     );
+  }
+
+  Future<void> _syncInterviewToCalendar(JobApplication application) async {
+    final interviewDate = application.interviewDates?.isNotEmpty == true
+        ? application.interviewDates!.last
+        : null;
+    if (interviewDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Belum ada jadwal interview untuk disinkronkan.'),
+        ),
+      );
+      return;
+    }
+
+    try {
+      final result = await _calendarService.syncInterviewEvent(
+        application: application,
+        interviewDate: interviewDate,
+        existingEventId: application.candidateCalendarEventId,
+      );
+      if (!result.success) {
+        throw result.error ?? 'Sinkronisasi Google Calendar gagal.';
+      }
+      await _repo.updateCandidateCalendarEventId(
+        application.id,
+        result.eventId,
+      );
+      await _loadApplications();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            application.isSyncedToCandidateCalendar
+                ? 'Event interview di Google Calendar Anda berhasil diperbarui.'
+                : 'Event interview berhasil ditambahkan ke Google Calendar Anda.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal sinkron ke Google Calendar: $e')),
+      );
+    }
   }
 }
 
@@ -432,10 +480,12 @@ class _ApplicationDetailSheet extends StatelessWidget {
   const _ApplicationDetailSheet({
     required this.application,
     required this.jobStatus,
+    required this.onSyncCalendar,
   });
 
   final JobApplication application;
   final String? jobStatus;
+  final VoidCallback onSyncCalendar;
 
   @override
   Widget build(BuildContext context) {
@@ -583,6 +633,20 @@ class _ApplicationDetailSheet extends StatelessWidget {
                               DateFormat('d MMMM yyyy, HH:mm').format(date),
                             ),
                           ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      FilledButton.icon(
+                        onPressed: onSyncCalendar,
+                        icon: Icon(
+                          application.isSyncedToCandidateCalendar
+                              ? Icons.cloud_done_outlined
+                              : Icons.calendar_month_outlined,
+                        ),
+                        label: Text(
+                          application.isSyncedToCandidateCalendar
+                              ? 'Update di Google Calendar'
+                              : 'Tambah ke Google Calendar',
                         ),
                       ),
                       const SizedBox(height: 16),

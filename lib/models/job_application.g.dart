@@ -24,6 +24,7 @@ JobApplication _$JobApplicationFromJson(Map<String, dynamic> json) =>
           ?.map((e) => DateTime.parse(e as String))
           .toList(),
       calendarEventId: json['calendar_event_id'] as String?,
+      candidateCalendarEventId: json['candidate_calendar_event_id'] as String?,
       rejectionReason: json['rejection_reason'] as String?,
       recruiterNotes: json['recruiter_notes'] as String?,
       internalRating: (json['internal_rating'] as num?)?.toInt(),
@@ -48,6 +49,7 @@ Map<String, dynamic> _$JobApplicationToJson(JobApplication instance) =>
           ?.map((e) => e.toIso8601String())
           .toList(),
       'calendar_event_id': ?instance.calendarEventId,
+      'candidate_calendar_event_id': ?instance.candidateCalendarEventId,
       'rejection_reason': ?instance.rejectionReason,
       'recruiter_notes': ?instance.recruiterNotes,
       'internal_rating': ?instance.internalRating,

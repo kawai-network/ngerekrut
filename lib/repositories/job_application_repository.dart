@@ -133,6 +133,21 @@ class JobApplicationRepository {
     );
   }
 
+  Future<void> updateCandidateCalendarEventId(
+    String id,
+    String? eventId,
+  ) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await _db.rawQuery(
+      '''
+      UPDATE job_applications
+      SET candidate_calendar_event_id = ?, updated_at = ?
+      WHERE id = ?
+      ''',
+      positional: [eventId, now, id],
+    );
+  }
+
   /// Update recruiter notes
   Future<void> updateRecruiterNotes(String id, String notes) async {
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -259,6 +274,7 @@ class JobApplicationRepository {
       'resume_id': app.resumeId,
       'interview_dates': _encodeDates(app.interviewDates),
       'calendar_event_id': app.calendarEventId,
+      'candidate_calendar_event_id': app.candidateCalendarEventId,
       'rejection_reason': app.rejectionReason,
       'recruiter_notes': app.recruiterNotes,
       'internal_rating': app.internalRating,
@@ -282,6 +298,7 @@ class JobApplicationRepository {
       resumeId: map['resume_id'] as String?,
       interviewDates: _decodeDates(map['interview_dates'] as String?),
       calendarEventId: map['calendar_event_id'] as String?,
+      candidateCalendarEventId: map['candidate_calendar_event_id'] as String?,
       rejectionReason: map['rejection_reason'] as String?,
       recruiterNotes: map['recruiter_notes'] as String?,
       internalRating: map['internal_rating'] as int?,

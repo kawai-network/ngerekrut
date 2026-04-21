@@ -295,6 +295,7 @@ class _RecruiterApplicationInboxScreenState
         final result = await _calendarService.syncInterviewEvent(
           application: refreshedApplication,
           interviewDate: schedule,
+          existingEventId: refreshedApplication.calendarEventId,
         );
         if (result.success) {
           await _applicationRepository.updateCalendarEventId(
@@ -378,6 +379,7 @@ class _RecruiterApplicationInboxScreenState
       final result = await _calendarService.syncInterviewEvent(
         application: application,
         interviewDate: interviewDate,
+        existingEventId: application.calendarEventId,
       );
       if (!result.success) {
         throw result.error ?? 'Google Calendar sync gagal.';

@@ -84,6 +84,7 @@ class GoogleCalendarService {
   Future<GoogleCalendarSyncResult> syncInterviewEvent({
     required JobApplication application,
     required DateTime interviewDate,
+    String? existingEventId,
   }) async {
     http.Client? client;
     try {
@@ -97,7 +98,6 @@ class GoogleCalendarService {
       client = _StaticHeadersClient(headers);
       final api = CalendarApi(client);
       final event = _buildEvent(application, interviewDate);
-      final existingEventId = application.calendarEventId;
 
       final result = existingEventId != null && existingEventId.isNotEmpty
           ? await api.events.update(event, _calendarId, existingEventId)

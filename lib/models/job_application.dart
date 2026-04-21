@@ -61,6 +61,10 @@ class JobApplication {
   @JsonKey(name: 'calendar_event_id')
   final String? calendarEventId;
 
+  /// Jobseeker-side Google Calendar event ID (if synced).
+  @JsonKey(name: 'candidate_calendar_event_id')
+  final String? candidateCalendarEventId;
+
   /// Rejection reason (if rejected)
   @JsonKey(name: 'rejection_reason')
   final String? rejectionReason;
@@ -91,6 +95,7 @@ class JobApplication {
     this.resumeId,
     this.interviewDates,
     this.calendarEventId,
+    this.candidateCalendarEventId,
     this.rejectionReason,
     this.recruiterNotes,
     this.internalRating,
@@ -117,6 +122,7 @@ class JobApplication {
     String? resumeId,
     List<DateTime>? interviewDates,
     String? calendarEventId,
+    String? candidateCalendarEventId,
     String? rejectionReason,
     String? recruiterNotes,
     int? internalRating,
@@ -137,6 +143,8 @@ class JobApplication {
       resumeId: resumeId ?? this.resumeId,
       interviewDates: interviewDates ?? this.interviewDates,
       calendarEventId: calendarEventId ?? this.calendarEventId,
+      candidateCalendarEventId:
+          candidateCalendarEventId ?? this.candidateCalendarEventId,
       rejectionReason: rejectionReason ?? this.rejectionReason,
       recruiterNotes: recruiterNotes ?? this.recruiterNotes,
       internalRating: internalRating ?? this.internalRating,
@@ -192,6 +200,7 @@ class JobApplication {
       resumeId: resumeId,
       interviewDates: interviewDates,
       calendarEventId: calendarEventId,
+      candidateCalendarEventId: candidateCalendarEventId,
       rejectionReason: rejectionReason ?? this.rejectionReason,
       recruiterNotes: recruiterNotes,
       internalRating: internalRating,
@@ -218,6 +227,7 @@ class JobApplication {
       resumeId: resumeId,
       interviewDates: dates,
       calendarEventId: calendarEventId,
+      candidateCalendarEventId: candidateCalendarEventId,
       rejectionReason: rejectionReason,
       recruiterNotes: recruiterNotes,
       internalRating: internalRating,
@@ -242,6 +252,7 @@ class JobApplication {
       resumeId: resumeId,
       interviewDates: interviewDates,
       calendarEventId: eventId,
+      candidateCalendarEventId: candidateCalendarEventId,
       rejectionReason: rejectionReason,
       recruiterNotes: recruiterNotes,
       internalRating: internalRating,
@@ -250,7 +261,11 @@ class JobApplication {
   }
 
   /// Check if interview is synced to calendar
-  bool get isSyncedToCalendar => calendarEventId != null && calendarEventId!.isNotEmpty;
+  bool get isSyncedToCalendar =>
+      calendarEventId != null && calendarEventId!.isNotEmpty;
+
+  bool get isSyncedToCandidateCalendar =>
+      candidateCalendarEventId != null && candidateCalendarEventId!.isNotEmpty;
 
   /// Get days since application
   int get daysSinceApplied {
