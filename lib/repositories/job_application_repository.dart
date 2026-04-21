@@ -49,6 +49,24 @@ class JobApplicationRepository {
     return _fromMap(rows.first);
   }
 
+  /// Get a single application for a candidate and job pair
+  Future<JobApplication?> getByCandidateAndJob(
+    String candidateId,
+    String jobId,
+  ) async {
+    final rows = await _db.rawQuery(
+      '''
+      SELECT * FROM job_applications
+      WHERE candidate_id = ? AND job_id = ?
+      ORDER BY applied_at DESC
+      LIMIT 1
+      ''',
+      positional: [candidateId, jobId],
+    );
+    if (rows.isEmpty) return null;
+    return _fromMap(rows.first);
+  }
+
   /// Update application status
   Future<void> updateStatus(
     String id,

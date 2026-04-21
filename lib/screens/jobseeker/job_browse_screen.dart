@@ -3,7 +3,9 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../models/job_application.dart';
 import '../../models/recruiter_job.dart';
+import '../../repositories/job_application_repository.dart';
 import '../../repositories/job_posting_repository.dart';
 import '../../repositories/saved_job_repository.dart';
 
@@ -436,7 +438,7 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _JobDetailScreen extends StatelessWidget {
+class _JobDetailScreen extends StatefulWidget {
   const _JobDetailScreen({
     required this.job,
     required this.isSaved,
@@ -448,25 +450,75 @@ class _JobDetailScreen extends StatelessWidget {
   final VoidCallback onSave;
 
   @override
+  State<_JobDetailScreen> createState() => _JobDetailScreenState();
+}
+
+class _JobDetailScreenState extends State<_JobDetailScreen> {
+  final JobApplicationRepository _applicationRepo = JobApplicationRepository();
+  bool _isCheckingApplication = true;
+  bool _hasApplied = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadApplicationState();
+  }
+
+  Future<void> _loadApplicationState() async {
+    try {
+      final existing = await _applicationRepo.getByCandidateAndJob(
+        _applicationRepo.candidateId,
+        widget.job.id,
+      );
+      if (!mounted) return;
+      setState(() {
+        _hasApplied = existing != null;
+        _isCheckingApplication = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isCheckingApplication = false);
+    }
+  }
+
+  Future<void> _apply() async {
+    final created = await showModalBottomSheet<JobApplication>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => _ApplyJobSheet(job: widget.job),
+    );
+
+    if (created == null || !mounted) return;
+    setState(() => _hasApplied = true);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Lamaran berhasil dikirim. Pantau statusnya di Lamaran Saya.',
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(job.title),
+        title: Text(widget.job.title),
         actions: [
           IconButton(
-            icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border),
-            color: isSaved ? const Color(0xFF6366F1) : null,
-            onPressed: onSave,
+            icon: Icon(widget.isSaved ? Icons.bookmark : Icons.bookmark_border),
+            color: widget.isSaved ? const Color(0xFF6366F1) : null,
+            onPressed: widget.onSave,
           ),
         ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (job.department != null)
-            _InfoRow(icon: Icons.business, label: job.department!),
-          if (job.location != null)
-            _InfoRow(icon: Icons.location_on, label: job.location!),
+          if (widget.job.department != null)
+            _InfoRow(icon: Icons.business, label: widget.job.department!),
+          if (widget.job.location != null)
+            _InfoRow(icon: Icons.location_on, label: widget.job.location!),
           const SizedBox(height: 24),
           Text(
             'Deskripsi',
@@ -476,12 +528,12 @@ class _JobDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            job.description ?? 'Tidak ada deskripsi.',
+            widget.job.description ?? 'Tidak ada deskripsi.',
             style: Theme.of(
               context,
             ).textTheme.bodyMedium?.copyWith(height: 1.5),
           ),
-          if (job.requirements.isNotEmpty) ...[
+          if (widget.job.requirements.isNotEmpty) ...[
             const SizedBox(height: 24),
             Text(
               'Kualifikasi',
@@ -490,7 +542,7 @@ class _JobDetailScreen extends StatelessWidget {
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            ...job.requirements.map(
+            ...widget.job.requirements.map(
               (req) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Row(
@@ -507,21 +559,176 @@ class _JobDetailScreen extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Fitur apply coming soon!')),
-                );
-              },
+              onPressed: _isCheckingApplication || _hasApplied ? null : _apply,
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text('Lamar Sekarang'),
+              child: Text(
+                _isCheckingApplication
+                    ? 'Memeriksa status...'
+                    : (_hasApplied ? 'Sudah Dilamar' : 'Lamar Sekarang'),
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ApplyJobSheet extends StatefulWidget {
+  const _ApplyJobSheet({required this.job});
+
+  final RecruiterJob job;
+
+  @override
+  State<_ApplyJobSheet> createState() => _ApplyJobSheetState();
+}
+
+class _ApplyJobSheetState extends State<_ApplyJobSheet> {
+  final _formKey = GlobalKey<FormState>();
+  final _expectedSalaryController = TextEditingController();
+  final _coverLetterController = TextEditingController();
+  final _resumeIdController = TextEditingController();
+  final JobApplicationRepository _repo = JobApplicationRepository();
+  bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _expectedSalaryController.dispose();
+    _coverLetterController.dispose();
+    _resumeIdController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate() || _isSubmitting) return;
+
+    setState(() => _isSubmitting = true);
+    try {
+      final existing = await _repo.getByCandidateAndJob(
+        _repo.candidateId,
+        widget.job.id,
+      );
+      if (existing != null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Anda sudah pernah melamar lowongan ini.'),
+          ),
+        );
+        Navigator.pop(context);
+        return;
+      }
+
+      final application = JobApplication.create(
+        jobId: widget.job.id,
+        jobTitle: widget.job.title,
+        candidateId: _repo.candidateId,
+        company: widget.job.department,
+        location: widget.job.location,
+        expectedSalary: _expectedSalaryController.text.trim().isEmpty
+            ? null
+            : _expectedSalaryController.text.trim(),
+        coverLetter: _coverLetterController.text.trim().isEmpty
+            ? null
+            : _coverLetterController.text.trim(),
+        resumeId: _resumeIdController.text.trim().isEmpty
+            ? null
+            : _resumeIdController.text.trim(),
+      );
+      await _repo.create(application);
+      if (!mounted) return;
+      Navigator.pop(context, application);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gagal mengirim lamaran: $e')));
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, 16, 16, bottomInset + 16),
+      child: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Lamar ${widget.job.title}',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Isi data tambahan untuk mengirim lamaran Anda.',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _expectedSalaryController,
+                decoration: const InputDecoration(
+                  labelText: 'Ekspektasi gaji',
+                  hintText: 'Contoh: Rp8.000.000 - Rp10.000.000',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _resumeIdController,
+                decoration: const InputDecoration(
+                  labelText: 'Resume ID',
+                  hintText: 'Opsional, mis. resume_v1',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _coverLetterController,
+                maxLines: 5,
+                decoration: const InputDecoration(
+                  labelText: 'Cover letter',
+                  hintText:
+                      'Ceritakan singkat kenapa Anda cocok untuk lowongan ini.',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Cover letter tidak boleh kosong.';
+                  }
+                  if (value.trim().length < 20) {
+                    return 'Tulis minimal 20 karakter.';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _isSubmitting ? null : _submit,
+                  child: Text(_isSubmitting ? 'Mengirim...' : 'Kirim Lamaran'),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

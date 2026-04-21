@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../dev/mock_recruiter_data_seed.dart';
 import '../repositories/hiring_repository.dart';
 import '../repositories/interview_guide_artifact_repository.dart';
+import '../repositories/job_application_repository.dart';
 import '../repositories/job_posting_repository.dart';
 import '../repositories/scorecard_artifact_repository.dart';
 import '../repositories/shortlist_artifact_repository.dart';
@@ -68,6 +69,8 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
   final ShortlistArtifactRepository _shortlistArtifactRepository =
       ShortlistArtifactRepository();
   final JobPostingRepository _jobPostingRepository = JobPostingRepository();
+  final JobApplicationRepository _jobApplicationRepository =
+      JobApplicationRepository();
   final ScorecardArtifactRepository _scorecardArtifactRepository =
       ScorecardArtifactRepository();
   final InterviewGuideArtifactRepository _interviewGuideArtifactRepository =
@@ -153,6 +156,7 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
     var readyForInterview = 0;
 
     for (final job in jobs) {
+      final applications = await _jobApplicationRepository.getByJobId(job.id);
       final shortlist = await _shortlistArtifactRepository.getLatestForJob(
         job.id,
       );
@@ -167,7 +171,7 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
         jobsWithApplicants.add(
           _DashboardJobSummary(
             job: job,
-            applicantCount: rankedCount,
+            applicantCount: applications.length,
             reviewCount: reviewCount < 0 ? 0 : reviewCount,
             interviewCount: topCount,
             summary: shortlist?.summary,
