@@ -1,9 +1,12 @@
 library;
 
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../services/shared_identity_service.dart';
+import '../services/supabase_log_service.dart';
 import 'sign_in_screen.dart';
 
 class AuthGate extends StatelessWidget {
@@ -26,6 +29,14 @@ class AuthGate extends StatelessWidget {
       stream: SharedIdentityService.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
+          unawaited(
+            SupabaseLogService.instance.reportError(
+              eventType: 'auth_state_stream_failed',
+              error: snapshot.error!,
+              stackTrace: snapshot.stackTrace,
+              screen: 'AuthGate',
+            ),
+          );
           return const _AuthErrorState(
             message: 'Gagal membaca status autentikasi.',
           );

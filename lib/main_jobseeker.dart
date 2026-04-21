@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:flutter/material.dart';
@@ -35,7 +36,7 @@ Future<void> _initializeOneSignal() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await loadEnv();
-  await SupabaseLogService.instance.initialize();
+  SupabaseLogService.instance.prime();
   await runWithErrorReporting(
     appEntrypoint: 'main_jobseeker',
     appFlavor: AppFlavorType.jobSeeker.name,
@@ -68,15 +69,17 @@ void main() async {
           }
         } on Exception catch (e, st) {
           debugPrint('Firebase initialization failed: $e');
-          await SupabaseLogService.instance.reportError(
-            eventType: 'firebase_initialization_failed',
-            error: e,
-            stackTrace: st,
-            fatal: false,
-            metadata: {
-              'app_entrypoint': 'main_jobseeker',
-              'app_flavor': AppFlavorType.jobSeeker.name,
-            },
+          unawaited(
+            SupabaseLogService.instance.reportError(
+              eventType: 'firebase_initialization_failed',
+              error: e,
+              stackTrace: st,
+              fatal: false,
+              metadata: {
+                'app_entrypoint': 'main_jobseeker',
+                'app_flavor': AppFlavorType.jobSeeker.name,
+              },
+            ),
           );
         }
       }

@@ -1,7 +1,11 @@
 library;
 
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+
+import 'supabase_log_service.dart';
 
 class SharedIdentityService {
   const SharedIdentityService._();
@@ -47,23 +51,55 @@ class SharedIdentityService {
   static Future<UserCredential> signInWithGoogleCalendarAccess({
     required bool requestCalendarAccess,
   }) async {
-    await _ensureGoogleInitialized();
-    final googleUser = await GoogleSignIn.instance.authenticate(
-      scopeHint: requestCalendarAccess ? _calendarScopes : const <String>[],
-    );
-    if (requestCalendarAccess) {
-      await googleUser.authorizationClient.authorizeScopes(_calendarScopes);
-    }
-    final googleAuth = googleUser.authentication;
-    final idToken = googleAuth.idToken;
-    if (idToken == null || idToken.isEmpty) {
-      throw FirebaseAuthException(
-        code: 'missing-google-id-token',
-        message: 'Google Sign-In tidak mengembalikan ID token.',
+    try {
+      await _ensureGoogleInitialized();
+      final googleUser = await GoogleSignIn.instance.authenticate(
+        scopeHint: requestCalendarAccess ? _calendarScopes : const <String>[],
       );
+      if (requestCalendarAccess) {
+        await googleUser.authorizationClient.authorizeScopes(_calendarScopes);
+      }
+      final googleAuth = googleUser.authentication;
+      final idToken = googleAuth.idToken;
+      if (idToken == null || idToken.isEmpty) {
+        throw FirebaseAuthException(
+          code: 'missing-google-id-token',
+          message: 'Google Sign-In tidak mengembalikan ID token.',
+        );
+      }
+      final credential = GoogleAuthProvider.credential(idToken: idToken);
+      return _auth.signInWithCredential(credential);
+    } on FirebaseAuthException catch (e, st) {
+      unawaited(
+        SupabaseLogService.instance.reportError(
+          eventType: 'google_sign_in_failed',
+          error: e,
+          stackTrace: st,
+          screen: 'SignInScreen',
+          metadata: {
+            'provider': 'google',
+            'request_calendar_access': requestCalendarAccess,
+            'firebase_code': e.code,
+            'firebase_message': e.message,
+          },
+        ),
+      );
+      rethrow;
+    } catch (e, st) {
+      unawaited(
+        SupabaseLogService.instance.reportError(
+          eventType: 'google_sign_in_failed',
+          error: e,
+          stackTrace: st,
+          screen: 'SignInScreen',
+          metadata: {
+            'provider': 'google',
+            'request_calendar_access': requestCalendarAccess,
+          },
+        ),
+      );
+      rethrow;
     }
-    final credential = GoogleAuthProvider.credential(idToken: idToken);
-    return _auth.signInWithCredential(credential);
   }
 
   static Future<void> signOut() async {

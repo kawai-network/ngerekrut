@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -10,6 +12,7 @@ class SupabaseLogService {
 
   static final SupabaseLogService instance = SupabaseLogService._();
   bool _initialized = false;
+  Future<void>? _initializationFuture;
 
   static const String _defaultSupabaseUrl =
       'https://rprdvmnxdmlhlbgdkhkx.supabase.co';
@@ -44,8 +47,29 @@ class SupabaseLogService {
       return;
     }
 
-    await Supabase.initialize(url: _supabaseUrl, anonKey: _supabaseAnonKey);
-    _initialized = true;
+    final inFlight = _initializationFuture;
+    if (inFlight != null) {
+      await inFlight;
+      return;
+    }
+
+    final future =
+        Supabase.initialize(url: _supabaseUrl, anonKey: _supabaseAnonKey).then((
+          _,
+        ) {
+          _initialized = true;
+        });
+    _initializationFuture = future;
+
+    try {
+      await future;
+    } finally {
+      _initializationFuture = null;
+    }
+  }
+
+  void prime() {
+    unawaited(initialize());
   }
 
   Future<void> log({
