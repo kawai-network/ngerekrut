@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'auth/auth_gate.dart';
+import 'app/app_route_tracker.dart';
 import 'app/error_reporting.dart';
 import 'app/gemma_bootstrap.dart';
 import 'app/runtime_config.dart';
@@ -34,12 +35,12 @@ Future<void> _initializeOneSignal() async {
 }
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await loadEnv();
   await runWithErrorReporting(
     appEntrypoint: 'main_jobseeker',
     appFlavor: AppFlavorType.jobSeeker.name,
     body: () async {
+      WidgetsFlutterBinding.ensureInitialized();
+      await loadEnv();
       SupabaseLogService.instance.prime();
       await bootstrapGemma();
 
@@ -102,6 +103,7 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
+      navigatorObservers: [AppRouteTracker.instance],
       home: const AuthGate(
         title: 'Masuk ke NgeRekrut Jobseeker',
         description:

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../app/app_route_tracker.dart';
 import '../app/runtime_config.dart';
 import '../flavors/flavor_manager.dart';
 import 'shared_identity_service.dart';
@@ -172,6 +173,7 @@ class SupabaseLogService {
           : kProfileMode
           ? 'profile'
           : 'debug',
+      'route': AppRouteTracker.instance.currentRouteName,
       'user_id': _currentUserId(),
       'flavor': _currentFlavor(),
       'captured_at': DateTime.now().toIso8601String(),

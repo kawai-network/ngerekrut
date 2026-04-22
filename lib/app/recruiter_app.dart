@@ -37,6 +37,7 @@ import '../services/scorecard_generation_service.dart';
 import '../services/shared_identity_service.dart';
 import '../services/onesignal_service.dart';
 import '../services/supabase_log_service.dart';
+import 'app_route_tracker.dart';
 import 'runtime_config.dart';
 
 class RecruiterApp extends StatelessWidget {
@@ -59,6 +60,7 @@ class RecruiterApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF18CD5B)),
         useMaterial3: true,
       ),
+      navigatorObservers: [AppRouteTracker.instance],
       home:
           homeOverride ??
           RecruiterHomeScreen(enableAIInitialization: enableAIInitialization),

@@ -34,12 +34,12 @@ Future<void> _initializeOneSignal() async {
 }
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await loadEnv();
   await runWithErrorReporting(
     appEntrypoint: 'main_recruiter',
     appFlavor: AppFlavorType.recruiter.name,
     body: () async {
+      WidgetsFlutterBinding.ensureInitialized();
+      await loadEnv();
       SupabaseLogService.instance.prime();
       await bootstrapGemma();
 
