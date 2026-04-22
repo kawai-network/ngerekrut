@@ -51,7 +51,11 @@ fi
 if [ -n "$GOOGLE_SERVICES_JSON_RECRUITER" ]; then
   if [ "$AUTO_SET" = true ]; then
     echo "📝 Setting GOOGLE_SERVICES_JSON_RECRUITER secret..."
-    gh secret set GOOGLE_SERVICES_JSON_RECRUITER --body "$GOOGLE_SERVICES_JSON_RECRUITER"
+    if [ -f "google-services-recruiter.json" ]; then
+      gh secret set GOOGLE_SERVICES_JSON_RECRUITER < google-services-recruiter.json
+    else
+      gh secret set GOOGLE_SERVICES_JSON_RECRUITER < android/app/src/recruiter/google-services.json
+    fi
     echo "✅ GOOGLE_SERVICES_JSON_RECRUITER set successfully"
   else
     echo "============================================"
@@ -78,7 +82,11 @@ fi
 if [ -n "$GOOGLE_SERVICES_JSON_JOBSEEKER" ]; then
   if [ "$AUTO_SET" = true ]; then
     echo "📝 Setting GOOGLE_SERVICES_JSON_JOBSEEKER secret..."
-    gh secret set GOOGLE_SERVICES_JSON_JOBSEEKER --body "$GOOGLE_SERVICES_JSON_JOBSEEKER"
+    if [ -f "google-services-jobseeker.json" ]; then
+      gh secret set GOOGLE_SERVICES_JSON_JOBSEEKER < google-services-jobseeker.json
+    else
+      gh secret set GOOGLE_SERVICES_JSON_JOBSEEKER < android/app/src/jobseeker/google-services.json
+    fi
     echo "✅ GOOGLE_SERVICES_JSON_JOBSEEKER set successfully"
   else
     echo "============================================"
@@ -98,7 +106,7 @@ if [ -f "android/app/google-services.json" ]; then
   GOOGLE_SERVICES_JSON=$(base64 < android/app/google-services.json | tr -d '\n')
   if [ "$AUTO_SET" = true ]; then
     echo "📝 Setting GOOGLE_SERVICES_JSON secret..."
-    gh secret set GOOGLE_SERVICES_JSON --body "$GOOGLE_SERVICES_JSON"
+    gh secret set GOOGLE_SERVICES_JSON < android/app/google-services.json
     echo "✅ GOOGLE_SERVICES_JSON set successfully"
   else
     echo "============================================"
