@@ -69,9 +69,19 @@ jobs:
       - name: Setup Firebase config
         shell: bash
         run: |
-          # Decode and write google-services.json
-          mkdir -p android/app
-          echo '${{ secrets.GOOGLE_SERVICES_JSON }}' | base64 -d > android/app/google-services.json
+          # Prefer flavor-specific Firebase configs for Android.
+          mkdir -p android/app/src/recruiter android/app/src/jobseeker
+          if [ -n '${{ secrets.GOOGLE_SERVICES_JSON_RECRUITER }}' ] && [ -n '${{ secrets.GOOGLE_SERVICES_JSON_JOBSEEKER }}' ]; then
+            echo '${{ secrets.GOOGLE_SERVICES_JSON_RECRUITER }}' | base64 -d > android/app/src/recruiter/google-services.json
+            echo '${{ secrets.GOOGLE_SERVICES_JSON_JOBSEEKER }}' | base64 -d > android/app/src/jobseeker/google-services.json
+          elif [ -n '${{ secrets.GOOGLE_SERVICES_JSON }}' ]; then
+            # Backward compatibility with the previous shared config.
+            mkdir -p android/app
+            echo '${{ secrets.GOOGLE_SERVICES_JSON }}' | base64 -d > android/app/google-services.json
+          else
+            echo "Missing Firebase Android config secrets"
+            exit 1
+          fi
 
       - name: Setup Keystore for release signing
         shell: bash

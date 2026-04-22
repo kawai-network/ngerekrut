@@ -55,3 +55,5 @@ firebase.json
 *.jks
 key.properties
 ngerekrut-f4cc88eb1f55.json
+google-services-jobseeker.json
+google-services-recruiter.json

@@ -39,7 +39,61 @@ else
   echo ""
 fi
 
-# 1. GOOGLE_SERVICES_JSON (required for Android, shared across flavors)
+# 1. GOOGLE_SERVICES_JSON_RECRUITER (preferred for Android recruiter flavor)
+if [ -f "google-services-recruiter.json" ]; then
+  GOOGLE_SERVICES_JSON_RECRUITER=$(base64 < google-services-recruiter.json | tr -d '\n')
+elif [ -f "android/app/src/recruiter/google-services.json" ]; then
+  GOOGLE_SERVICES_JSON_RECRUITER=$(base64 < android/app/src/recruiter/google-services.json | tr -d '\n')
+else
+  GOOGLE_SERVICES_JSON_RECRUITER=""
+fi
+
+if [ -n "$GOOGLE_SERVICES_JSON_RECRUITER" ]; then
+  if [ "$AUTO_SET" = true ]; then
+    echo "📝 Setting GOOGLE_SERVICES_JSON_RECRUITER secret..."
+    gh secret set GOOGLE_SERVICES_JSON_RECRUITER --body "$GOOGLE_SERVICES_JSON_RECRUITER"
+    echo "✅ GOOGLE_SERVICES_JSON_RECRUITER set successfully"
+  else
+    echo "============================================"
+    echo "1. GOOGLE_SERVICES_JSON_RECRUITER"
+    echo "============================================"
+    echo "$GOOGLE_SERVICES_JSON_RECRUITER"
+    echo ""
+  fi
+  echo ""
+else
+  echo "⚠️  Skipping GOOGLE_SERVICES_JSON_RECRUITER (google-services-recruiter.json not found)"
+  echo ""
+fi
+
+# 2. GOOGLE_SERVICES_JSON_JOBSEEKER (preferred for Android jobseeker flavor)
+if [ -f "google-services-jobseeker.json" ]; then
+  GOOGLE_SERVICES_JSON_JOBSEEKER=$(base64 < google-services-jobseeker.json | tr -d '\n')
+elif [ -f "android/app/src/jobseeker/google-services.json" ]; then
+  GOOGLE_SERVICES_JSON_JOBSEEKER=$(base64 < android/app/src/jobseeker/google-services.json | tr -d '\n')
+else
+  GOOGLE_SERVICES_JSON_JOBSEEKER=""
+fi
+
+if [ -n "$GOOGLE_SERVICES_JSON_JOBSEEKER" ]; then
+  if [ "$AUTO_SET" = true ]; then
+    echo "📝 Setting GOOGLE_SERVICES_JSON_JOBSEEKER secret..."
+    gh secret set GOOGLE_SERVICES_JSON_JOBSEEKER --body "$GOOGLE_SERVICES_JSON_JOBSEEKER"
+    echo "✅ GOOGLE_SERVICES_JSON_JOBSEEKER set successfully"
+  else
+    echo "============================================"
+    echo "2. GOOGLE_SERVICES_JSON_JOBSEEKER"
+    echo "============================================"
+    echo "$GOOGLE_SERVICES_JSON_JOBSEEKER"
+    echo ""
+  fi
+  echo ""
+else
+  echo "⚠️  Skipping GOOGLE_SERVICES_JSON_JOBSEEKER (google-services-jobseeker.json not found)"
+  echo ""
+fi
+
+# 3. GOOGLE_SERVICES_JSON (legacy shared Android config fallback)
 if [ -f "android/app/google-services.json" ]; then
   GOOGLE_SERVICES_JSON=$(base64 < android/app/google-services.json | tr -d '\n')
   if [ "$AUTO_SET" = true ]; then
@@ -48,19 +102,18 @@ if [ -f "android/app/google-services.json" ]; then
     echo "✅ GOOGLE_SERVICES_JSON set successfully"
   else
     echo "============================================"
-    echo "1. GOOGLE_SERVICES_JSON"
+    echo "3. GOOGLE_SERVICES_JSON"
     echo "============================================"
     echo "$GOOGLE_SERVICES_JSON"
     echo ""
   fi
   echo ""
 else
-  echo "❌ ERROR: android/app/google-services.json not found!"
-  echo "   This is required for Android builds and should contain recruiter + jobseeker clients."
-  exit 1
+  echo "⚠️  Skipping GOOGLE_SERVICES_JSON (shared Android config not found)"
+  echo ""
 fi
 
-# 2. GOOGLE_SERVICE_INFO_PLIST_RECRUITER (optional - for iOS recruiter flavor)
+# 4. GOOGLE_SERVICE_INFO_PLIST_RECRUITER (optional - for iOS recruiter flavor)
 if [ -f "ios/Runner/GoogleService-Info-Recruiter.plist" ]; then
   GOOGLE_SERVICE_INFO_PLIST_RECRUITER=$(base64 < ios/Runner/GoogleService-Info-Recruiter.plist | tr -d '\n')
   if [ "$AUTO_SET" = true ]; then
@@ -69,7 +122,7 @@ if [ -f "ios/Runner/GoogleService-Info-Recruiter.plist" ]; then
     echo "✅ GOOGLE_SERVICE_INFO_PLIST_RECRUITER set successfully"
   else
     echo "============================================"
-    echo "2. GOOGLE_SERVICE_INFO_PLIST_RECRUITER"
+    echo "4. GOOGLE_SERVICE_INFO_PLIST_RECRUITER"
     echo "============================================"
     echo "$GOOGLE_SERVICE_INFO_PLIST_RECRUITER"
     echo ""
@@ -80,7 +133,7 @@ else
   echo ""
 fi
 
-# 3. GOOGLE_SERVICE_INFO_PLIST_JOBSEEKER (optional - for iOS jobseeker flavor)
+# 5. GOOGLE_SERVICE_INFO_PLIST_JOBSEEKER (optional - for iOS jobseeker flavor)
 if [ -f "ios/Runner/GoogleService-Info-JobSeeker.plist" ]; then
   GOOGLE_SERVICE_INFO_PLIST_JOBSEEKER=$(base64 < ios/Runner/GoogleService-Info-JobSeeker.plist | tr -d '\n')
   if [ "$AUTO_SET" = true ]; then
@@ -89,7 +142,7 @@ if [ -f "ios/Runner/GoogleService-Info-JobSeeker.plist" ]; then
     echo "✅ GOOGLE_SERVICE_INFO_PLIST_JOBSEEKER set successfully"
   else
     echo "============================================"
-    echo "3. GOOGLE_SERVICE_INFO_PLIST_JOBSEEKER"
+    echo "5. GOOGLE_SERVICE_INFO_PLIST_JOBSEEKER"
     echo "============================================"
     echo "$GOOGLE_SERVICE_INFO_PLIST_JOBSEEKER"
     echo ""
@@ -100,7 +153,7 @@ else
   echo ""
 fi
 
-# 4. ONESIGNAL_APP_ID (for push notifications)
+# 6. ONESIGNAL_APP_ID (for push notifications)
 if [ -f ".env" ]; then
   ONESIGNAL_APP_ID=$(grep "^ONESIGNAL_APP_ID=" .env | cut -d'=' -f2)
   if [ -n "$ONESIGNAL_APP_ID" ] && [ "$ONESIGNAL_APP_ID" != "your_onesignal_app_id" ]; then
@@ -110,7 +163,7 @@ if [ -f ".env" ]; then
       echo "✅ ONESIGNAL_APP_ID set successfully"
     else
       echo "============================================"
-      echo "4. ONESIGNAL_APP_ID"
+      echo "6. ONESIGNAL_APP_ID"
       echo "============================================"
       echo "$ONESIGNAL_APP_ID"
       echo ""
@@ -125,7 +178,7 @@ else
   echo ""
 fi
 
-# 5. ONESIGNAL_API_KEY (for push notifications)
+# 7. ONESIGNAL_API_KEY (for push notifications)
 if [ -f ".env" ]; then
   ONESIGNAL_API_KEY=$(grep "^ONESIGNAL_API_KEY=" .env | cut -d'=' -f2)
   if [ -n "$ONESIGNAL_API_KEY" ] && [ "$ONESIGNAL_API_KEY" != "your_onesignal_rest_api_key" ]; then
@@ -135,7 +188,7 @@ if [ -f ".env" ]; then
       echo "✅ ONESIGNAL_API_KEY set successfully"
     else
       echo "============================================"
-      echo "5. ONESIGNAL_API_KEY"
+      echo "7. ONESIGNAL_API_KEY"
       echo "============================================"
       echo "$ONESIGNAL_API_KEY"
       echo ""
@@ -150,7 +203,7 @@ else
   echo ""
 fi
 
-# 6. EXPECTED_ANDROID_SHA1 (optional - for CI signing verification)
+# 8. EXPECTED_ANDROID_SHA1 (optional - for CI signing verification)
 KEYSTORE_PATH=""
 KEYSTORE_ALIAS=""
 KEYSTORE_PASSWORD=""
@@ -193,7 +246,7 @@ if [ -n "$KEYSTORE_PATH" ] && [ -n "$KEYSTORE_ALIAS" ] && [ -n "$KEYSTORE_PASSWO
       echo "✅ EXPECTED_ANDROID_SHA1 set successfully"
     else
       echo "============================================"
-      echo "6. EXPECTED_ANDROID_SHA1"
+      echo "8. EXPECTED_ANDROID_SHA1"
       echo "============================================"
       echo "$EXPECTED_ANDROID_SHA1"
       echo ""
