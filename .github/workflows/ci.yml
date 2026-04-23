@@ -72,18 +72,12 @@ jobs:
           # Prefer flavor-specific Firebase configs for Android.
           mkdir -p android/app/src/recruiter android/app/src/jobseeker
           if [ -n '${{ secrets.GOOGLE_SERVICES_JSON_RECRUITER }}' ] && [ -n '${{ secrets.GOOGLE_SERVICES_JSON_JOBSEEKER }}' ]; then
-            cat > android/app/src/recruiter/google-services.json <<'EOF'
-${{ secrets.GOOGLE_SERVICES_JSON_RECRUITER }}
-EOF
-            cat > android/app/src/jobseeker/google-services.json <<'EOF'
-${{ secrets.GOOGLE_SERVICES_JSON_JOBSEEKER }}
-EOF
+            printf '%s' '${{ secrets.GOOGLE_SERVICES_JSON_RECRUITER }}' > android/app/src/recruiter/google-services.json
+            printf '%s' '${{ secrets.GOOGLE_SERVICES_JSON_JOBSEEKER }}' > android/app/src/jobseeker/google-services.json
           elif [ -n '${{ secrets.GOOGLE_SERVICES_JSON }}' ]; then
             # Backward compatibility with the previous shared config.
             mkdir -p android/app
-            cat > android/app/google-services.json <<'EOF'
-${{ secrets.GOOGLE_SERVICES_JSON }}
-EOF
+            printf '%s' '${{ secrets.GOOGLE_SERVICES_JSON }}' > android/app/google-services.json
           else
             echo "Missing Firebase Android config secrets"
             exit 1
