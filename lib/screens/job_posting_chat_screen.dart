@@ -34,7 +34,7 @@ class JobPostingChatScreen extends StatefulWidget {
 }
 
 class _JobPostingChatScreenState extends State<JobPostingChatScreen> {
-  late final InMemoryChatController _chatController;
+  late InMemoryChatController _chatController;
   final JobPostingRepository _sharedJobPostRepository = JobPostingRepository();
   HybridAIService? _hybridService;
   JobPosting? _lastGenerated;
@@ -66,12 +66,14 @@ class _JobPostingChatScreenState extends State<JobPostingChatScreen> {
 
   Future<void> _initHybridService() async {
     final apiKey = widget.apiKey;
+    if (!mounted) return;
     setState(() => _isInitializing = true);
 
     try {
       _hybridService = widget.aiService ?? HybridAIService(cloudApiKey: apiKey);
       final localReady = await _hybridService!.initialize(
         onDownloadProgress: (progress) {
+          if (!mounted) return;
           setState(() => _downloadProgress = progress);
         },
       );
@@ -90,7 +92,9 @@ class _JobPostingChatScreenState extends State<JobPostingChatScreen> {
       debugPrint('[JobPostingChat] Init failed: $e');
       await _sendErrorMessage('Gagal inisialisasi AI: $e');
     } finally {
-      setState(() => _isInitializing = false);
+      if (mounted) {
+        setState(() => _isInitializing = false);
+      }
     }
   }
 
@@ -186,6 +190,7 @@ Setelah lowongan jadi, Anda bisa:
       return;
     }
 
+    if (!mounted) return;
     setState(() => _isGenerating = true);
 
     // Create streaming message placeholder
@@ -229,13 +234,16 @@ Setelah lowongan jadi, Anda bisa:
       );
       await _chatController.updateMessage(streamMsg, errorMsg);
     } finally {
-      setState(() => _isGenerating = false);
+      if (mounted) {
+        setState(() => _isGenerating = false);
+      }
     }
   }
 
   Future<void> _handleRefine(String request) async {
     if (_hybridService == null || _lastGenerated == null) return;
 
+    if (!mounted) return;
     setState(() => _isGenerating = true);
 
     final streamId = _uuid.v4();
@@ -279,7 +287,9 @@ Setelah lowongan jadi, Anda bisa:
       );
       await _chatController.updateMessage(streamMsg, errorMsg);
     } finally {
-      setState(() => _isGenerating = false);
+      if (mounted) {
+        setState(() => _isGenerating = false);
+      }
     }
   }
 
@@ -323,6 +333,7 @@ Setelah lowongan jadi, Anda bisa:
     final job = _lastGenerated;
     if (job == null || _isSaving) return;
 
+    if (!mounted) return;
     setState(() => _isSaving = true);
     try {
       final savedJob = RecruiterJob(
@@ -370,7 +381,9 @@ Setelah lowongan jadi, Anda bisa:
   @override
   void dispose() {
     _chatController.dispose();
-    _hybridService?.dispose();
+    if (widget.aiService == null) {
+      _hybridService?.dispose();
+    }
     super.dispose();
   }
 
@@ -515,13 +528,16 @@ Setelah lowongan jadi, Anda bisa:
   }
 
   void _resetChat() {
+    final previousController = _chatController;
     setState(() {
       _lastGenerated = null;
+      _isSaved = false;
     });
-    // Recreate controller to clear messages
-    _chatController.dispose();
+    // Recreate the controller after clearing state to avoid mutating a
+    // disposed chat controller from pending async tasks.
     _chatController = InMemoryChatController();
-    _sendWelcomeMessage();
+    previousController.dispose();
+    unawaited(_sendWelcomeMessage());
   }
 
   Widget _buildAIModeChip() {
@@ -565,6 +581,7 @@ Setelah lowongan jadi, Anda bisa:
         ? (current == AIMode.local ? AIMode.cloud : AIMode.local)
         : AIMode.local;
     _hybridService!.setMode(newMode);
+    if (!mounted) return;
     setState(() {});
 
     final modeText = hasCloudAI
