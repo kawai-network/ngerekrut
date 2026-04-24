@@ -312,7 +312,7 @@ class AppTheme {
   );
 
   // Navigation bar theme (Material 3)
-  static const NavigationBarThemeData _navigationBarTheme =
+  static NavigationBarThemeData get _navigationBarTheme =>
       NavigationBarThemeData(
     elevation: 0,
     backgroundColor: AppColors.background,
@@ -336,7 +336,7 @@ class AppTheme {
     }),
   );
 
-  static const NavigationBarThemeData _darkNavigationBarTheme =
+  static NavigationBarThemeData get _darkNavigationBarTheme =>
       NavigationBarThemeData(
     elevation: 0,
     backgroundColor: AppColors.neutral900,
