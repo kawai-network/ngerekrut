@@ -14,6 +14,7 @@ import '../repositories/job_application_repository.dart';
 import '../repositories/job_posting_repository.dart';
 import '../repositories/scorecard_artifact_repository.dart';
 import '../repositories/shortlist_artifact_repository.dart';
+import '../ui/widgets/empty_state.dart';
 
 class RecruiterJobPostListScreen extends StatefulWidget {
   const RecruiterJobPostListScreen({
@@ -686,32 +687,10 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            description,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.grey.shade700,
-              height: 1.45,
-            ),
-          ),
-        ],
-      ),
+    return AppEmptyState(
+      title: title,
+      description: description,
+      icon: Icons.folder_open,
     );
   }
 }

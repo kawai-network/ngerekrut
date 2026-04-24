@@ -13,6 +13,8 @@ import '../../repositories/job_posting_repository.dart';
 import '../../repositories/saved_job_repository.dart';
 import '../../services/job_matching_service.dart';
 import '../../services/shared_identity_service.dart';
+import '../../ui/widgets/skeleton_job_card.dart';
+import '../../ui/widgets/empty_state.dart';
 import 'interview_prep_screen.dart';
 
 // Re-export SavedJob class for use in this screen
@@ -189,7 +191,7 @@ class _JobBrowseScreenState extends State<JobBrowseScreen> {
           ),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const SkeletonJobList(itemCount: 5)
                 : SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -570,16 +572,21 @@ class _RecommendedJobCard extends StatelessWidget {
                       ),
                     ),
                     const Spacer(),
-                    IconButton(
-                      icon: Icon(
-                        isSaved ? Icons.bookmark : Icons.bookmark_border,
-                        color: isSaved
-                            ? const Color(0xFF6366F1)
-                            : Colors.grey.shade600,
+                    Semantics(
+                      label: isSaved ? 'Hapus dari tersimpan' : 'Simpan',
+                      button: true,
+                      child: IconButton(
+                        icon: Icon(
+                          isSaved ? Icons.bookmark : Icons.bookmark_border,
+                          color: isSaved
+                              ? const Color(0xFF6366F1)
+                              : Colors.grey.shade600,
+                        ),
+                        onPressed: onSave,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        tooltip: isSaved ? 'Hapus dari saved' : 'Simpan',
                       ),
-                      onPressed: onSave,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
                     ),
                   ],
                 ),
@@ -775,15 +782,19 @@ class _JobCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(
-                      isSaved ? Icons.bookmark : Icons.bookmark_border,
-                      color: isSaved
-                          ? const Color(0xFF6366F1)
-                          : Colors.grey.shade600,
+                  Semantics(
+                    label: isSaved ? 'Hapus ${job.title} dari tersimpan' : 'Simpan ${job.title}',
+                    button: true,
+                    child: IconButton(
+                      icon: Icon(
+                        isSaved ? Icons.bookmark : Icons.bookmark_border,
+                        color: isSaved
+                            ? const Color(0xFF6366F1)
+                            : Colors.grey.shade600,
+                      ),
+                      onPressed: onSave,
+                      tooltip: isSaved ? 'Hapus dari saved' : 'Simpan',
                     ),
-                    onPressed: onSave,
-                    tooltip: isSaved ? 'Hapus dari saved' : 'Simpan',
                   ),
                 ],
               ),
@@ -945,48 +956,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF3F4F6),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.work_outline,
-                size: 48,
-                color: Color(0xFF9CA3AF),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Tidak ada lowongan ditemukan',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Coba kata kunci atau filter lainnya.',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: onRefresh,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Refresh'),
-            ),
-          ],
-        ),
-      ),
-    );
+    return JobEmptyState(onRefresh: onRefresh);
   }
 }
 
@@ -1222,7 +1192,35 @@ class _ApplyJobSheetState extends State<_ApplyJobSheet> {
   final _resumeIdController = TextEditingController();
   final JobApplicationRepository _repo = JobApplicationRepository();
   final CandidateRepository _candidateRepository = CandidateRepository();
+
   bool _isSubmitting = false;
+  bool _showOptionalFields = false;
+
+  // Validation state tracking
+  final Map<String, String?> _validationErrors = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCandidateData();
+  }
+
+  Future<void> _loadCandidateData() async {
+    // Pre-fill from saved candidate profile
+    final candidateId = _repo.candidateId;
+    final existingCandidate = await _candidateRepository.getById(candidateId);
+    if (!mounted) return;
+
+    setState(() {
+      if (existingCandidate != null) {
+        _nameController.text = existingCandidate.name;
+        _headlineController.text = existingCandidate.headline ?? '';
+        if (existingCandidate.profile?.skills.isNotEmpty == true) {
+          _skillsController.text = existingCandidate.profile!.skills.join(', ');
+        }
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -1235,8 +1233,61 @@ class _ApplyJobSheetState extends State<_ApplyJobSheet> {
     super.dispose();
   }
 
+  // Field-level validation with real-time feedback
+  String? _validateName(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Nama lengkap tidak boleh kosong.';
+    }
+    if (value.trim().length < 3) {
+      return 'Tulis minimal 3 karakter.';
+    }
+    return null;
+  }
+
+  String? _validateCoverLetter(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Cover letter tidak boleh kosong.';
+    }
+    if (value.trim().length < 20) {
+      return 'Tulis minimal 20 karakter.';
+    }
+    return null;
+  }
+
+  void _updateValidation(String field, String? error) {
+    setState(() {
+      _validationErrors[field] = error;
+    });
+  }
+
+  int get _completedFields {
+    int count = 0;
+    if (_nameController.text.trim().isNotEmpty && _validationErrors['name'] == null) count++;
+    if (_headlineController.text.trim().isNotEmpty) count++;
+    if (_skillsController.text.trim().isNotEmpty) count++;
+    if (_expectedSalaryController.text.trim().isNotEmpty) count++;
+    if (_coverLetterController.text.trim().isNotEmpty && _validationErrors['coverLetter'] == null) count++;
+    if (_resumeIdController.text.trim().isNotEmpty) count++;
+    return count;
+  }
+
+  int get _totalRequiredFields => 2; // name and cover letter are required
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate() || _isSubmitting) return;
+
+    // Check required fields
+    final nameError = _validateName(_nameController.text);
+    final coverLetterError = _validateCoverLetter(_coverLetterController.text);
+
+    if (nameError != null || coverLetterError != null) {
+      setState(() {
+        _validationErrors['name'] = nameError;
+        _validationErrors['coverLetter'] = coverLetterError;
+      });
+      return;
+    }
+
     final status = JobPostingRepository.normalizeStatus(widget.job.status);
     if (status != JobPostingRepository.statusPublished) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1331,6 +1382,10 @@ class _ApplyJobSheetState extends State<_ApplyJobSheet> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final progress = _totalRequiredFields > 0
+        ? _completedFields / (_totalRequiredFields + 3) // +3 for optional fields shown
+        : 0.0;
+
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 16, 16, bottomInset + 16),
       child: SingleChildScrollView(
@@ -1340,46 +1395,254 @@ class _ApplyJobSheetState extends State<_ApplyJobSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Lamar ${widget.job.title}',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Lamar ${widget.job.title}',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Isi data tambahan untuk mengirim lamaran Anda.',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: progress >= 1.0
+                          ? Colors.green.shade50
+                          : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: progress >= 1.0 ? Colors.green : Colors.grey.shade300,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          progress >= 1.0 ? Icons.check_circle : Icons.pending_outlined,
+                          size: 16,
+                          color: progress >= 1.0 ? Colors.green : Colors.grey.shade600,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${_completedFields}/6 lengkap',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: progress >= 1.0 ? Colors.green.shade700 : Colors.grey.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
-              Text(
-                'Isi data tambahan untuk mengirim lamaran Anda.',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700),
+              LinearProgressIndicator(
+                value: progress.clamp(0.0, 1.0),
+                backgroundColor: Colors.grey.shade200,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  progress >= 1.0 ? Colors.green : Theme.of(context).primaryColor,
+                ),
               ),
               const SizedBox(height: 16),
+
+              // Required fields section
+              Text(
+                'Wajib diisi',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+              const SizedBox(height: 12),
+
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nama lengkap',
+                textInputAction: TextInputAction.next,
+                decoration: InputDecoration(
+                  labelText: 'Nama lengkap *',
                   hintText: 'Contoh: Budi Santoso',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
+                  errorText: _validationErrors['name'],
+                  suffixIcon: _nameController.text.trim().isNotEmpty
+                      ? Icon(
+                          _validationErrors['name'] == null
+                              ? Icons.check_circle
+                              : Icons.error,
+                          color: _validationErrors['name'] == null
+                              ? Colors.green
+                              : Colors.red,
+                        )
+                      : null,
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Nama lengkap tidak boleh kosong.';
-                  }
-                  if (value.trim().length < 3) {
-                    return 'Tulis minimal 3 karakter.';
-                  }
-                  return null;
+                onChanged: (value) {
+                  _updateValidation('name', _validateName(value));
                 },
               ),
               const SizedBox(height: 12),
+
               TextFormField(
-                controller: _headlineController,
-                decoration: const InputDecoration(
-                  labelText: 'Headline profesional',
-                  hintText: 'Contoh: Flutter Developer',
-                  border: OutlineInputBorder(),
+                controller: _coverLetterController,
+                textInputAction: TextInputAction.done,
+                maxLines: 5,
+                decoration: InputDecoration(
+                  labelText: 'Cover letter *',
+                  hintText: 'Ceritakan singkat kenapa Anda cocok untuk lowongan ini. (min. 20 karakter)',
+                  border: const OutlineInputBorder(),
+                  errorText: _validationErrors['coverLetter'],
+                  suffixIcon: _coverLetterController.text.trim().isNotEmpty
+                      ? Icon(
+                          _validationErrors['coverLetter'] == null
+                              ? Icons.check_circle
+                              : Icons.error,
+                          color: _validationErrors['coverLetter'] == null
+                              ? Colors.green
+                              : Colors.red,
+                        )
+                      : null,
+                ),
+                onChanged: (value) {
+                  _updateValidation('coverLetter', _validateCoverLetter(value));
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Optional fields with progressive disclosure
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Opsional',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () {
+                      setState(() => _showOptionalFields = !_showOptionalFields);
+                    },
+                    icon: Icon(
+                      _showOptionalFields
+                          ? Icons.expand_less
+                          : Icons.expand_more,
+                    ),
+                    label: Text(_showOptionalFields ? 'Sembunyikan' : 'Tampilkan'),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                  ),
+                ],
+              ),
+              if (_showOptionalFields) ...[
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _headlineController,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Headline profesional',
+                    hintText: 'Contoh: Flutter Developer',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _skillsController,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Skill utama',
+                    hintText: 'Pisahkan dengan koma, mis. Flutter, Dart, Firebase',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _expectedSalaryController,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Ekspektasi gaji',
+                    hintText: 'Contoh: Rp8.000.000 - Rp10.000.000',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _resumeIdController,
+                  textInputAction: TextInputAction.done,
+                  decoration: const InputDecoration(
+                    labelText: 'Resume ID',
+                    hintText: 'Opsional, mis. resume_v1',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ] else
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 16, color: Colors.grey.shade600),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Anda dapat menambahkan headline, skill, gaji, dan resume ID.',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _isSubmitting ? null : _submit,
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(_isSubmitting ? 'Mengirim...' : 'Kirim Lamaran'),
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
               const SizedBox(height: 12),
               TextFormField(
                 controller: _skillsController,

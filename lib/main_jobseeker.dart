@@ -17,6 +17,7 @@ import 'services/hybrid_database_service.dart';
 import 'services/onesignal_service.dart';
 import 'services/shared_identity_service.dart';
 import 'services/supabase_log_service.dart';
+import 'ui/design_system/app_theme.dart';
 
 Future<void> _initializeOneSignal() async {
   // Initialize OneSignal
@@ -97,12 +98,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: FlavorManager.flavor.appTitle,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Color(int.parse(FlavorManager.flavor.primaryColor)),
-        ),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.lightTheme,
       navigatorObservers: [AppRouteTracker.instance],
       home: const AuthGate(
         title: 'Masuk ke NgeRekrut Jobseeker',

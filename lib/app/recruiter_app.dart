@@ -5,6 +5,10 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 
+import '../ui/design_system/app_theme.dart';
+import '../ui/widgets/skeleton_metric_card.dart';
+import '../ui/widgets/empty_state.dart';
+import '../ui/errors/error_handler.dart';
 import '../dev/mock_recruiter_data_seed.dart';
 import '../repositories/hiring_repository.dart';
 import '../repositories/interview_guide_artifact_repository.dart';
@@ -56,10 +60,7 @@ class RecruiterApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: title,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF18CD5B)),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.lightTheme,
       navigatorObservers: [AppRouteTracker.instance],
       home:
           homeOverride ??
@@ -96,6 +97,9 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
   double _downloadProgress = 0.0;
   _RecruiterDashboardData? _dashboardData;
 
+  // Pre-built screens for IndexedStack (state preservation)
+  late final List<Widget> _screens;
+
   @override
   void initState() {
     super.initState();
@@ -104,6 +108,62 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
     if (widget.enableAIInitialization) {
       _initHybridService();
     }
+    // Initialize screens after repository configuration
+    _screens = _buildScreens();
+  }
+
+  List<Widget> _buildScreens() {
+    return [
+      // Dashboard is built dynamically since it needs frequent updates
+      _buildDashboardScreen(),
+      RecruiterJobPostListScreen(
+        jobPostRepository: _jobPostingRepository,
+        shortlistRepository: _shortlistArtifactRepository,
+        scorecardRepository: _scorecardArtifactRepository,
+        interviewGuideRepository: _interviewGuideArtifactRepository,
+      ),
+      RecruiterScreeningListScreen(
+        jobPostRepository: _jobPostingRepository,
+        shortlistRepository: _shortlistArtifactRepository,
+      ),
+      RecruiterInterviewListScreen(
+        jobPostRepository: _jobPostingRepository,
+        shortlistRepository: _shortlistArtifactRepository,
+        scorecardRepository: _scorecardArtifactRepository,
+        interviewGuideRepository: _interviewGuideArtifactRepository,
+      ),
+      const RecruiterApplicationInboxScreen(),
+    ];
+  }
+
+  Widget _buildDashboardScreen() {
+    return _RecruiterDashboardScreen(
+      isLoading: _isLoadingDashboard,
+      data: _dashboardData,
+      aiReady: (_hybridService?.isLocalAIReady ?? false) || (_hybridService?.hasCloudAI ?? false),
+      isInitializingAI: _isInitializingAI,
+      downloadProgress: _downloadProgress,
+      onRefresh: _refreshDashboard,
+      onCreateJobPosting: () {
+        _openJobPostingChat();
+      },
+      onReviewCandidates: _hiringRepository != null
+          ? () {
+              _openCandidateScreening();
+            }
+          : () {
+              setState(() => _selectedIndex = 2);
+            },
+      onOpenJobs: () {
+        setState(() => _selectedIndex = 1);
+      },
+      onOpenInterview: () {
+        setState(() => _selectedIndex = 3);
+      },
+      onOpenAssistant: () {
+        _openHiringAssistant();
+      },
+    );
   }
 
   void _configureHiringRepository() {
@@ -141,7 +201,7 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
       if (!mounted) return;
       setState(() {});
     } catch (e, st) {
-      debugPrint('Failed to initialize hybrid service: $e');
+      ErrorHandler.logError(e, context: 'HybridAIService initialization', stackTrace: st);
       unawaited(
         SupabaseLogService.instance.reportError(
           eventType: 'hybrid_ai_initialization_failed',
@@ -151,6 +211,11 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
           metadata: {'component': 'HybridAIService'},
         ),
       );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(ErrorHandler.getUserMessage(e))),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _isInitializingAI = false);
@@ -303,54 +368,6 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final hasRecruiterData = _hiringRepository != null;
-    final hasCloudAI = _hybridService?.hasCloudAI ?? false;
-    final hasLocalAI = _hybridService?.isLocalAIReady ?? false;
-    final body = [
-      _RecruiterDashboardScreen(
-        isLoading: _isLoadingDashboard,
-        data: _dashboardData,
-        aiReady: hasLocalAI || hasCloudAI,
-        isInitializingAI: _isInitializingAI,
-        downloadProgress: _downloadProgress,
-        onRefresh: _refreshDashboard,
-        onCreateJobPosting: () {
-          _openJobPostingChat();
-        },
-        onReviewCandidates: hasRecruiterData
-            ? () {
-                _openCandidateScreening();
-              }
-            : () {
-                setState(() => _selectedIndex = 2);
-              },
-        onOpenJobs: () {
-          setState(() => _selectedIndex = 1);
-        },
-        onOpenInterview: () {
-          setState(() => _selectedIndex = 3);
-        },
-        onOpenAssistant: () {
-          _openHiringAssistant();
-        },
-      ),
-      RecruiterJobPostListScreen(
-        jobPostRepository: _jobPostingRepository,
-        shortlistRepository: _shortlistArtifactRepository,
-        scorecardRepository: _scorecardArtifactRepository,
-        interviewGuideRepository: _interviewGuideArtifactRepository,
-      ),
-      RecruiterScreeningListScreen(
-        jobPostRepository: _jobPostingRepository,
-        shortlistRepository: _shortlistArtifactRepository,
-      ),
-      RecruiterInterviewListScreen(
-        jobPostRepository: _jobPostingRepository,
-        shortlistRepository: _shortlistArtifactRepository,
-        scorecardRepository: _scorecardArtifactRepository,
-        interviewGuideRepository: _interviewGuideArtifactRepository,
-      ),
-      const RecruiterApplicationInboxScreen(),
-    ][_selectedIndex];
 
     return Scaffold(
       appBar: AppBar(
@@ -408,7 +425,10 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
         ],
       ),
       floatingActionButton: _buildFab(),
-      body: body,
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _screens,
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
@@ -944,10 +964,7 @@ class _RecruiterDashboardScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           if (isLoading || dashboard == null)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 40),
-              child: Center(child: CircularProgressIndicator()),
-            )
+            const SkeletonDashboard()
           else ...[
             GridView.count(
               crossAxisCount: 2,
@@ -1444,32 +1461,9 @@ class _EmptySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            description,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              height: 1.45,
-              color: Colors.grey.shade700,
-            ),
-          ),
-        ],
-      ),
+    return AppEmptyState(
+      title: title,
+      description: description,
     );
   }
 }
