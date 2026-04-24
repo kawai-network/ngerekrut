@@ -6,7 +6,22 @@
       "Bash(git commit *)",
       "Bash(git push)",
       "Bash(git rm *)",
-      "Bash(git checkout *)"
+      "Bash(git checkout *)",
+      "Bash(curl *)",
+      "Bash(tar *)",
+      "Bash(npm install *)",
+      "Bash(codex *)",
+      "Bash(cat *)",
+      "Bash(file *)",
+      "Bash(chmod *)",
+      "Bash(~/../usr/lib/node_modules/@openai/codex/vendor/aarch64-unknown-linux-musl/codex/codex *)",
+      "Bash(cp *)",
+      "Bash(rm *)",
+      "Read(//data/data/com.termux/files/usr/lib/node_modules/@openai/codex/bin/**)",
+      "Bash(ls *)",
+      "Bash(mv *)",
+      "Bash(gh *)",
+      "Bash(git config *)"
     ]
   },
   "$version": 3

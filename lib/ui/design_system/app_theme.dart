@@ -130,7 +130,7 @@ class AppTheme {
   );
 
   // Card theme
-  static const CardTheme _cardTheme = CardTheme(
+  static const CardThemeData _cardTheme = CardThemeData(
     elevation: 1,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.all(Radius.circular(AppBorderRadius.medium)),
@@ -139,7 +139,7 @@ class AppTheme {
     margin: EdgeInsets.only(bottom: AppSpacing.md),
   );
 
-  static const CardTheme _darkCardTheme = CardTheme(
+  static const CardThemeData _darkCardTheme = CardThemeData(
     elevation: 1,
     color: AppColors.neutral800,
     shape: RoundedRectangleBorder(
@@ -317,17 +317,6 @@ class AppTheme {
     elevation: 0,
     backgroundColor: AppColors.background,
     indicatorColor: AppColors.primaryLight,
-    labelTextStyle: WidgetStatePropertyAll(AppTextStyles.labelMedium),
-    iconTheme: WidgetStatePropertyAll(
-      IconThemeData(
-        color: AppColors.textSecondary,
-      ),
-    ),
-    selectedIconTheme: WidgetStatePropertyAll(
-      IconThemeData(
-        color: AppColors.primary,
-      ),
-    ),
     labelTextStyle: WidgetStateProperty.resolveWith((states) {
       if (states.contains(WidgetState.selected)) {
         return AppTextStyles.labelMedium.copyWith(
@@ -339,6 +328,12 @@ class AppTheme {
         color: AppColors.textSecondary,
       );
     }),
+    iconTheme: WidgetStateProperty.resolveWith((states) {
+      if (states.contains(WidgetState.selected)) {
+        return const IconThemeData(color: AppColors.primary);
+      }
+      return const IconThemeData(color: AppColors.textSecondary);
+    }),
   );
 
   static const NavigationBarThemeData _darkNavigationBarTheme =
@@ -346,17 +341,6 @@ class AppTheme {
     elevation: 0,
     backgroundColor: AppColors.neutral900,
     indicatorColor: AppColors.primaryDark,
-    labelTextStyle: WidgetStatePropertyAll(AppTextStyles.labelMedium),
-    iconTheme: WidgetStatePropertyAll(
-      IconThemeData(
-        color: AppColors.neutral400,
-      ),
-    ),
-    selectedIconTheme: WidgetStatePropertyAll(
-      IconThemeData(
-        color: AppColors.primary,
-      ),
-    ),
     labelTextStyle: WidgetStateProperty.resolveWith((states) {
       if (states.contains(WidgetState.selected)) {
         return AppTextStyles.labelMedium.copyWith(
@@ -367,6 +351,12 @@ class AppTheme {
       return AppTextStyles.labelMedium.copyWith(
         color: AppColors.neutral400,
       );
+    }),
+    iconTheme: WidgetStateProperty.resolveWith((states) {
+      if (states.contains(WidgetState.selected)) {
+        return const IconThemeData(color: AppColors.primary);
+      }
+      return const IconThemeData(color: AppColors.neutral400);
     }),
   );
 
@@ -488,7 +478,7 @@ class AppTheme {
       );
 
   // Dialog theme
-  static const DialogTheme _dialogTheme = DialogTheme(
+  static const DialogThemeData _dialogTheme = DialogThemeData(
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.all(
         Radius.circular(AppBorderRadius.large),
@@ -497,7 +487,7 @@ class AppTheme {
     backgroundColor: AppColors.background,
   );
 
-  static const DialogTheme _darkDialogTheme = DialogTheme(
+  static const DialogThemeData _darkDialogTheme = DialogThemeData(
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.all(
         Radius.circular(AppBorderRadius.large),
@@ -507,7 +497,7 @@ class AppTheme {
   );
 
   // Tab bar theme
-  static TabBarTheme get _tabBarTheme => TabBarTheme(
+  static TabBarThemeData get _tabBarTheme => TabBarThemeData(
         labelColor: AppColors.primary,
         unselectedLabelColor: AppColors.textSecondary,
         labelStyle: AppTextStyles.labelMedium,
@@ -522,7 +512,7 @@ class AppTheme {
         ),
       );
 
-  static TabBarTheme get _darkTabBarTheme => TabBarTheme(
+  static TabBarThemeData get _darkTabBarTheme => TabBarThemeData(
         labelColor: AppColors.primary,
         unselectedLabelColor: AppColors.neutral400,
         labelStyle: AppTextStyles.labelMedium,

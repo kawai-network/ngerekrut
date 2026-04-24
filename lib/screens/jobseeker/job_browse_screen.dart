@@ -1643,68 +1643,6 @@ class _ApplyJobSheetState extends State<_ApplyJobSheet> {
       ),
     );
   }
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _skillsController,
-                decoration: const InputDecoration(
-                  labelText: 'Skill utama',
-                  hintText:
-                      'Pisahkan dengan koma, mis. Flutter, Dart, Firebase',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _expectedSalaryController,
-                decoration: const InputDecoration(
-                  labelText: 'Ekspektasi gaji',
-                  hintText: 'Contoh: Rp8.000.000 - Rp10.000.000',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _resumeIdController,
-                decoration: const InputDecoration(
-                  labelText: 'Resume ID',
-                  hintText: 'Opsional, mis. resume_v1',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _coverLetterController,
-                maxLines: 5,
-                decoration: const InputDecoration(
-                  labelText: 'Cover letter',
-                  hintText:
-                      'Ceritakan singkat kenapa Anda cocok untuk lowongan ini.',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Cover letter tidak boleh kosong.';
-                  }
-                  if (value.trim().length < 20) {
-                    return 'Tulis minimal 20 karakter.';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _isSubmitting ? null : _submit,
-                  child: Text(_isSubmitting ? 'Mengirim...' : 'Kirim Lamaran'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _InfoRow extends StatelessWidget {

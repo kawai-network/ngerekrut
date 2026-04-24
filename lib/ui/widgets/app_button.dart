@@ -153,7 +153,7 @@ class AppButton extends StatelessWidget {
   }
 
   ButtonStyle _getTertiaryStyle(BuildContext context) {
-    return FilledButton.tonalStyleFrom(
+    return FilledButton.styleFrom(
       backgroundColor: AppColors.neutral100,
       foregroundColor: AppColors.textPrimary,
       disabledBackgroundColor: AppColors.neutral200,
