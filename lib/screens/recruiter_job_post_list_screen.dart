@@ -1,5 +1,6 @@
 library;
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -14,6 +15,7 @@ import '../repositories/job_application_repository.dart';
 import '../repositories/job_posting_repository.dart';
 import '../repositories/scorecard_artifact_repository.dart';
 import '../repositories/shortlist_artifact_repository.dart';
+import '../super_cupertino_navigation_bar/super_cupertino_navigation_bar.dart';
 
 class RecruiterJobPostListScreen extends StatefulWidget {
   const RecruiterJobPostListScreen({
@@ -22,12 +24,26 @@ class RecruiterJobPostListScreen extends StatefulWidget {
     required this.shortlistRepository,
     required this.scorecardRepository,
     required this.interviewGuideRepository,
+    this.onCreateJobPosting,
+    this.onActionSelected,
+    this.onSeedMockData,
+    this.enableSeedMockData = false,
+    this.enableGemmaProof = false,
+    this.enableLegacyChat = false,
+    this.canImportCandidates = false,
   });
 
   final JobPostingRepository jobPostRepository;
   final ShortlistArtifactRepository shortlistRepository;
   final ScorecardArtifactRepository scorecardRepository;
   final InterviewGuideArtifactRepository interviewGuideRepository;
+  final Future<void> Function()? onCreateJobPosting;
+  final Future<void> Function(String action)? onActionSelected;
+  final Future<void> Function()? onSeedMockData;
+  final bool enableSeedMockData;
+  final bool enableGemmaProof;
+  final bool enableLegacyChat;
+  final bool canImportCandidates;
 
   @override
   State<RecruiterJobPostListScreen> createState() =>
@@ -42,11 +58,21 @@ class _RecruiterJobPostListScreenState
   String? _updatingJobId;
   List<_LocalJobPostSummary> _items = const [];
   String _statusFilter = 'all';
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -95,11 +121,54 @@ class _RecruiterJobPostListScreenState
   }
 
   List<_LocalJobPostSummary> get _filteredItems {
-    if (_statusFilter == 'all') return _items;
+    return _items.where((item) {
+      if (_statusFilter != 'all') {
+        final normalized = JobPostingRepository.normalizeStatus(
+          item.job.status,
+        );
+        if (normalized != _statusFilter) return false;
+      }
+
+      if (_searchQuery.isEmpty) return true;
+      final haystack = [
+        item.job.title,
+        item.job.unitLabel,
+        item.job.location,
+      ].whereType<String>().join(' ').toLowerCase();
+      return haystack.contains(_searchQuery.toLowerCase());
+    }).toList();
+  }
+
+  int _countForStatus(String status) {
+    if (status == 'all') return _items.length;
     return _items.where((item) {
       final normalized = JobPostingRepository.normalizeStatus(item.job.status);
-      return normalized == _statusFilter;
-    }).toList();
+      return normalized == status;
+    }).length;
+  }
+
+  int get _activeJobsCount =>
+      _countForStatus(JobPostingRepository.statusPublished);
+
+  int get _draftJobsCount => _countForStatus(JobPostingRepository.statusDraft);
+
+  int get _totalReviewCount =>
+      _items.fold(0, (total, item) => total + item.reviewCount);
+
+  Future<void> _handleCreateJobPosting() async {
+    final callback = widget.onCreateJobPosting;
+    if (callback == null) return;
+    await callback();
+    if (!mounted) return;
+    await _load();
+  }
+
+  Future<void> _handleActionSelected(String action) async {
+    final callback = widget.onActionSelected;
+    if (callback == null) return;
+    await callback(action);
+    if (!mounted) return;
+    await _load();
   }
 
   Future<void> _changeJobStatus(
@@ -206,123 +275,195 @@ class _RecruiterJobPostListScreenState
 
   @override
   Widget build(BuildContext context) {
-    final activeCount = _items.where((item) => item.isActive).length;
-    final totalReview = _items.fold<int>(
-      0,
-      (sum, item) => sum + item.reviewCount,
-    );
-    final totalReady = _items.fold<int>(
-      0,
-      (sum, item) => sum + item.readyInterviewCount,
-    );
-
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF0F172A), Color(0xFF166534)],
-              ),
-              borderRadius: BorderRadius.circular(28),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Pantau semua lowongan aktif',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Lihat posisi yang sedang dibuka, kandidat yang perlu direview, dan lowongan yang sudah siap masuk interview.',
-                  style: TextStyle(color: Colors.white70, height: 1.45),
-                ),
-                const SizedBox(height: 16),
-                if (_isLoading)
-                  const LinearProgressIndicator(
-                    minHeight: 4,
-                    backgroundColor: Colors.white24,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  )
-                else
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      _HeroMetric(
-                        label: 'Lowongan aktif',
-                        value: '$activeCount',
-                      ),
-                      _HeroMetric(label: 'Perlu review', value: '$totalReview'),
-                      _HeroMetric(
-                        label: 'Siap interview',
-                        value: '$totalReady',
-                      ),
-                    ],
-                  ),
-              ],
+    return ColoredBox(
+      color: const Color(0xFFF8FAFC),
+      child: SuperScaffold(
+        stretch: true,
+        appBar: SuperAppBar(
+          backgroundColor: const Color(0xFFF8FAFC),
+          automaticallyImplyLeading: false,
+          title: Text(
+            'Lowongan',
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodyMedium?.color,
+              fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 20),
-          Text(
-            'Filter status',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          actions: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              _buildFilterChip('all', 'Semua'),
-              _buildFilterChip(JobPostingRepository.statusPublished, 'Aktif'),
-              _buildFilterChip('draft', 'Draft'),
-              _buildFilterChip('closed', 'Ditutup'),
+              PopupMenuButton<String>(
+                tooltip: 'Aksi',
+                onSelected: (value) {
+                  _handleActionSelected(value);
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem<String>(
+                    value: 'job_posting',
+                    child: Text('Buat Lowongan'),
+                  ),
+                  PopupMenuItem<String>(
+                    value: 'candidate_screening',
+                    enabled: widget.canImportCandidates,
+                    child: const Text('Tarik Kandidat dari API'),
+                  ),
+                  const PopupMenuItem<String>(
+                    value: 'hiring_assistant',
+                    child: Text('Template Hiring'),
+                  ),
+                  if (widget.enableGemmaProof)
+                    const PopupMenuItem<String>(
+                      value: 'gemma_proof',
+                      child: Text('Cek Gemma Lokal'),
+                    ),
+                  if (widget.enableSeedMockData)
+                    const PopupMenuItem<String>(
+                      value: 'seed_mock_data',
+                      child: Text('Seed Mock Data'),
+                    ),
+                  if (widget.enableLegacyChat)
+                    const PopupMenuItem<String>(
+                      value: 'legacy_chat',
+                      child: Text('Buka Legacy Chat'),
+                    ),
+                  const PopupMenuDivider(),
+                  const PopupMenuItem<String>(
+                    value: 'sign_out',
+                    child: Text('Keluar'),
+                  ),
+                ],
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: Icon(
+                    CupertinoIcons.ellipsis_circle,
+                    color: Color(0xFF0F172A),
+                    size: 24,
+                  ),
+                ),
+              ),
+              if (widget.onCreateJobPosting != null)
+                GestureDetector(
+                  onTap: () {
+                    _handleCreateJobPosting();
+                  },
+                  child: Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF18CD5B),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: const Icon(
+                      CupertinoIcons.add,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              const SizedBox(width: 16),
             ],
           ),
-          const SizedBox(height: 20),
-          if (_isLoading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 48),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (_filteredItems.isEmpty)
-            _EmptyState(
-              title: _statusFilter == 'all'
-                  ? 'Belum ada lowongan'
-                  : 'Tidak ada lowongan untuk filter ini',
-              description: _statusFilter == 'all'
-                  ? 'Buat lowongan baru agar pipeline kandidat bisa mulai berjalan.'
-                  : 'Coba ganti filter untuk melihat lowongan pada status lainnya.',
-            )
-          else ...[
-            Text(
-              'Daftar lowongan',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          searchBar: SuperSearchBar(
+            searchController: _searchController,
+            searchFocusNode: _searchFocusNode,
+            backgroundColor: Colors.white,
+            resultColor: const Color(0xFFF8FAFC),
+            placeholderText: 'Cari judul lowongan, divisi, atau lokasi',
+            scrollBehavior: SearchBarScrollBehavior.pinned,
+            resultBehavior: SearchBarResultBehavior.neverVisible,
+            onChanged: (value) => setState(() => _searchQuery = value),
+            onSubmitted: (value) => setState(() => _searchQuery = value),
+          ),
+          largeTitle: SuperLargeTitle(
+            largeTitle: 'Lowongan',
+            textStyle: TextStyle(
+              inherit: false,
+              fontFamily: '.SF Pro Display',
+              fontSize: 34,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.41,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Urutan lowongan disusun dari yang paling membutuhkan tindak lanjut.',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700),
+          ),
+          bottom: SuperAppBarBottom(
+            enabled: true,
+            height: 44,
+            child: _FilterBar(
+              statusFilter: _statusFilter,
+              allCount: _countForStatus('all'),
+              activeCount: _countForStatus(
+                JobPostingRepository.statusPublished,
+              ),
+              draftCount: _countForStatus(JobPostingRepository.statusDraft),
+              closedCount: _countForStatus('closed'),
+              onSelected: (value) => setState(() => _statusFilter = value),
             ),
-            const SizedBox(height: 12),
-            ..._filteredItems.map((item) => _buildJobCard(context, item)),
-          ],
-        ],
+          ),
+        ),
+        body: RefreshIndicator(
+          onRefresh: _load,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+            children: [
+              if (_isLoading) ...[
+                const LinearProgressIndicator(minHeight: 3),
+                const SizedBox(height: 16),
+              ],
+              if (_isLoading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 48),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_filteredItems.isEmpty)
+                _EmptyState(
+                  title: _items.isEmpty
+                      ? 'Belum ada lowongan'
+                      : 'Tidak ada lowongan yang cocok',
+                  description: _items.isEmpty
+                      ? 'Buat lowongan baru agar pipeline kandidat bisa mulai berjalan.'
+                      : 'Coba ubah kata kunci pencarian atau filter status.',
+                  primaryActionLabel: _items.isEmpty ? 'Buat Lowongan' : null,
+                  onPrimaryAction: _items.isEmpty
+                      ? _handleCreateJobPosting
+                      : null,
+                  secondaryActionLabel:
+                      _items.isEmpty && widget.enableSeedMockData
+                      ? 'Gunakan Data Contoh'
+                      : null,
+                  onSecondaryAction:
+                      _items.isEmpty && widget.onSeedMockData != null
+                      ? () async {
+                          await widget.onSeedMockData!();
+                          await _load();
+                        }
+                      : null,
+                )
+              else ...[
+                _OverviewHero(
+                  activeJobs: _activeJobsCount,
+                  draftJobs: _draftJobsCount,
+                  reviewCount: _totalReviewCount,
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Daftar lowongan',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Urutan lowongan disusun dari yang paling membutuhkan tindak lanjut.',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700),
+                ),
+                const SizedBox(height: 12),
+                ..._filteredItems.map((item) => _buildJobCard(context, item)),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -350,7 +491,7 @@ class _RecruiterJobPostListScreenState
           ).then((_) => _load());
         },
         child: Padding(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -366,16 +507,20 @@ class _RecruiterJobPostListScreenState
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(fontWeight: FontWeight.w800),
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          [
-                            if ((job.unitLabel ?? '').isNotEmpty)
-                              job.unitLabel!,
-                            if ((job.location ?? '').isNotEmpty) job.location!,
-                          ].join(' • '),
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: Colors.grey.shade700),
-                        ),
+                        if ((job.unitLabel ?? '').isNotEmpty ||
+                            (job.location ?? '').isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            [
+                              if ((job.unitLabel ?? '').isNotEmpty)
+                                job.unitLabel!,
+                              if ((job.location ?? '').isNotEmpty)
+                                job.location!,
+                            ].join(' • '),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: Colors.grey.shade700),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -433,84 +578,36 @@ class _RecruiterJobPostListScreenState
                   ),
                 ],
               ),
-              if ((job.description ?? '').isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text(
-                  job.description!,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(height: 1.45),
-                ),
-              ],
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               Wrap(
-                spacing: 8,
+                spacing: 12,
                 runSpacing: 8,
                 children: [
-                  _MetricChip(
-                    label: 'Pelamar',
-                    value: '${item.applicantCount}',
+                  _ListMetaItem(
+                    icon: Icons.people_alt_outlined,
+                    label: 'Pelamar ${item.applicantCount}',
                   ),
-                  _MetricChip(
-                    label: 'Shortlist',
-                    value: '${item.candidateCount}',
+                  _ListMetaItem(
+                    icon: Icons.fact_check_outlined,
+                    label: 'Review ${item.reviewCount}',
                   ),
-                  _MetricChip(
-                    label: 'Perlu review',
-                    value: '${item.reviewCount}',
-                  ),
-                  _MetricChip(
-                    label: 'Siap interview',
-                    value: '${item.readyInterviewCount}',
+                  _ListMetaItem(
+                    icon: Icons.record_voice_over_outlined,
+                    label: 'Interview ${item.readyInterviewCount}',
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
-              _PipelineBanner(item: item),
-              if (item.shortlist?.topCandidates.isNotEmpty == true) ...[
-                const SizedBox(height: 14),
+              if ((item.latestScreeningSummary ?? '').isNotEmpty) ...[
+                const SizedBox(height: 10),
                 Text(
-                  'Kandidat teratas',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                  item.latestScreeningSummary!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.grey.shade700,
+                    height: 1.4,
+                  ),
                 ),
-                const SizedBox(height: 8),
-                ...item.shortlist!.topCandidates
-                    .take(2)
-                    .map(
-                      (candidate) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 14,
-                              backgroundColor: const Color(0xFFE2E8F0),
-                              child: Text(
-                                candidate.rank.toString(),
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                candidate.candidateName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Text(
-                              candidate.totalScore.toStringAsFixed(0),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
               ],
             ],
           ),
@@ -518,56 +615,122 @@ class _RecruiterJobPostListScreenState
       ),
     );
   }
-
-  Widget _buildFilterChip(String value, String label) {
-    final isSelected = _statusFilter == value;
-    return FilterChip(
-      selected: isSelected,
-      showCheckmark: false,
-      label: Text(label),
-      selectedColor: const Color(0xFFDCFCE7),
-      side: BorderSide(
-        color: isSelected ? const Color(0xFF86EFAC) : const Color(0xFFE5E7EB),
-      ),
-      labelStyle: TextStyle(
-        fontWeight: FontWeight.w700,
-        color: isSelected ? const Color(0xFF166534) : null,
-      ),
-      onSelected: (_) => setState(() => _statusFilter = value),
-    );
-  }
 }
 
-class _HeroMetric extends StatelessWidget {
-  const _HeroMetric({required this.label, required this.value});
+class _OverviewHero extends StatelessWidget {
+  const _OverviewHero({
+    required this.activeJobs,
+    required this.draftJobs,
+    required this.reviewCount,
+  });
 
-  final String label;
-  final String value;
+  final int activeJobs;
+  final int draftJobs;
+  final int reviewCount;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(28),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFFFFF), Color(0xFFF0FDF4)],
+        ),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-            ),
+            'Prioritas lowongan hari ini',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
+          const SizedBox(height: 6),
+          Text(
+            'Pantau posisi aktif, draft yang belum dipublikasikan, dan kandidat yang masih menunggu review.',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF475569)),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _HeroMetric(
+                  label: 'Aktif',
+                  value: '$activeJobs',
+                  color: const Color(0xFF166534),
+                  background: const Color(0xFFDCFCE7),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _HeroMetric(
+                  label: 'Draft',
+                  value: '$draftJobs',
+                  color: const Color(0xFF9A3412),
+                  background: const Color(0xFFFFEDD5),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _HeroMetric(
+                  label: 'Review',
+                  value: '$reviewCount',
+                  color: const Color(0xFF1D4ED8),
+                  background: const Color(0xFFDBEAFE),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeroMetric extends StatelessWidget {
+  const _HeroMetric({
+    required this.label,
+    required this.value,
+    required this.color,
+    required this.background,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+  final Color background;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Text(
             label,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontWeight: FontWeight.w600,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ],
@@ -576,63 +739,124 @@ class _HeroMetric extends StatelessWidget {
   }
 }
 
-class _MetricChip extends StatelessWidget {
-  const _MetricChip({required this.label, required this.value});
+class _FilterBar extends StatelessWidget {
+  const _FilterBar({
+    required this.statusFilter,
+    required this.allCount,
+    required this.activeCount,
+    required this.draftCount,
+    required this.closedCount,
+    required this.onSelected,
+  });
 
-  final String label;
-  final String value;
+  final String statusFilter;
+  final int allCount;
+  final int activeCount;
+  final int draftCount;
+  final int closedCount;
+  final ValueChanged<String> onSelected;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Text(
-        '$label $value',
-        style: const TextStyle(fontWeight: FontWeight.w600),
+    return ListView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      children: [
+        _FilterPill(
+          label: 'Semua',
+          count: allCount,
+          selected: statusFilter == 'all',
+          onTap: () => onSelected('all'),
+        ),
+        _FilterPill(
+          label: 'Aktif',
+          count: activeCount,
+          selected: statusFilter == JobPostingRepository.statusPublished,
+          onTap: () => onSelected(JobPostingRepository.statusPublished),
+        ),
+        _FilterPill(
+          label: 'Draft',
+          count: draftCount,
+          selected: statusFilter == 'draft',
+          onTap: () => onSelected('draft'),
+        ),
+        _FilterPill(
+          label: 'Ditutup',
+          count: closedCount,
+          selected: statusFilter == 'closed',
+          onTap: () => onSelected('closed'),
+        ),
+      ],
+    );
+  }
+}
+
+class _FilterPill extends StatelessWidget {
+  const _FilterPill({
+    required this.label,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8, top: 4, bottom: 4),
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFFDCFCE7) : Colors.white,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: selected
+                  ? const Color(0xFF86EFAC)
+                  : const Color(0xFFE5E7EB),
+            ),
+          ),
+          child: Text(
+            '$label ($count)',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: selected
+                  ? const Color(0xFF166534)
+                  : const Color(0xFF0F172A),
+            ),
+          ),
+        ),
       ),
     );
   }
 }
 
-class _PipelineBanner extends StatelessWidget {
-  const _PipelineBanner({required this.item});
+class _ListMetaItem extends StatelessWidget {
+  const _ListMetaItem({required this.icon, required this.label});
 
-  final _LocalJobPostSummary item;
+  final IconData icon;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = item.readyInterviewCount > 0
-        ? const Color(0xFFDCFCE7)
-        : item.reviewCount > 0
-        ? const Color(0xFFFEF3C7)
-        : const Color(0xFFF3F4F6);
-    final textColor = item.readyInterviewCount > 0
-        ? const Color(0xFF166534)
-        : item.reviewCount > 0
-        ? const Color(0xFFB45309)
-        : const Color(0xFF4B5563);
-    final text = item.readyInterviewCount > 0
-        ? '${item.readyInterviewCount} kandidat sudah siap masuk interview.'
-        : item.reviewCount > 0
-        ? '${item.reviewCount} kandidat masih menunggu review.'
-        : 'Belum ada kandidat yang masuk pipeline interview.';
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(color: textColor, fontWeight: FontWeight.w700),
-      ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: const Color(0xFF64748B)),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+        ),
+      ],
     );
   }
 }
@@ -644,45 +868,74 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final normalized = status.toLowerCase();
-    final background = switch (normalized) {
-      'published' => const Color(0xFFDCFCE7),
-      'draft' => const Color(0xFFDBEAFE),
-      'closed' => const Color(0xFFF3F4F6),
-      _ => const Color(0xFFE2E8F0),
-    };
-    final foreground = switch (normalized) {
-      'published' => const Color(0xFF166534),
-      'draft' => const Color(0xFF1D4ED8),
-      'closed' => const Color(0xFF4B5563),
-      _ => const Color(0xFF334155),
-    };
-    final label = switch (normalized) {
-      'published' => 'Aktif',
-      'closed' => 'Ditutup',
-      'draft' => 'Draft',
-      _ => status,
+    final normalized = JobPostingRepository.normalizeStatus(status);
+    final config = switch (normalized) {
+      JobPostingRepository.statusPublished => (
+        background: const Color(0xFFDCFCE7),
+        foreground: const Color(0xFF166534),
+        icon: Icons.radio_button_checked,
+        label: 'Aktif',
+      ),
+      JobPostingRepository.statusDraft => (
+        background: const Color(0xFFFEF3C7),
+        foreground: const Color(0xFFB45309),
+        icon: Icons.edit_note,
+        label: 'Draft',
+      ),
+      JobPostingRepository.statusClosed => (
+        background: const Color(0xFFF3F4F6),
+        foreground: const Color(0xFF4B5563),
+        icon: Icons.lock_outline,
+        label: 'Ditutup',
+      ),
+      _ => (
+        background: const Color(0xFFE2E8F0),
+        foreground: const Color(0xFF334155),
+        icon: Icons.info_outline,
+        label: status,
+      ),
     };
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: background,
+        color: config.background,
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(
-        label,
-        style: TextStyle(color: foreground, fontWeight: FontWeight.w700),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(config.icon, size: 14, color: config.foreground),
+          const SizedBox(width: 6),
+          Text(
+            config.label,
+            style: TextStyle(
+              color: config.foreground,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.title, required this.description});
+  const _EmptyState({
+    required this.title,
+    required this.description,
+    this.primaryActionLabel,
+    this.onPrimaryAction,
+    this.secondaryActionLabel,
+    this.onSecondaryAction,
+  });
 
   final String title;
   final String description;
+  final String? primaryActionLabel;
+  final VoidCallback? onPrimaryAction;
+  final String? secondaryActionLabel;
+  final Future<void> Function()? onSecondaryAction;
 
   @override
   Widget build(BuildContext context) {
@@ -710,6 +963,31 @@ class _EmptyState extends StatelessWidget {
               height: 1.45,
             ),
           ),
+          if (primaryActionLabel != null || secondaryActionLabel != null) ...[
+            const SizedBox(height: 18),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                if (primaryActionLabel != null)
+                  FilledButton.icon(
+                    onPressed: onPrimaryAction,
+                    icon: const Icon(Icons.add),
+                    label: Text(primaryActionLabel!),
+                  ),
+                if (secondaryActionLabel != null)
+                  OutlinedButton.icon(
+                    onPressed: onSecondaryAction == null
+                        ? null
+                        : () async {
+                            await onSecondaryAction!();
+                          },
+                    icon: const Icon(Icons.auto_awesome),
+                    label: Text(secondaryActionLabel!),
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );

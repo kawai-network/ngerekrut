@@ -338,6 +338,13 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
         shortlistRepository: _shortlistArtifactRepository,
         scorecardRepository: _scorecardArtifactRepository,
         interviewGuideRepository: _interviewGuideArtifactRepository,
+        onCreateJobPosting: _openJobPostingChat,
+        onActionSelected: _handleLowonganAction,
+        onSeedMockData: _seedMockData,
+        canImportCandidates: hasRecruiterData,
+        enableGemmaProof: kDebugMode,
+        enableLegacyChat: kDebugMode,
+        enableSeedMockData: kDebugMode,
       ),
       RecruiterScreeningListScreen(
         jobPostRepository: _jobPostingRepository,
@@ -353,60 +360,62 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
     ][_selectedIndex];
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_titleForTab()),
-        actions: [
-          if (_selectedIndex == 0)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: FilledButton.tonalIcon(
-                onPressed: () {
-                  _openJobPostingChat();
-                },
-                icon: const Icon(Icons.add),
-                label: const Text('Buat Lowongan'),
-              ),
+      appBar: _selectedIndex == 1
+          ? null
+          : AppBar(
+              title: Text(_titleForTab()),
+              actions: [
+                if (_selectedIndex == 0)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: FilledButton.tonalIcon(
+                      onPressed: () {
+                        _openJobPostingChat();
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text('Buat Lowongan'),
+                    ),
+                  ),
+                PopupMenuButton<_HomeAction>(
+                  onSelected: _handleHomeAction,
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: _HomeAction.jobPosting,
+                      child: Text('Buat Lowongan'),
+                    ),
+                    PopupMenuItem(
+                      value: _HomeAction.candidateScreening,
+                      enabled: hasRecruiterData,
+                      child: const Text('Tarik Kandidat dari API'),
+                    ),
+                    const PopupMenuItem(
+                      value: _HomeAction.hiringAssistant,
+                      child: Text('Template Hiring'),
+                    ),
+                    if (kDebugMode)
+                      const PopupMenuItem(
+                        value: _HomeAction.gemmaProof,
+                        child: Text('Cek Gemma Lokal'),
+                      ),
+                    if (kDebugMode)
+                      const PopupMenuItem(
+                        value: _HomeAction.seedMockData,
+                        child: Text('Seed Mock Data'),
+                      ),
+                    if (kDebugMode)
+                      const PopupMenuItem(
+                        value: _HomeAction.legacyChat,
+                        child: Text('Buka Legacy Chat'),
+                      ),
+                    const PopupMenuDivider(),
+                    const PopupMenuItem(
+                      value: _HomeAction.signOut,
+                      child: Text('Keluar'),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          PopupMenuButton<_HomeAction>(
-            onSelected: _handleHomeAction,
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: _HomeAction.jobPosting,
-                child: Text('Buat Lowongan'),
-              ),
-              PopupMenuItem(
-                value: _HomeAction.candidateScreening,
-                enabled: hasRecruiterData,
-                child: const Text('Tarik Kandidat dari API'),
-              ),
-              const PopupMenuItem(
-                value: _HomeAction.hiringAssistant,
-                child: Text('Template Hiring'),
-              ),
-              if (kDebugMode)
-                const PopupMenuItem(
-                  value: _HomeAction.gemmaProof,
-                  child: Text('Cek Gemma Lokal'),
-                ),
-              if (kDebugMode)
-                const PopupMenuItem(
-                  value: _HomeAction.seedMockData,
-                  child: Text('Seed Mock Data'),
-                ),
-              if (kDebugMode)
-                const PopupMenuItem(
-                  value: _HomeAction.legacyChat,
-                  child: Text('Buka Legacy Chat'),
-                ),
-              const PopupMenuDivider(),
-              const PopupMenuItem(
-                value: _HomeAction.signOut,
-                child: Text('Keluar'),
-              ),
-            ],
-          ),
-        ],
-      ),
       floatingActionButton: _buildFab(),
       body: body,
       bottomNavigationBar: NavigationBar(
@@ -486,6 +495,32 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
         ),
       );
     });
+  }
+
+  Future<void> _handleLowonganAction(String action) async {
+    switch (action) {
+      case 'job_posting':
+        await _handleHomeAction(_HomeAction.jobPosting);
+        return;
+      case 'candidate_screening':
+        await _handleHomeAction(_HomeAction.candidateScreening);
+        return;
+      case 'hiring_assistant':
+        await _handleHomeAction(_HomeAction.hiringAssistant);
+        return;
+      case 'gemma_proof':
+        await _handleHomeAction(_HomeAction.gemmaProof);
+        return;
+      case 'seed_mock_data':
+        await _handleHomeAction(_HomeAction.seedMockData);
+        return;
+      case 'legacy_chat':
+        await _handleHomeAction(_HomeAction.legacyChat);
+        return;
+      case 'sign_out':
+        await _handleHomeAction(_HomeAction.signOut);
+        return;
+    }
   }
 
   /// Build assistant context based on the current tab.
