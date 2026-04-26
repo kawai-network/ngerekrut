@@ -459,16 +459,6 @@ Setelah lowongan jadi, Anda bisa:
     return updatedMessage;
   }
 
-  Future<void> _saveJobPosting() async {
-    final saved = await _persistCurrentDraft(showSuccessMessage: true);
-    if (!saved || !mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Draft lowongan berhasil disimpan.'),
-      ),
-    );
-  }
-
   Future<bool> _persistCurrentDraft({bool showSuccessMessage = false}) async {
     final job = _lastGenerated;
     if (job == null || _isSaving) return false;
@@ -557,6 +547,12 @@ Setelah lowongan jadi, Anda bisa:
           ],
         ),
         actions: [
+          if (_draftJobId != null)
+            IconButton(
+              icon: const Icon(Icons.list_alt),
+              tooltip: 'Daftar lowongan',
+              onPressed: _backToJobList,
+            ),
           if (_hybridService != null && _hybridService!.isLocalAIReady)
             IconButton(
               icon: Icon(_getModeIcon()),
@@ -620,7 +616,7 @@ Setelah lowongan jadi, Anda bisa:
               job: _lastGenerated!,
               isSaved: _isSaved,
               isSaving: _isSaving,
-              onSave: _saveJobPosting,
+              onBackToList: _backToJobList,
               onCopy: _copyToClipboard,
             ),
           // Chat UI
@@ -681,6 +677,11 @@ Setelah lowongan jadi, Anda bisa:
         duration: Duration(seconds: 2),
       ),
     );
+  }
+
+  void _backToJobList() {
+    if (!mounted) return;
+    Navigator.of(context).pop();
   }
 
   void _resetChat() {
@@ -765,14 +766,14 @@ class _GeneratedJobActionPanel extends StatelessWidget {
     required this.job,
     required this.isSaved,
     required this.isSaving,
-    required this.onSave,
+    required this.onBackToList,
     required this.onCopy,
   });
 
   final JobPosting job;
   final bool isSaved;
   final bool isSaving;
-  final VoidCallback onSave;
+  final VoidCallback onBackToList;
   final Future<void> Function() onCopy;
 
   @override
@@ -848,7 +849,7 @@ class _GeneratedJobActionPanel extends StatelessWidget {
             runSpacing: 10,
             children: [
               FilledButton.icon(
-                onPressed: isSaving ? null : onSave,
+                onPressed: isSaving ? null : onBackToList,
                 icon: isSaving
                     ? const SizedBox(
                         width: 14,
@@ -858,8 +859,10 @@ class _GeneratedJobActionPanel extends StatelessWidget {
                           color: Colors.white,
                         ),
                       )
-                    : const Icon(Icons.save_outlined),
-                label: Text(isSaving ? 'Menyimpan...' : 'Simpan Ulang Draft'),
+                    : const Icon(Icons.list_alt),
+                label: Text(
+                  isSaving ? 'Menyimpan...' : 'Kembali ke Daftar Lowongan',
+                ),
               ),
               OutlinedButton.icon(
                 onPressed: () {
