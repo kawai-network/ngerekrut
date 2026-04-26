@@ -1,6 +1,8 @@
 /// Hybrid AI service that combines local and cloud AI.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import '../langchain_gemma/langchain_gemma.dart';
 import '../langchain_openai/chat_models/chat_openai.dart';
@@ -204,6 +206,18 @@ class HybridAIService {
     return response;
   }
 
+  /// Generate text with the configured local provider as a native stream.
+  Stream<String> generateLocalResponseStream({
+    required String prompt,
+    String? systemPrompt,
+  }) async* {
+    _lastUsedMode = AIMode.local;
+    yield* _localAI.generateResponseStream(
+      prompt: prompt,
+      systemPrompt: systemPrompt,
+    );
+  }
+
   /// Generate text using cloud AI.
   ///
   /// Throws if cloud AI is not configured.
@@ -225,6 +239,31 @@ class HybridAIService {
     final result = await cloudChat.invoke(PromptValue.chat(messages));
     _lastUsedMode = AIMode.cloud;
     return result.outputAsString;
+  }
+
+  /// Generate text using cloud AI as a native stream.
+  Stream<String> generateCloudResponseStream({
+    required String prompt,
+    String? systemPrompt,
+  }) async* {
+    final cloudChat = _cloudChat;
+    if (cloudChat == null) {
+      throw const LocalAIException('Cloud AI is not configured');
+    }
+
+    final messages = <ChatMessage>[
+      if (systemPrompt != null && systemPrompt.isNotEmpty)
+        ChatMessage.system(systemPrompt),
+      ChatMessage.humanText(prompt),
+    ];
+
+    _lastUsedMode = AIMode.cloud;
+    await for (final chunk in cloudChat.stream(PromptValue.chat(messages))) {
+      final text = chunk.outputAsString;
+      if (text.isNotEmpty) {
+        yield text;
+      }
+    }
   }
 
   /// Generate text with hybrid AI (local first, cloud fallback).
@@ -261,6 +300,51 @@ class HybridAIService {
         prompt: prompt,
         systemPrompt: systemPrompt,
       );
+    }
+
+    throw const LocalAIException(
+      'No AI backend available. Local AI not ready and cloud AI not configured.',
+    );
+  }
+
+  /// Generate text with hybrid AI as a native stream.
+  ///
+  /// Tries local first when available. If local fails before emitting any
+  /// content and cloud is available, falls back to cloud.
+  Stream<String> generateHybridResponseStream({
+    required String prompt,
+    String? systemPrompt,
+  }) async* {
+    final shouldTryLocal = _currentMode == AIMode.local ||
+        (_currentMode == AIMode.auto && _localAI.isReady);
+
+    if (shouldTryLocal) {
+      var emittedAnyChunk = false;
+      try {
+        await for (final chunk in generateLocalResponseStream(
+          prompt: prompt,
+          systemPrompt: systemPrompt,
+        )) {
+          emittedAnyChunk = true;
+          yield chunk;
+        }
+        return;
+      } catch (e) {
+        if (_currentMode == AIMode.local || emittedAnyChunk) {
+          rethrow;
+        }
+        debugPrint(
+          '[HybridAIService] Local AI stream failed, falling back to cloud: $e',
+        );
+      }
+    }
+
+    if (_cloudChat != null) {
+      yield* generateCloudResponseStream(
+        prompt: prompt,
+        systemPrompt: systemPrompt,
+      );
+      return;
     }
 
     throw const LocalAIException(

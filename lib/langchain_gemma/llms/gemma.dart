@@ -127,6 +127,39 @@ class GemmaLocalAIClient implements LocalAIClient {
   }
 
   @override
+  Stream<String> generateResponseStream({
+    required String prompt,
+    String? systemPrompt,
+  }) async* {
+    yield* _withBackendRecoveryStream(() async* {
+      final model = _model;
+      if (model == null) {
+        throw StateError('Model not initialized. Call initialize() first.');
+      }
+
+      final session = await model.createSession();
+
+      try {
+        if (systemPrompt != null && systemPrompt.isNotEmpty) {
+          await session.addQueryChunk(Message(
+            text: systemPrompt,
+            isUser: false,
+          ));
+        }
+
+        await session.addQueryChunk(Message(
+          text: prompt,
+          isUser: true,
+        ));
+
+        yield* session.getResponseAsync();
+      } finally {
+        await session.close();
+      }
+    });
+  }
+
+  @override
   Future<String> generateWithTools({
     required String prompt,
     required List<Map<String, dynamic>> tools,
@@ -185,6 +218,22 @@ class GemmaLocalAIClient implements LocalAIClient {
         debugPrint('[GemmaLocalAIClient] GPU backend unavailable, retrying with CPU');
         await _loadModel(preferredBackend: PreferredBackend.cpu);
         return action();
+      }
+      rethrow;
+    }
+  }
+
+  Stream<String> _withBackendRecoveryStream(
+    Stream<String> Function() action,
+  ) async* {
+    try {
+      yield* action();
+    } catch (e) {
+      if (_shouldFallbackToCpu(e)) {
+        debugPrint('[GemmaLocalAIClient] GPU backend unavailable, retrying stream with CPU');
+        await _loadModel(preferredBackend: PreferredBackend.cpu);
+        yield* action();
+        return;
       }
       rethrow;
     }

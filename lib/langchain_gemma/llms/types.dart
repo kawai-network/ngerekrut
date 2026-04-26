@@ -37,6 +37,11 @@ abstract class LocalAIClient {
     String? systemPrompt,
   });
 
+  Stream<String> generateResponseStream({
+    required String prompt,
+    String? systemPrompt,
+  });
+
   Future<String> generateWithTools({
     required String prompt,
     required List<Map<String, dynamic>> tools,
