@@ -235,19 +235,6 @@ class _RecruiterScreeningListScreenState
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
             children: [
-              _CandidateOverviewHero(
-                isLoading: _isLoading,
-                jobsCount: _items.length,
-                reviewCount: _items.fold<int>(
-                  0,
-                  (sum, item) => sum + _decisionCount(item.shortlist),
-                ),
-                interviewCount: _items.fold<int>(
-                  0,
-                  (sum, item) => sum + item.shortlist.topCandidates.length,
-                ),
-              ),
-              const SizedBox(height: 20),
               if (_isLoading)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 48),
@@ -408,107 +395,6 @@ class _CandidateFilterPill extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _CandidateOverviewHero extends StatelessWidget {
-  const _CandidateOverviewHero({
-    required this.isLoading,
-    required this.jobsCount,
-    required this.reviewCount,
-    required this.interviewCount,
-  });
-
-  final bool isLoading;
-  final int jobsCount;
-  final int reviewCount;
-  final int interviewCount;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF1F2937), Color(0xFF0F766E)],
-        ),
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Kandidat yang perlu keputusan',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'Lihat kandidat unggulan, tandai yang butuh review manual, lalu lanjutkan ke tahap interview.',
-            style: TextStyle(color: Colors.white70, height: 1.45),
-          ),
-          const SizedBox(height: 16),
-          if (isLoading)
-            const LinearProgressIndicator(
-              minHeight: 4,
-              backgroundColor: Colors.white24,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-            )
-          else
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                _HeroStat(label: 'Lowongan', value: '$jobsCount'),
-                _HeroStat(label: 'Perlu review', value: '$reviewCount'),
-                _HeroStat(label: 'Siap interview', value: '$interviewCount'),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeroStat extends StatelessWidget {
-  const _HeroStat({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
       ),
     );
   }
