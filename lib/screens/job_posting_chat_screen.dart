@@ -589,7 +589,7 @@ Catatan:
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Mulai lowongan baru',
-            onPressed: _resetChat,
+            onPressed: _handleResetPressed,
           ),
         ],
       ),
@@ -774,6 +774,39 @@ Catatan:
         );
       },
     );
+  }
+
+  Future<void> _handleResetPressed() async {
+    if (_lastGenerated == null) {
+      _resetChat();
+      return;
+    }
+
+    final shouldReset = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Mulai lowongan baru?'),
+          content: const Text(
+            'Percakapan ini sedang terikat ke satu lowongan aktif. Mulai ulang hanya jika Anda ingin membuat lowongan lain.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Batal'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Mulai Baru'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldReset == true) {
+      _resetChat();
+    }
   }
 
   void _resetChat() {

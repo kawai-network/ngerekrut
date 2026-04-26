@@ -21,6 +21,9 @@ import '../ai/assistants/assistant_base.dart';
 import '../ai/assistants/assistant_manager.dart';
 import '../ai/assistants/assistant_context.dart';
 import '../ai/assistants/langchain_adapter.dart';
+import '../models/job_posting.dart';
+import '../models/recruiter_job.dart';
+import '../repositories/job_posting_repository.dart';
 
 /// Chat screen for a specific tab's assistant.
 class AssistantChatScreen extends StatefulWidget {
@@ -47,9 +50,13 @@ class AssistantChatScreen extends StatefulWidget {
 }
 
 class _AssistantChatScreenState extends State<AssistantChatScreen> {
+  static const _streamTextMetadataKey = 'streamText';
+  static const _rakaDraftIdPrefix = 'raka_draft_';
+
   late InMemoryChatController _chatController;
   late AssistantConfig _assistant;
   late AssistantContext? _assistantContext;
+  final JobPostingRepository _jobPostingRepository = JobPostingRepository();
 
   // LangChain components
   late HybridChatModel _chatModel;
@@ -60,6 +67,8 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
 
   bool _isProcessing = false;
   bool _isInitializing = false;
+  String? _draftJobId;
+  JobPosting? _activeRakaDraft;
 
   final _uuid = const Uuid();
 
@@ -201,6 +210,11 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
     );
     await _chatController.insertMessage(userMsg);
 
+    if (_assistant.id == 'raka') {
+      await _generateRakaResponse(text.trim());
+      return;
+    }
+
     await _generateResponse(text.trim());
   }
 
@@ -213,8 +227,9 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
       authorId: 'ai',
       streamId: streamId,
       createdAt: DateTime.now(),
+      metadata: const {_streamTextMetadataKey: ''},
       status: MessageStatus.sending,
-    );
+    ) as TextStreamMessage;
     await _chatController.insertMessage(streamMsg);
 
     try {
@@ -225,19 +240,16 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
       );
 
       var accumulatedResponse = '';
+      var currentStreamMsg = streamMsg;
 
       await for (final chunk in stream) {
         accumulatedResponse += chunk;
 
         // Update streaming message with accumulated content
-        final updatedStreamMsg = Message.textStream(
-          id: streamId,
-          authorId: 'ai',
-          streamId: streamId,
-          createdAt: streamMsg.createdAt,
-          status: MessageStatus.sending,
+        currentStreamMsg = await _updateStreamMessage(
+          currentStreamMsg,
+          accumulatedResponse,
         );
-        await _chatController.updateMessage(streamMsg, updatedStreamMsg);
       }
 
       // Final message (replace streaming with complete text)
@@ -248,16 +260,7 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
         createdAt: streamMsg.createdAt,
         status: MessageStatus.seen,
       );
-      await _chatController.updateMessage(
-        Message.textStream(
-          id: streamId,
-          authorId: 'ai',
-          streamId: streamId,
-          createdAt: streamMsg.createdAt,
-          status: MessageStatus.sending,
-        ),
-        finalMsg,
-      );
+      await _chatController.updateMessage(currentStreamMsg, finalMsg);
 
       // FIX #2: Use correct LangChain memory keys (input/output, not history)
       await _memory.saveContext(
@@ -290,6 +293,244 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
       status: MessageStatus.seen,
     );
     await _chatController.insertMessage(errorMsg);
+  }
+
+  Future<TextStreamMessage> _updateStreamMessage(
+    TextStreamMessage currentMessage,
+    String accumulatedText,
+  ) async {
+    final updatedMessage = Message.textStream(
+      id: currentMessage.id,
+      authorId: currentMessage.authorId,
+      streamId: currentMessage.streamId,
+      createdAt: currentMessage.createdAt,
+      metadata: {_streamTextMetadataKey: accumulatedText},
+      status: MessageStatus.sending,
+    ) as TextStreamMessage;
+    await _chatController.updateMessage(currentMessage, updatedMessage);
+    return updatedMessage;
+  }
+
+  Future<void> _persistRakaDraft(JobPosting posting) async {
+    final draftJobId =
+        _draftJobId ?? '$_rakaDraftIdPrefix${DateTime.now().millisecondsSinceEpoch}';
+    final draft = RecruiterJob(
+      id: draftJobId,
+      title: posting.title,
+      unitLabel: null,
+      location: posting.location,
+      description:
+          '${posting.description}\n\nTanggung jawab:\n- ${posting.responsibilities.join('\n- ')}\n\nNilai tambah:\n- Belum dicatat terpisah dari jawaban Raka.\n\nEstimasi gaji: ${posting.salaryRange}\nTipe kerja: ${posting.employmentType}',
+      requirements: posting.requirements,
+      status: JobPostingRepository.statusDraft,
+    );
+
+    final existing = await _jobPostingRepository.getByJobId(draftJobId);
+    if (existing == null) {
+      await _jobPostingRepository.create(draft);
+    } else {
+      await _jobPostingRepository.update(draft);
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _draftJobId = draftJobId;
+      _activeRakaDraft = posting;
+    });
+  }
+
+  Future<void> _generateRakaResponse(String userMessage) async {
+    setState(() => _isProcessing = true);
+    final isFirstDraft = _activeRakaDraft == null;
+
+    final streamId = _uuid.v4();
+    final streamMsg = Message.textStream(
+      id: streamId,
+      authorId: 'ai',
+      streamId: streamId,
+      createdAt: DateTime.now(),
+      metadata: const {_streamTextMetadataKey: ''},
+      status: MessageStatus.sending,
+    ) as TextStreamMessage;
+    await _chatController.insertMessage(streamMsg);
+
+    try {
+      var currentStreamMsg = streamMsg;
+      final progressTicker = _startProgressTicker(
+        initialMessage: streamMsg,
+        updates: _activeRakaDraft == null
+            ? const [
+                'Raka sedang menyusun draft lowongan awal...',
+                'Menentukan asumsi default yang paling masuk akal...',
+                'Merapikan requirement dan tanggung jawab...',
+                'Menyiapkan draft lowongan yang bisa langsung direvisi...',
+              ]
+            : const [
+                'Raka sedang merevisi draft lowongan aktif...',
+                'Menyesuaikan isi sesuai arahan terbaru...',
+                'Merapikan ulang detail lowongan...',
+                'Menyiapkan versi revisi yang terbaru...',
+              ],
+        onMessageUpdated: (message) => currentStreamMsg = message,
+      );
+
+      final result = _activeRakaDraft == null
+          ? await _chatModel.service.generateJobPosting(userMessage)
+          : await _chatModel.service.refineJobPosting(
+              _activeRakaDraft!,
+              userMessage,
+            );
+      await progressTicker.cancel();
+
+      await _persistRakaDraft(result.jobPosting);
+
+      final responseText = _formatRakaJobPostingResponse(
+        result,
+        isFirstDraft: isFirstDraft,
+      );
+      currentStreamMsg = await _streamTextResponse(
+        initialMessage: currentStreamMsg,
+        finalText: responseText,
+      );
+
+      final finalMsg = Message.text(
+        id: streamId,
+        authorId: 'ai',
+        text: responseText,
+        createdAt: streamMsg.createdAt,
+        status: MessageStatus.seen,
+      );
+      await _chatController.updateMessage(currentStreamMsg, finalMsg);
+
+      await _memory.saveContext(
+        inputValues: {'input': userMessage},
+        outputValues: {'output': responseText},
+      );
+    } catch (e) {
+      final errorMsg = Message.text(
+        id: streamId,
+        authorId: 'ai',
+        text: '❌ Maaf, terjadi kesalahan: $e',
+        createdAt: streamMsg.createdAt,
+        status: MessageStatus.seen,
+      );
+      await _chatController.updateMessage(streamMsg, errorMsg);
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
+    }
+  }
+
+  _ProgressTicker _startProgressTicker({
+    required TextStreamMessage initialMessage,
+    required List<String> updates,
+    required void Function(TextStreamMessage) onMessageUpdated,
+  }) {
+    var currentMessage = initialMessage;
+    var updateIndex = 0;
+    var cancelled = false;
+
+    final loop = () async {
+      if (updates.isEmpty) return;
+      while (!cancelled && mounted) {
+        currentMessage = await _updateStreamMessage(
+          currentMessage,
+          updates[updateIndex],
+        );
+        onMessageUpdated(currentMessage);
+        updateIndex = (updateIndex + 1) % updates.length;
+        await Future.delayed(const Duration(milliseconds: 900));
+      }
+    }();
+
+    return _ProgressTicker(
+      cancel: () async {
+        cancelled = true;
+        await loop;
+      },
+    );
+  }
+
+  Future<TextStreamMessage> _streamTextResponse({
+    required TextStreamMessage initialMessage,
+    required String finalText,
+  }) async {
+    var currentMessage = initialMessage;
+    var accumulatedText = '';
+
+    for (final chunk in _splitIntoStreamChunks(finalText)) {
+      accumulatedText += chunk;
+      currentMessage = await _updateStreamMessage(currentMessage, accumulatedText);
+      await Future.delayed(const Duration(milliseconds: 18));
+    }
+
+    return currentMessage;
+  }
+
+  List<String> _splitIntoStreamChunks(String text) {
+    final chunks = <String>[];
+    final pattern = RegExp(r'.{1,12}(?:\s+|$)', dotAll: true);
+    for (final match in pattern.allMatches(text)) {
+      final chunk = match.group(0);
+      if (chunk != null && chunk.isNotEmpty) {
+        chunks.add(chunk);
+      }
+    }
+    if (chunks.isEmpty && text.isNotEmpty) {
+      chunks.add(text);
+    }
+    return chunks;
+  }
+
+  String _formatRakaJobPostingResponse(
+    GenerationResult result, {
+    required bool isFirstDraft,
+  }) {
+    final job = result.jobPosting;
+    final modeLabel = result.usedMode == AIMode.local
+        ? '🧠 **Diproses di perangkat**'
+        : '☁️ **Diproses online**';
+    final buffer = StringBuffer()
+      ..writeln(modeLabel)
+      ..writeln(isFirstDraft ? '✅ **Draft Lowongan Awal**' : '✅ **Draft Lowongan Diperbarui**')
+      ..writeln('')
+      ..writeln('**Asumsi Awal**')
+      ..writeln(
+        'Jika Anda belum memberi detail lengkap, Raka memakai asumsi default yang aman: lokasi Jakarta, tipe kerja Full-time, dan requirement tingkat menengah umum.',
+      )
+      ..writeln('')
+      ..writeln('**Draft Lowongan**')
+      ..writeln('- Judul Posisi: ${job.title}')
+      ..writeln('- Lokasi: ${job.location}')
+      ..writeln('- Tipe Kerja: ${job.employmentType}')
+      ..writeln('- Estimasi Gaji: ${job.salaryRange}')
+      ..writeln('')
+      ..writeln('**Ringkasan Posisi**')
+      ..writeln(job.description)
+      ..writeln('')
+      ..writeln('**Tanggung Jawab**');
+
+    for (final item in job.responsibilities) {
+      buffer.writeln('- $item');
+    }
+
+    buffer
+      ..writeln('')
+      ..writeln('**Kualifikasi**');
+    for (final item in job.requirements) {
+      buffer.writeln('- $item');
+    }
+
+    buffer
+      ..writeln('')
+      ..writeln('**Yang Bisa Disesuaikan**')
+      ..writeln('- Lokasi kerja')
+      ..writeln('- Range gaji')
+      ..writeln('- Pengalaman minimum')
+      ..writeln('- Jam kerja atau jenis industrinya');
+
+    return buffer.toString();
   }
 
   @override
@@ -375,10 +616,12 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
       },
       textStreamMessageBuilder: (context, message, index,
           {isSentByMe = false, groupStatus}) {
+        final streamText =
+            message.metadata?[_streamTextMetadataKey] as String? ?? '';
         return FlyerChatTextStreamMessage(
           message: message,
           index: index,
-          streamState: const StreamStateStreaming(''),
+          streamState: StreamStateStreaming(streamText),
         );
       },
     );
@@ -392,6 +635,12 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
     _chatController = InMemoryChatController();
     unawaited(_sendWelcomeMessage());
   }
+}
+
+class _ProgressTicker {
+  final Future<void> Function() cancel;
+
+  const _ProgressTicker({required this.cancel});
 }
 
 /// Helper to open the assistant chat for a given tab index.
