@@ -60,7 +60,6 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
 
   bool _isProcessing = false;
   bool _isInitializing = false;
-  double _downloadProgress = 0.0;
 
   final _uuid = const Uuid();
 
@@ -125,6 +124,14 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
     buffer.writeln('- Jika ada data kandidat atau lowongan, referensi data tersebut dalam jawaban.');
     buffer.writeln('- Berikan saran yang actionable berdasarkan konteks yang ada.');
     buffer.writeln('- Ingat percakapan sebelumnya dan lanjutkan dari sana.');
+    if (_assistant.id == 'raka') {
+      buffer.writeln(
+        '- Untuk permintaan lowongan, selalu prioritaskan membuat draft awal meskipun input user minim. Jangan berhenti hanya untuk meminta detail tambahan.',
+      );
+      buffer.writeln(
+        '- Jika informasi belum lengkap, pakai asumsi default yang wajar lalu beri label asumsi secara singkat di jawaban.',
+      );
+    }
 
     return buffer.toString();
   }
@@ -137,7 +144,7 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
       await service.initialize(
         onDownloadProgress: (progress) {
           if (!mounted) return;
-          setState(() => _downloadProgress = progress);
+          setState(() {});
         },
       );
     } catch (e) {
@@ -211,7 +218,7 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
         systemPrompt: _buildFullSystemPrompt(),
       );
 
-      String accumulatedResponse = '';
+      var accumulatedResponse = '';
 
       await for (final chunk in stream) {
         accumulatedResponse += chunk;
