@@ -210,19 +210,6 @@ class _RecruiterInterviewListScreenState
 
   @override
   Widget build(BuildContext context) {
-    final totalReady = _items.fold<int>(
-      0,
-      (sum, item) => sum + item.readyCount,
-    );
-    final totalNeedsPrep = _items.fold<int>(
-      0,
-      (sum, item) => sum + item.needsPreparationCount,
-    );
-    final totalArtifacts = _items.fold<int>(
-      0,
-      (sum, item) => sum + item.guideCount + item.scorecardCount,
-    );
-
     return ColoredBox(
       color: const Color(0xFFF8FAFC),
       child: SuperScaffold(
@@ -291,13 +278,6 @@ class _RecruiterInterviewListScreenState
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
             children: [
-              _InterviewOverviewHero(
-                isLoading: _isLoading,
-                totalReady: totalReady,
-                totalNeedsPrep: totalNeedsPrep,
-                totalArtifacts: totalArtifacts,
-              ),
-              const SizedBox(height: 20),
               if (_isLoading)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 48),
@@ -428,107 +408,6 @@ class _InterviewFilterPill extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _InterviewOverviewHero extends StatelessWidget {
-  const _InterviewOverviewHero({
-    required this.isLoading,
-    required this.totalReady,
-    required this.totalNeedsPrep,
-    required this.totalArtifacts,
-  });
-
-  final bool isLoading;
-  final int totalReady;
-  final int totalNeedsPrep;
-  final int totalArtifacts;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF1E293B), Color(0xFF0F766E)],
-        ),
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Interview yang perlu disiapkan',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'Pantau kandidat yang siap interview, dokumen yang sudah tersedia, dan lowongan yang masih butuh persiapan.',
-            style: TextStyle(color: Colors.white70, height: 1.45),
-          ),
-          const SizedBox(height: 16),
-          if (isLoading)
-            const LinearProgressIndicator(
-              minHeight: 4,
-              backgroundColor: Colors.white24,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-            )
-          else
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                _HeroMetric(label: 'Siap interview', value: '$totalReady'),
-                _HeroMetric(label: 'Perlu persiapan', value: '$totalNeedsPrep'),
-                _HeroMetric(label: 'Dokumen', value: '$totalArtifacts'),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeroMetric extends StatelessWidget {
-  const _HeroMetric({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
       ),
     );
   }

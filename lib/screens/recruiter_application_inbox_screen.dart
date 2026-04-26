@@ -792,16 +792,6 @@ class _RecruiterApplicationInboxScreenState
 
   @override
   Widget build(BuildContext context) {
-    final activeApplications = _applications
-        .where((application) => application.status.isActive)
-        .length;
-    final interviewApplications = _applications
-        .where(
-          (application) => application.status == ApplicationStatus.interview,
-        )
-        .length;
-    final cleanupCount = _applications.where(_needsCleanup).length;
-
     return ColoredBox(
       color: const Color(0xFFF8FAFC),
       child: SuperScaffold(
@@ -870,16 +860,8 @@ class _RecruiterApplicationInboxScreenState
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
             children: [
-              _ApplicationOverviewHero(
-                isLoading: _isLoading,
-                totalApplications: _applications.length,
-                activeApplications: activeApplications,
-                interviewApplications: interviewApplications,
-                cleanupCount: cleanupCount,
-              ),
               if (_statusFilter == 'cleanup' &&
-                  _filteredApplications.isNotEmpty) ...[
-                const SizedBox(height: 12),
+                  _filteredApplications.isNotEmpty)
                 Align(
                   alignment: Alignment.centerLeft,
                   child: FilledButton.tonalIcon(
@@ -896,7 +878,6 @@ class _RecruiterApplicationInboxScreenState
                     label: const Text('Arsipkan Semua Cleanup'),
                   ),
                 ),
-              ],
               const SizedBox(height: 20),
               if (_isLoading)
                 const Padding(
@@ -1085,119 +1066,6 @@ class _ApplicationFilterPill extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _ApplicationOverviewHero extends StatelessWidget {
-  const _ApplicationOverviewHero({
-    required this.isLoading,
-    required this.totalApplications,
-    required this.activeApplications,
-    required this.interviewApplications,
-    required this.cleanupCount,
-  });
-
-  final bool isLoading;
-  final int totalApplications;
-  final int activeApplications;
-  final int interviewApplications;
-  final int cleanupCount;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF111827), Color(0xFF1D4ED8)],
-        ),
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Inbox lamaran lintas lowongan',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'Pantau semua lamaran masuk dari satu tempat, lalu prioritaskan kandidat yang perlu tindakan berikutnya.',
-            style: TextStyle(color: Colors.white70, height: 1.45),
-          ),
-          const SizedBox(height: 16),
-          if (isLoading)
-            const LinearProgressIndicator(
-              minHeight: 4,
-              backgroundColor: Colors.white24,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-            )
-          else
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                _InboxMetric(
-                  label: 'Total lamaran',
-                  value: '$totalApplications',
-                ),
-                _InboxMetric(
-                  label: 'Masih aktif',
-                  value: '$activeApplications',
-                ),
-                _InboxMetric(
-                  label: 'Tahap interview',
-                  value: '$interviewApplications',
-                ),
-                _InboxMetric(label: 'Perlu cleanup', value: '$cleanupCount'),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InboxMetric extends StatelessWidget {
-  const _InboxMetric({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
       ),
     );
   }

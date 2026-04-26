@@ -199,10 +199,6 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
     }
   }
 
-  int _countByStage(String stage) {
-    return _candidates.where((candidate) => candidate.stage == stage).length;
-  }
-
   Color _stageColor(String stage) {
     switch (stage) {
       case 'screening':
@@ -244,15 +240,6 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                 children: [
-                  _HeroPanel(
-                    selectedJob: _selectedJob,
-                    candidateCount: _candidates.length,
-                    shortlistedCount: _countByStage('shortlisted'),
-                    screeningCount: _countByStage('screening'),
-                    onRunScreening: _isSubmitting ? null : _runScreening,
-                    isSubmitting: _isSubmitting,
-                  ),
-                  const SizedBox(height: 20),
                   _JobPicker(
                     jobs: _jobs,
                     selectedJobId: _selectedJob?.id,
@@ -263,12 +250,22 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
                   const SizedBox(height: 20),
                   _SectionHeader(
                     title: 'Tindakan cepat',
-                    action: OutlinedButton.icon(
-                      onPressed: _selectedJob == null
+                    action: FilledButton.icon(
+                      onPressed: _selectedJob == null || _isSubmitting
                           ? null
-                          : _openSavedShortlist,
-                      icon: const Icon(Icons.history),
-                      label: const Text('Buka hasil tersimpan'),
+                          : _runScreening,
+                      icon: _isSubmitting
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.auto_awesome),
+                      label: Text(
+                        _isSubmitting
+                            ? 'Menilai kandidat...'
+                            : 'Nilai Kandidat',
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -348,127 +345,6 @@ class _JobCandidatesScreenState extends State<JobCandidatesScreen> {
       onSelected: (_) {
         setState(() => _candidateFilter = value);
       },
-    );
-  }
-}
-
-class _HeroPanel extends StatelessWidget {
-  const _HeroPanel({
-    required this.selectedJob,
-    required this.candidateCount,
-    required this.shortlistedCount,
-    required this.screeningCount,
-    required this.onRunScreening,
-    required this.isSubmitting,
-  });
-
-  final RecruiterJob? selectedJob;
-  final int candidateCount;
-  final int shortlistedCount;
-  final int screeningCount;
-  final VoidCallback? onRunScreening;
-  final bool isSubmitting;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF12372A), Color(0xFF1C6758)],
-        ),
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            selectedJob == null
-                ? 'Pilih lowongan untuk mulai review kandidat.'
-                : 'Review kandidat untuk ${selectedJob!.title}',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'Pilih lowongan terlebih dulu, lalu jalankan penilaian untuk melihat kandidat unggulan dan langkah berikutnya.',
-            style: TextStyle(color: Colors.white70, height: 1.45),
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _HeroMetric(label: 'Pelamar', value: '$candidateCount'),
-              _HeroMetric(label: 'Direview', value: '$screeningCount'),
-              _HeroMetric(label: 'Unggulan', value: '$shortlistedCount'),
-            ],
-          ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: onRunScreening,
-            icon: isSubmitting
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Color(0xFF12372A),
-                    ),
-                  )
-                : const Icon(Icons.auto_awesome),
-            label: Text(
-              isSubmitting ? 'Menilai kandidat...' : 'Nilai Kandidat Sekarang',
-            ),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: const Color(0xFF12372A),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeroMetric extends StatelessWidget {
-  const _HeroMetric({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
