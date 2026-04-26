@@ -547,11 +547,11 @@ Setelah lowongan jadi, Anda bisa:
           ],
         ),
         actions: [
-          if (_draftJobId != null)
+          if (_lastGenerated != null)
             IconButton(
-              icon: const Icon(Icons.list_alt),
-              tooltip: 'Daftar lowongan',
-              onPressed: _backToJobList,
+              icon: const Icon(Icons.visibility_outlined),
+              tooltip: 'Preview',
+              onPressed: _showDraftPreview,
             ),
           if (_hybridService != null && _hybridService!.isLocalAIReady)
             IconButton(
@@ -616,7 +616,6 @@ Setelah lowongan jadi, Anda bisa:
               job: _lastGenerated!,
               isSaved: _isSaved,
               isSaving: _isSaving,
-              onBackToList: _backToJobList,
               onCopy: _copyToClipboard,
             ),
           // Chat UI
@@ -679,9 +678,81 @@ Setelah lowongan jadi, Anda bisa:
     );
   }
 
-  void _backToJobList() {
-    if (!mounted) return;
-    Navigator.of(context).pop();
+  Future<void> _showDraftPreview() async {
+    final job = _lastGenerated;
+    if (job == null || !mounted) return;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) {
+        final theme = Theme.of(context);
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    job.title,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${job.location} • ${job.employmentType}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _PreviewSection(
+                    title: 'Deskripsi',
+                    child: Text(
+                      job.description,
+                      style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _PreviewSection(
+                    title: 'Kualifikasi',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: job.requirements
+                          .map((item) => _PreviewBullet(text: item))
+                          .toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _PreviewSection(
+                    title: 'Tanggung Jawab',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: job.responsibilities
+                          .map((item) => _PreviewBullet(text: item))
+                          .toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _PreviewSection(
+                    title: 'Estimasi Gaji',
+                    child: Text(
+                      job.salaryRange,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _resetChat() {
@@ -761,19 +832,72 @@ class _ProgressTicker {
   const _ProgressTicker({required this.cancel});
 }
 
+class _PreviewSection extends StatelessWidget {
+  const _PreviewSection({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 8),
+        child,
+      ],
+    );
+  }
+}
+
+class _PreviewBullet extends StatelessWidget {
+  const _PreviewBullet({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 6),
+            child: Icon(Icons.circle, size: 8),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _GeneratedJobActionPanel extends StatelessWidget {
   const _GeneratedJobActionPanel({
     required this.job,
     required this.isSaved,
     required this.isSaving,
-    required this.onBackToList,
     required this.onCopy,
   });
 
   final JobPosting job;
   final bool isSaved;
   final bool isSaving;
-  final VoidCallback onBackToList;
   final Future<void> Function() onCopy;
 
   @override
@@ -849,7 +973,7 @@ class _GeneratedJobActionPanel extends StatelessWidget {
             runSpacing: 10,
             children: [
               FilledButton.icon(
-                onPressed: isSaving ? null : onBackToList,
+                onPressed: null,
                 icon: isSaving
                     ? const SizedBox(
                         width: 14,
@@ -859,9 +983,9 @@ class _GeneratedJobActionPanel extends StatelessWidget {
                           color: Colors.white,
                         ),
                       )
-                    : const Icon(Icons.list_alt),
+                    : const Icon(Icons.check_circle_outline),
                 label: Text(
-                  isSaving ? 'Menyimpan...' : 'Kembali ke Daftar Lowongan',
+                  isSaving ? 'Menyimpan...' : 'Draft Tersimpan Otomatis',
                 ),
               ),
               OutlinedButton.icon(
