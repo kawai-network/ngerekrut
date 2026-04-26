@@ -1,11 +1,13 @@
 library;
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../models/recruiter_job.dart';
 import '../models/recruiter_shortlist.dart';
 import '../repositories/job_posting_repository.dart';
 import '../repositories/shortlist_artifact_repository.dart';
+import '../super_cupertino_navigation_bar/super_cupertino_navigation_bar.dart';
 
 class RecruiterScreeningListScreen extends StatefulWidget {
   const RecruiterScreeningListScreen({
@@ -26,12 +28,22 @@ class _RecruiterScreeningListScreenState
     extends State<RecruiterScreeningListScreen> {
   bool _isLoading = true;
   String _selectedFilter = 'all';
+  String _searchQuery = '';
   List<_ScreeningItem> _items = const [];
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -105,168 +117,360 @@ class _RecruiterScreeningListScreenState
       case 'interview':
         return items.where((item) => item.isTopCandidate).toList();
       default:
-        return items;
+        return items.where(_matchesSearch).toList();
     }
+  }
+
+  List<_CandidateDecisionItem> get _filteredCandidateItems {
+    final filtered = switch (_selectedFilter) {
+      'attention' => _candidateItems.where((item) => item.needsAttention),
+      'interview' => _candidateItems.where((item) => item.isTopCandidate),
+      _ => _candidateItems,
+    };
+    return filtered.where(_matchesSearch).toList();
+  }
+
+  List<_ScreeningItem> get _filteredJobItems {
+    if (_searchQuery.trim().isEmpty) return _items;
+    return _items.where((item) {
+      final haystack = [
+        item.job.title,
+        item.job.unitLabel,
+        item.job.location,
+        item.shortlist.summary,
+        ...item.shortlist.rankedCandidates.map(
+          (candidate) => candidate.candidateName,
+        ),
+      ].whereType<String>().join(' ').toLowerCase();
+      return haystack.contains(_searchQuery.toLowerCase());
+    }).toList();
+  }
+
+  bool _matchesSearch(_CandidateDecisionItem item) {
+    if (_searchQuery.trim().isEmpty) return true;
+    final haystack = [
+      item.job.title,
+      item.job.unitLabel,
+      item.job.location,
+      item.candidate.candidateName,
+      item.candidate.recommendation,
+      ...item.candidate.strengths,
+      ...item.candidate.redFlags,
+      ...item.candidate.gaps,
+    ].whereType<String>().join(' ').toLowerCase();
+    return haystack.contains(_searchQuery.toLowerCase());
   }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF1F2937), Color(0xFF0F766E)],
-              ),
-              borderRadius: BorderRadius.circular(28),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Kandidat yang perlu keputusan',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Lihat kandidat unggulan, tandai yang butuh review manual, lalu lanjutkan ke tahap interview.',
-                  style: TextStyle(color: Colors.white70, height: 1.45),
-                ),
-                const SizedBox(height: 16),
-                if (_isLoading)
-                  const LinearProgressIndicator(
-                    minHeight: 4,
-                    backgroundColor: Colors.white24,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  )
-                else
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      _HeroStat(label: 'Lowongan', value: '${_items.length}'),
-                      _HeroStat(
-                        label: 'Perlu review',
-                        value:
-                            '${_items.fold<int>(0, (sum, item) => sum + _decisionCount(item.shortlist))}',
-                      ),
-                      _HeroStat(
-                        label: 'Siap interview',
-                        value:
-                            '${_items.fold<int>(0, (sum, item) => sum + item.shortlist.topCandidates.length)}',
-                      ),
-                    ],
-                  ),
-              ],
+    return ColoredBox(
+      color: const Color(0xFFF8FAFC),
+      child: SuperScaffold(
+        stretch: true,
+        appBar: SuperAppBar(
+          backgroundColor: const Color(0xFFF8FAFC),
+          automaticallyImplyLeading: false,
+          title: Text(
+            'Kandidat',
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodyMedium?.color,
+              fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 20),
-          if (_isLoading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 48),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (_items.isEmpty)
-            _EmptyState(
-              icon: Icons.fact_check_outlined,
-              title: 'Belum ada kandidat terscreening',
-              description:
-                  'Jalankan screening kandidat dari flow lowongan agar daftar keputusan muncul di sini.',
-            )
-          else ...[
-            Text(
-              'Filter keputusan',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          actions: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Icon(
+                  CupertinoIcons.person_2_fill,
+                  color: Color(0xFF0F172A),
+                  size: 22,
+                ),
+              ),
+            ],
+          ),
+          searchBar: SuperSearchBar(
+            searchController: _searchController,
+            searchFocusNode: _searchFocusNode,
+            backgroundColor: Colors.white,
+            resultColor: const Color(0xFFF8FAFC),
+            placeholderText: 'Cari kandidat, lowongan, atau catatan review',
+            scrollBehavior: SearchBarScrollBehavior.pinned,
+            resultBehavior: SearchBarResultBehavior.neverVisible,
+            onChanged: (value) => setState(() => _searchQuery = value),
+            onSubmitted: (value) => setState(() => _searchQuery = value),
+          ),
+          largeTitle: SuperLargeTitle(
+            largeTitle: 'Kandidat',
+            textStyle: TextStyle(
+              inherit: false,
+              fontFamily: '.SF Pro Display',
+              fontSize: 34,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.41,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
             ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _buildFilterChip('all', 'Semua kandidat'),
-                _buildFilterChip('attention', 'Perlu cek manual'),
-                _buildFilterChip('interview', 'Siap interview'),
+          ),
+          bottom: SuperAppBarBottom(
+            enabled: true,
+            height: 44,
+            child: _CandidateFilterBar(
+              selectedFilter: _selectedFilter,
+              allCount: _candidateItems.length,
+              attentionCount: _candidateItems
+                  .where((item) => item.needsAttention)
+                  .length,
+              interviewCount: _candidateItems
+                  .where((item) => item.isTopCandidate)
+                  .length,
+              onSelected: (value) => setState(() => _selectedFilter = value),
+            ),
+          ),
+        ),
+        body: RefreshIndicator(
+          onRefresh: _load,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+            children: [
+              _CandidateOverviewHero(
+                isLoading: _isLoading,
+                jobsCount: _items.length,
+                reviewCount: _items.fold<int>(
+                  0,
+                  (sum, item) => sum + _decisionCount(item.shortlist),
+                ),
+                interviewCount: _items.fold<int>(
+                  0,
+                  (sum, item) => sum + item.shortlist.topCandidates.length,
+                ),
+              ),
+              const SizedBox(height: 20),
+              if (_isLoading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 48),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_items.isEmpty)
+                _EmptyState(
+                  icon: Icons.fact_check_outlined,
+                  title: 'Belum ada kandidat terscreening',
+                  description:
+                      'Jalankan screening kandidat dari flow lowongan agar daftar keputusan muncul di sini.',
+                )
+              else ...[
+                Text(
+                  'Kandidat prioritas',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _selectedFilter == 'all'
+                      ? 'Urutan kandidat disusun dari yang paling butuh keputusan dan kandidat terbaik.'
+                      : 'Filter membantu Anda fokus pada kandidat yang paling perlu tindakan.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (_filteredCandidateItems.isEmpty)
+                  const _EmptyState(
+                    icon: Icons.filter_alt_off_outlined,
+                    title: 'Tidak ada kandidat untuk filter ini',
+                    description:
+                        'Coba ganti filter atau kata kunci untuk melihat kandidat lain yang perlu diputuskan.',
+                  )
+                else
+                  ..._filteredCandidateItems
+                      .take(6)
+                      .map((item) => _CandidateDecisionCard(item: item)),
+                const SizedBox(height: 24),
+                Text(
+                  'Per lowongan',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Ringkasan tiap lowongan untuk melihat pipeline kandidat secara cepat.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (_filteredJobItems.isEmpty)
+                  const _EmptyState(
+                    icon: Icons.search_off_outlined,
+                    title: 'Tidak ada lowongan yang cocok',
+                    description:
+                        'Ubah kata kunci pencarian untuk melihat ringkasan kandidat pada lowongan lain.',
+                  )
+                else
+                  ..._filteredJobItems.map(
+                    (item) => _JobDecisionCard(item: item),
+                  ),
               ],
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Kandidat prioritas',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _selectedFilter == 'all'
-                  ? 'Urutan kandidat disusun dari yang paling butuh keputusan dan kandidat terbaik.'
-                  : 'Filter membantu Anda fokus pada kandidat yang paling perlu tindakan.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 12),
-            if (_candidateItems.isEmpty)
-              const _EmptyState(
-                icon: Icons.filter_alt_off_outlined,
-                title: 'Tidak ada kandidat untuk filter ini',
-                description:
-                    'Coba ganti filter untuk melihat kandidat lain yang perlu diputuskan.',
-              )
-            else
-              ..._candidateItems
-                  .take(6)
-                  .map((item) => _CandidateDecisionCard(item: item)),
-            const SizedBox(height: 24),
-            Text(
-              'Per lowongan',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Ringkasan tiap lowongan untuk melihat pipeline kandidat secara cepat.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 12),
-            ..._items.map((item) => _JobDecisionCard(item: item)),
-          ],
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
+}
 
-  Widget _buildFilterChip(String value, String label) {
-    final isSelected = _selectedFilter == value;
-    return FilterChip(
-      selected: isSelected,
-      label: Text(label),
-      onSelected: (_) {
-        setState(() => _selectedFilter = value);
-      },
-      showCheckmark: false,
-      selectedColor: const Color(0xFFDCFCE7),
-      labelStyle: TextStyle(
-        fontWeight: FontWeight.w700,
-        color: isSelected ? const Color(0xFF166534) : null,
+class _CandidateFilterBar extends StatelessWidget {
+  const _CandidateFilterBar({
+    required this.selectedFilter,
+    required this.allCount,
+    required this.attentionCount,
+    required this.interviewCount,
+    required this.onSelected,
+  });
+
+  final String selectedFilter;
+  final int allCount;
+  final int attentionCount;
+  final int interviewCount;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      children: [
+        _CandidateFilterPill(
+          label: 'Semua',
+          count: allCount,
+          selected: selectedFilter == 'all',
+          onTap: () => onSelected('all'),
+        ),
+        _CandidateFilterPill(
+          label: 'Cek manual',
+          count: attentionCount,
+          selected: selectedFilter == 'attention',
+          onTap: () => onSelected('attention'),
+        ),
+        _CandidateFilterPill(
+          label: 'Interview',
+          count: interviewCount,
+          selected: selectedFilter == 'interview',
+          onTap: () => onSelected('interview'),
+        ),
+      ],
+    );
+  }
+}
+
+class _CandidateFilterPill extends StatelessWidget {
+  const _CandidateFilterPill({
+    required this.label,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8, top: 4, bottom: 4),
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFFDCFCE7) : Colors.white,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: selected
+                  ? const Color(0xFF86EFAC)
+                  : const Color(0xFFE5E7EB),
+            ),
+          ),
+          child: Text(
+            '$label ($count)',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: selected
+                  ? const Color(0xFF166534)
+                  : const Color(0xFF0F172A),
+            ),
+          ),
+        ),
       ),
-      side: BorderSide(
-        color: isSelected ? const Color(0xFF86EFAC) : const Color(0xFFE5E7EB),
+    );
+  }
+}
+
+class _CandidateOverviewHero extends StatelessWidget {
+  const _CandidateOverviewHero({
+    required this.isLoading,
+    required this.jobsCount,
+    required this.reviewCount,
+    required this.interviewCount,
+  });
+
+  final bool isLoading;
+  final int jobsCount;
+  final int reviewCount;
+  final int interviewCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1F2937), Color(0xFF0F766E)],
+        ),
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Kandidat yang perlu keputusan',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Lihat kandidat unggulan, tandai yang butuh review manual, lalu lanjutkan ke tahap interview.',
+            style: TextStyle(color: Colors.white70, height: 1.45),
+          ),
+          const SizedBox(height: 16),
+          if (isLoading)
+            const LinearProgressIndicator(
+              minHeight: 4,
+              backgroundColor: Colors.white24,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            )
+          else
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                _HeroStat(label: 'Lowongan', value: '$jobsCount'),
+                _HeroStat(label: 'Perlu review', value: '$reviewCount'),
+                _HeroStat(label: 'Siap interview', value: '$interviewCount'),
+              ],
+            ),
+        ],
       ),
     );
   }
@@ -329,117 +533,174 @@ class _CandidateDecisionCard extends StatelessWidget {
         ? const Color(0xFFDCFCE7)
         : const Color(0xFFE0F2FE);
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
-        side: const BorderSide(color: Color(0xFFE5E7EB)),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A0F172A),
+            blurRadius: 16,
+            offset: Offset(0, 8),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CircleAvatar(
-                  backgroundColor: accentBackground,
-                  child: Text(
-                    '${candidate.rank}',
-                    style: TextStyle(
-                      color: accentColor,
-                      fontWeight: FontWeight.w800,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: accentBackground,
+                    child: Text(
+                      _initials(candidate.candidateName),
+                      style: TextStyle(
+                        color: accentColor,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        candidate.candidateName,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w800),
+                  Positioned(
+                    right: -2,
+                    bottom: -2,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
                       ),
+                      decoration: BoxDecoration(
+                        color: accentColor,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: Text(
+                        '#${candidate.rank}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            candidate.candidateName,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Text(
+                            'Score ${candidate.totalScore.toStringAsFixed(0)}',
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      item.job.title,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.grey.shade700,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (candidate.recommendation.trim().isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(
-                        item.job.title,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey.shade700,
+                        candidate.recommendation,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: const Color(0xFF475569),
                         ),
                       ),
                     ],
-                  ),
+                  ],
                 ),
-                Text(
-                  candidate.totalScore.toStringAsFixed(0),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _DecisionBadge(
-                  label: item.statusLabel,
-                  backgroundColor: accentBackground,
-                  foregroundColor: accentColor,
-                ),
-                if (candidate.recommendation.trim().isNotEmpty)
-                  _DecisionBadge(
-                    label: candidate.recommendation,
-                    backgroundColor: const Color(0xFFF3F4F6),
-                    foregroundColor: const Color(0xFF374151),
-                  ),
-              ],
-            ),
-            if (candidate.strengths.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Kekuatan utama',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                candidate.strengths.take(3).join(', '),
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700),
               ),
             ],
-            if (candidate.redFlags.isNotEmpty || candidate.gaps.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Perlu dicek manual',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: Colors.red.shade700,
-                ),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _DecisionBadge(
+                label: item.statusLabel,
+                backgroundColor: accentBackground,
+                foregroundColor: accentColor,
               ),
-              const SizedBox(height: 6),
-              Text(
+              if (candidate.strengths.isNotEmpty)
+                _DecisionBadge(
+                  label: candidate.strengths.take(2).join(' • '),
+                  backgroundColor: const Color(0xFFF8FAFC),
+                  foregroundColor: const Color(0xFF334155),
+                ),
+            ],
+          ),
+          if (candidate.redFlags.isNotEmpty || candidate.gaps.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFFECACA)),
+              ),
+              child: Text(
                 [
                   ...candidate.redFlags.take(2),
                   ...candidate.gaps.take(2),
                 ].join(', '),
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: Colors.red.shade700),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFFB91C1C),
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ],
+            ),
           ],
-        ),
+        ],
       ),
     );
+  }
+
+  String _initials(String name) {
+    final parts = name
+        .split(' ')
+        .where((part) => part.trim().isNotEmpty)
+        .take(2)
+        .toList();
+    if (parts.isEmpty) return '?';
+    return parts.map((part) => part[0].toUpperCase()).join();
   }
 }
 
@@ -484,94 +745,175 @@ class _JobDecisionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
-        side: const BorderSide(color: Color(0xFFE5E7EB)),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A0F172A),
+            blurRadius: 16,
+            offset: Offset(0, 8),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    item.job.title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                _DecisionBadge(
-                  label: item.shortlist.status,
-                  backgroundColor: const Color(0xFFF3F4F6),
-                  foregroundColor: const Color(0xFF374151),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              item.shortlist.summary,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.grey.shade700,
-                height: 1.45,
-              ),
-            ),
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _SummaryChip(
-                  label: 'Kandidat',
-                  value: '${item.shortlist.rankedCandidates.length}',
-                ),
-                _SummaryChip(label: 'Perlu review', value: '$_decisionCount'),
-                _SummaryChip(
-                  label: 'Siap interview',
-                  value: '${item.shortlist.topCandidates.length}',
-                ),
-              ],
-            ),
-            if (item.shortlist.topCandidates.isNotEmpty) ...[
-              const SizedBox(height: 14),
-              Text(
-                'Kandidat teratas',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 8),
-              ...item.shortlist.topCandidates
-                  .take(2)
-                  .map(
-                    (candidate) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '${candidate.candidateName} • score ${candidate.totalScore.toStringAsFixed(0)}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          Text(
-                            candidate.recommendation,
-                            style: TextStyle(color: Colors.grey.shade700),
-                          ),
-                        ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.job.title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                  ),
+                    if ((item.job.unitLabel ?? '').isNotEmpty ||
+                        (item.job.location ?? '').isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        [
+                          if ((item.job.unitLabel ?? '').isNotEmpty)
+                            item.job.unitLabel!,
+                          if ((item.job.location ?? '').isNotEmpty)
+                            item.job.location!,
+                        ].join(' • '),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFF64748B),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              _DecisionBadge(
+                label: item.shortlist.status,
+                backgroundColor: const Color(0xFFF3F4F6),
+                foregroundColor: const Color(0xFF374151),
+              ),
             ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            item.shortlist.summary,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Colors.grey.shade700,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _SummaryChip(
+                label: 'Kandidat',
+                value: '${item.shortlist.rankedCandidates.length}',
+              ),
+              _SummaryChip(label: 'Perlu review', value: '$_decisionCount'),
+              _SummaryChip(
+                label: 'Siap interview',
+                value: '${item.shortlist.topCandidates.length}',
+              ),
+            ],
+          ),
+          if (item.shortlist.topCandidates.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text(
+              'Kandidat teratas',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 10),
+            ...item.shortlist.topCandidates
+                .take(2)
+                .map((candidate) => _TopCandidateRow(candidate: candidate)),
           ],
-        ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TopCandidateRow extends StatelessWidget {
+  const _TopCandidateRow({required this.candidate});
+
+  final RecruiterShortlistEntry candidate;
+
+  @override
+  Widget build(BuildContext context) {
+    final initials = candidate.candidateName
+        .split(' ')
+        .where((part) => part.trim().isNotEmpty)
+        .take(2)
+        .map((part) => part[0].toUpperCase())
+        .join();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: const Color(0xFFDBEAFE),
+            child: Text(
+              initials.isEmpty ? '?' : initials,
+              style: const TextStyle(
+                color: Color(0xFF1D4ED8),
+                fontWeight: FontWeight.w800,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  candidate.candidateName,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  candidate.recommendation,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Text(
+              candidate.totalScore.toStringAsFixed(0),
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,5 +1,6 @@
 library;
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -9,6 +10,7 @@ import '../models/job_application.dart';
 import '../repositories/candidate_repository.dart';
 import '../repositories/job_application_repository.dart';
 import '../repositories/job_posting_repository.dart';
+import '../super_cupertino_navigation_bar/super_cupertino_navigation_bar.dart';
 import '../services/google_calendar_service.dart';
 import 'recruiter_candidate_profile_screen.dart';
 
@@ -35,11 +37,20 @@ class _RecruiterApplicationInboxScreenState
   List<JobApplication> _applications = const [];
   Map<String, RecruiterCandidate> _candidatesById = const {};
   Map<String, String> _jobStatusesById = const {};
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _loadApplications();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
   }
 
   Future<void> _loadApplications() async {
@@ -791,171 +802,151 @@ class _RecruiterApplicationInboxScreenState
         .length;
     final cleanupCount = _applications.where(_needsCleanup).length;
 
-    return RefreshIndicator(
-      onRefresh: _loadApplications,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF111827), Color(0xFF1D4ED8)],
-              ),
-              borderRadius: BorderRadius.circular(28),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Inbox lamaran lintas lowongan',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Pantau semua lamaran masuk dari satu tempat, lalu prioritaskan kandidat yang perlu tindakan berikutnya.',
-                  style: TextStyle(color: Colors.white70, height: 1.45),
-                ),
-                const SizedBox(height: 16),
-                if (_isLoading)
-                  const LinearProgressIndicator(
-                    minHeight: 4,
-                    backgroundColor: Colors.white24,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  )
-                else
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      _InboxMetric(
-                        label: 'Total lamaran',
-                        value: '${_applications.length}',
-                      ),
-                      _InboxMetric(
-                        label: 'Masih aktif',
-                        value: '$activeApplications',
-                      ),
-                      _InboxMetric(
-                        label: 'Tahap interview',
-                        value: '$interviewApplications',
-                      ),
-                      _InboxMetric(
-                        label: 'Perlu cleanup',
-                        value: '$cleanupCount',
-                      ),
-                    ],
-                  ),
-              ],
+    return ColoredBox(
+      color: const Color(0xFFF8FAFC),
+      child: SuperScaffold(
+        stretch: true,
+        appBar: SuperAppBar(
+          backgroundColor: const Color(0xFFF8FAFC),
+          automaticallyImplyLeading: false,
+          title: Text(
+            'Lamaran',
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodyMedium?.color,
+              fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 20),
-          TextField(
-            onChanged: (value) => setState(() => _searchQuery = value),
-            decoration: InputDecoration(
-              hintText: 'Cari kandidat atau lowongan',
-              prefixIcon: const Icon(Icons.search),
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(18),
-                borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(18),
-                borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          actions: const Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              _buildFilterChip('all', 'Semua'),
-              _buildFilterChip(ApplicationStatus.applied.name, 'Applied'),
-              _buildFilterChip(ApplicationStatus.screening.name, 'Screening'),
-              _buildFilterChip(ApplicationStatus.interview.name, 'Interview'),
-              _buildFilterChip(
-                ApplicationStatus.underReview.name,
-                'Under Review',
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Icon(
+                  CupertinoIcons.tray_full,
+                  color: Color(0xFF0F172A),
+                  size: 22,
+                ),
               ),
-              _buildFilterChip(ApplicationStatus.offered.name, 'Offered'),
-              _buildFilterChip(ApplicationStatus.rejected.name, 'Rejected'),
-              _buildFilterChip('cleanup', 'Perlu Cleanup'),
             ],
           ),
-          if (_statusFilter == 'cleanup' &&
-              _filteredApplications.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: FilledButton.tonalIcon(
-                onPressed: _updatingApplicationId == 'bulk_cleanup'
-                    ? null
-                    : _archiveCleanupApplications,
-                icon: _updatingApplicationId == 'bulk_cleanup'
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.archive_outlined),
-                label: const Text('Arsipkan Semua Cleanup'),
-              ),
+          searchBar: SuperSearchBar(
+            searchController: _searchController,
+            searchFocusNode: _searchFocusNode,
+            backgroundColor: Colors.white,
+            resultColor: const Color(0xFFF8FAFC),
+            placeholderText: 'Cari kandidat atau lowongan',
+            scrollBehavior: SearchBarScrollBehavior.pinned,
+            resultBehavior: SearchBarResultBehavior.neverVisible,
+            onChanged: (value) => setState(() => _searchQuery = value),
+            onSubmitted: (value) => setState(() => _searchQuery = value),
+          ),
+          largeTitle: SuperLargeTitle(
+            largeTitle: 'Lamaran',
+            textStyle: TextStyle(
+              inherit: false,
+              fontFamily: '.SF Pro Display',
+              fontSize: 34,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.41,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
             ),
-          ],
-          const SizedBox(height: 20),
-          if (_isLoading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 48),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (_applications.isEmpty)
-            const _InboxEmptyState(
-              title: 'Belum ada lamaran',
-              description:
-                  'Lamaran dari jobseeker akan muncul di sini setelah posisi mulai dilamar.',
-            )
-          else if (_filteredApplications.isEmpty)
-            const _InboxEmptyState(
-              title: 'Tidak ada hasil',
-              description:
-                  'Coba ubah filter atau kata kunci pencarian untuk melihat lamaran lain.',
-            )
-          else
-            ..._filteredApplications.map((application) {
-              final candidate = application.candidateId != null
-                  ? _candidatesById[application.candidateId!]
-                  : null;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _InboxApplicationCard(
-                  application: application,
-                  candidate: candidate,
-                  jobStatus: _jobStatusesById[application.jobId],
-                  isUpdating: _updatingApplicationId == application.id,
-                  onStatusSelected: (status) =>
-                      _updateApplicationStatus(application, status),
-                  onEditNotes: () => _saveRecruiterNotes(application),
-                  onSetRating: () => _setInternalRating(application),
-                  onAddInterviewDate: () => _addInterviewSchedule(application),
-                  onRescheduleInterview: () =>
-                      _rescheduleInterview(application),
-                  onCancelInterview: () => _cancelInterview(application),
-                  onSyncCalendar: () => _syncInterviewToCalendar(application),
-                  onOpenMeeting: () => _openMeetingLink(application),
-                  onOpenCandidate: () => _openCandidateProfile(candidate),
-                  onTap: () => _showDetails(application, candidate),
+          ),
+          bottom: SuperAppBarBottom(
+            enabled: true,
+            height: 44,
+            child: _ApplicationFilterBar(
+              statusFilter: _statusFilter,
+              totalCount: _countForStatus('all'),
+              appliedCount: _countForStatus(ApplicationStatus.applied.name),
+              screeningCount: _countForStatus(ApplicationStatus.screening.name),
+              interviewCount: _countForStatus(ApplicationStatus.interview.name),
+              cleanupCount: _countForStatus('cleanup'),
+              onSelected: (value) => setState(() => _statusFilter = value),
+            ),
+          ),
+        ),
+        body: RefreshIndicator(
+          onRefresh: _loadApplications,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+            children: [
+              _ApplicationOverviewHero(
+                isLoading: _isLoading,
+                totalApplications: _applications.length,
+                activeApplications: activeApplications,
+                interviewApplications: interviewApplications,
+                cleanupCount: cleanupCount,
+              ),
+              if (_statusFilter == 'cleanup' &&
+                  _filteredApplications.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: FilledButton.tonalIcon(
+                    onPressed: _updatingApplicationId == 'bulk_cleanup'
+                        ? null
+                        : _archiveCleanupApplications,
+                    icon: _updatingApplicationId == 'bulk_cleanup'
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.archive_outlined),
+                    label: const Text('Arsipkan Semua Cleanup'),
+                  ),
                 ),
-              );
-            }),
-        ],
+              ],
+              const SizedBox(height: 20),
+              if (_isLoading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 48),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_applications.isEmpty)
+                const _InboxEmptyState(
+                  title: 'Belum ada lamaran',
+                  description:
+                      'Lamaran dari jobseeker akan muncul di sini setelah posisi mulai dilamar.',
+                )
+              else if (_filteredApplications.isEmpty)
+                const _InboxEmptyState(
+                  title: 'Tidak ada hasil',
+                  description:
+                      'Coba ubah filter atau kata kunci pencarian untuk melihat lamaran lain.',
+                )
+              else
+                ..._filteredApplications.map((application) {
+                  final candidate = application.candidateId != null
+                      ? _candidatesById[application.candidateId!]
+                      : null;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _InboxApplicationCard(
+                      application: application,
+                      candidate: candidate,
+                      jobStatus: _jobStatusesById[application.jobId],
+                      isUpdating: _updatingApplicationId == application.id,
+                      onStatusSelected: (status) =>
+                          _updateApplicationStatus(application, status),
+                      onEditNotes: () => _saveRecruiterNotes(application),
+                      onSetRating: () => _setInternalRating(application),
+                      onAddInterviewDate: () =>
+                          _addInterviewSchedule(application),
+                      onRescheduleInterview: () =>
+                          _rescheduleInterview(application),
+                      onCancelInterview: () => _cancelInterview(application),
+                      onSyncCalendar: () =>
+                          _syncInterviewToCalendar(application),
+                      onOpenMeeting: () => _openMeetingLink(application),
+                      onOpenCandidate: () => _openCandidateProfile(candidate),
+                      onTap: () => _showDetails(application, candidate),
+                    ),
+                  );
+                }),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -991,23 +982,185 @@ class _RecruiterApplicationInboxScreenState
       ),
     );
   }
+}
 
-  Widget _buildFilterChip(String value, String label) {
-    final isSelected = _statusFilter == value;
-    final count = _countForStatus(value);
-    return FilterChip(
-      selected: isSelected,
-      showCheckmark: false,
-      label: Text('$label $count'),
-      selectedColor: const Color(0xFFDBEAFE),
-      side: BorderSide(
-        color: isSelected ? const Color(0xFF93C5FD) : const Color(0xFFE5E7EB),
+class _ApplicationFilterBar extends StatelessWidget {
+  const _ApplicationFilterBar({
+    required this.statusFilter,
+    required this.totalCount,
+    required this.appliedCount,
+    required this.screeningCount,
+    required this.interviewCount,
+    required this.cleanupCount,
+    required this.onSelected,
+  });
+
+  final String statusFilter;
+  final int totalCount;
+  final int appliedCount;
+  final int screeningCount;
+  final int interviewCount;
+  final int cleanupCount;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      children: [
+        _ApplicationFilterPill(
+          label: 'Semua',
+          count: totalCount,
+          selected: statusFilter == 'all',
+          onTap: () => onSelected('all'),
+        ),
+        _ApplicationFilterPill(
+          label: 'Applied',
+          count: appliedCount,
+          selected: statusFilter == ApplicationStatus.applied.name,
+          onTap: () => onSelected(ApplicationStatus.applied.name),
+        ),
+        _ApplicationFilterPill(
+          label: 'Screening',
+          count: screeningCount,
+          selected: statusFilter == ApplicationStatus.screening.name,
+          onTap: () => onSelected(ApplicationStatus.screening.name),
+        ),
+        _ApplicationFilterPill(
+          label: 'Interview',
+          count: interviewCount,
+          selected: statusFilter == ApplicationStatus.interview.name,
+          onTap: () => onSelected(ApplicationStatus.interview.name),
+        ),
+        _ApplicationFilterPill(
+          label: 'Cleanup',
+          count: cleanupCount,
+          selected: statusFilter == 'cleanup',
+          onTap: () => onSelected('cleanup'),
+        ),
+      ],
+    );
+  }
+}
+
+class _ApplicationFilterPill extends StatelessWidget {
+  const _ApplicationFilterPill({
+    required this.label,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8, top: 4, bottom: 4),
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFFDBEAFE) : Colors.white,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: selected
+                  ? const Color(0xFF93C5FD)
+                  : const Color(0xFFE5E7EB),
+            ),
+          ),
+          child: Text(
+            '$label ($count)',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: selected
+                  ? const Color(0xFF1D4ED8)
+                  : const Color(0xFF0F172A),
+            ),
+          ),
+        ),
       ),
-      labelStyle: TextStyle(
-        fontWeight: FontWeight.w700,
-        color: isSelected ? const Color(0xFF1D4ED8) : null,
+    );
+  }
+}
+
+class _ApplicationOverviewHero extends StatelessWidget {
+  const _ApplicationOverviewHero({
+    required this.isLoading,
+    required this.totalApplications,
+    required this.activeApplications,
+    required this.interviewApplications,
+    required this.cleanupCount,
+  });
+
+  final bool isLoading;
+  final int totalApplications;
+  final int activeApplications;
+  final int interviewApplications;
+  final int cleanupCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF111827), Color(0xFF1D4ED8)],
+        ),
+        borderRadius: BorderRadius.circular(28),
       ),
-      onSelected: (_) => setState(() => _statusFilter = value),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Inbox lamaran lintas lowongan',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Pantau semua lamaran masuk dari satu tempat, lalu prioritaskan kandidat yang perlu tindakan berikutnya.',
+            style: TextStyle(color: Colors.white70, height: 1.45),
+          ),
+          const SizedBox(height: 16),
+          if (isLoading)
+            const LinearProgressIndicator(
+              minHeight: 4,
+              backgroundColor: Colors.white24,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            )
+          else
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                _InboxMetric(
+                  label: 'Total lamaran',
+                  value: '$totalApplications',
+                ),
+                _InboxMetric(
+                  label: 'Masih aktif',
+                  value: '$activeApplications',
+                ),
+                _InboxMetric(
+                  label: 'Tahap interview',
+                  value: '$interviewApplications',
+                ),
+                _InboxMetric(label: 'Perlu cleanup', value: '$cleanupCount'),
+              ],
+            ),
+        ],
+      ),
     );
   }
 }

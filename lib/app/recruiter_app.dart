@@ -360,7 +360,11 @@ class _RecruiterHomeScreenState extends State<RecruiterHomeScreen> {
     ][_selectedIndex];
 
     return Scaffold(
-      appBar: _selectedIndex == 1
+      appBar:
+          _selectedIndex == 1 ||
+              _selectedIndex == 2 ||
+              _selectedIndex == 3 ||
+              _selectedIndex == 4
           ? null
           : AppBar(
               title: Text(_titleForTab()),
