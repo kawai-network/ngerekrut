@@ -34,10 +34,14 @@ class JobPostingChatScreen extends StatefulWidget {
 }
 
 class _JobPostingChatScreenState extends State<JobPostingChatScreen> {
+  static const _streamTextMetadataKey = 'streamText';
+  static const _autoDraftIdPrefix = 'draft_job_';
+
   late InMemoryChatController _chatController;
   final JobPostingRepository _sharedJobPostRepository = JobPostingRepository();
   HybridAIService? _hybridService;
   JobPosting? _lastGenerated;
+  String? _draftJobId;
   bool _isGenerating = false;
   bool _isInitializing = false;
   bool _isSaving = false;
@@ -200,18 +204,34 @@ Setelah lowongan jadi, Anda bisa:
       authorId: 'ai',
       streamId: streamId,
       createdAt: DateTime.now(),
+      metadata: const {_streamTextMetadataKey: ''},
       status: MessageStatus.sending,
-    );
+    ) as TextStreamMessage;
     await _chatController.insertMessage(streamMsg);
 
+    _ProgressTicker? progressTicker;
     try {
+      var currentStreamMsg = streamMsg;
+      final progressUpdates = _buildGenerationProgressUpdates(position);
+      progressTicker = _startProgressTicker(
+        initialMessage: streamMsg,
+        updates: progressUpdates,
+        onMessageUpdated: (message) => currentStreamMsg = message,
+      );
+
       final result = await _hybridService!.generateJobPosting(position);
+      await progressTicker.cancel();
       _lastGenerated = result.jobPosting;
-      _isSaved = false;
+      await _persistCurrentDraft();
 
       final responseText = _formatJobPosting(
         result.jobPosting,
         result.usedMode,
+      );
+
+      currentStreamMsg = await _streamTextResponse(
+        initialMessage: currentStreamMsg,
+        finalText: responseText,
       );
 
       // Update streaming message with final content
@@ -222,8 +242,9 @@ Setelah lowongan jadi, Anda bisa:
         createdAt: streamMsg.createdAt,
         status: MessageStatus.seen,
       );
-      await _chatController.updateMessage(streamMsg, finalMsg);
+      await _chatController.updateMessage(currentStreamMsg, finalMsg);
     } catch (e) {
+      await progressTicker?.cancel();
       // Replace streaming message with error
       final errorMsg = Message.text(
         id: streamId,
@@ -252,21 +273,41 @@ Setelah lowongan jadi, Anda bisa:
       authorId: 'ai',
       streamId: streamId,
       createdAt: DateTime.now(),
+      metadata: const {_streamTextMetadataKey: ''},
       status: MessageStatus.sending,
-    );
+    ) as TextStreamMessage;
     await _chatController.insertMessage(streamMsg);
 
+    _ProgressTicker? progressTicker;
     try {
+      var currentStreamMsg = streamMsg;
+      progressTicker = _startProgressTicker(
+        initialMessage: streamMsg,
+        updates: const [
+          'Meninjau draft yang sebelumnya...',
+          'Menyesuaikan detail sesuai revisi...',
+          'Merapikan ulang deskripsi dan requirement...',
+          'Menyusun versi revisi yang siap dipakai...',
+        ],
+        onMessageUpdated: (message) => currentStreamMsg = message,
+      );
+
       final result = await _hybridService!.refineJobPosting(
         _lastGenerated!,
         request,
       );
+      await progressTicker.cancel();
       _lastGenerated = result.jobPosting;
-      _isSaved = false;
+      await _persistCurrentDraft();
 
       final responseText = _formatJobPosting(
         result.jobPosting,
         result.usedMode,
+      );
+
+      currentStreamMsg = await _streamTextResponse(
+        initialMessage: currentStreamMsg,
+        finalText: responseText,
       );
 
       final finalMsg = Message.text(
@@ -276,8 +317,9 @@ Setelah lowongan jadi, Anda bisa:
         createdAt: streamMsg.createdAt,
         status: MessageStatus.seen,
       );
-      await _chatController.updateMessage(streamMsg, finalMsg);
+      await _chatController.updateMessage(currentStreamMsg, finalMsg);
     } catch (e) {
+      await progressTicker?.cancel();
       final errorMsg = Message.text(
         id: streamId,
         authorId: 'ai',
@@ -324,41 +366,153 @@ Setelah lowongan jadi, Anda bisa:
     buffer.writeln('💰 **Estimasi Gaji:** ${job.salaryRange}');
     buffer.writeln('');
     buffer.writeln(
-      '📌 **Langkah berikutnya:** simpan lowongan ini, copy untuk publikasi, atau ketik revisi untuk perbaikan.',
+      '📌 **Langkah berikutnya:** draft ini sudah tersimpan otomatis. Anda bisa kembali ke daftar lowongan, copy untuk publikasi, atau ketik revisi untuk perbaikan.',
     );
     return buffer.toString();
   }
 
-  Future<void> _saveJobPosting() async {
-    final job = _lastGenerated;
-    if (job == null || _isSaving) return;
+  List<String> _buildGenerationProgressUpdates(String position) {
+    final cleanPosition = position.trim();
+    return [
+      'Memahami kebutuhan untuk posisi $cleanPosition...',
+      'Menyusun judul dan konteks lowongan...',
+      'Menentukan requirement yang realistis...',
+      'Merumuskan tanggung jawab utama...',
+      'Merapikan draft agar siap dipublikasikan...',
+    ];
+  }
 
-    if (!mounted) return;
+  _ProgressTicker _startProgressTicker({
+    required TextStreamMessage initialMessage,
+    required List<String> updates,
+    required void Function(TextStreamMessage) onMessageUpdated,
+  }) {
+    var currentMessage = initialMessage;
+    var updateIndex = 0;
+    var cancelled = false;
+
+    final loop = () async {
+      if (updates.isEmpty) return;
+      while (!cancelled && mounted) {
+        currentMessage = await _updateStreamMessage(
+          currentMessage,
+          updates[updateIndex],
+        );
+        onMessageUpdated(currentMessage);
+        updateIndex = (updateIndex + 1) % updates.length;
+        await Future.delayed(const Duration(milliseconds: 900));
+      }
+    }();
+
+    return _ProgressTicker(
+      cancel: () async {
+        cancelled = true;
+        await loop;
+      },
+    );
+  }
+
+  Future<TextStreamMessage> _streamTextResponse({
+    required TextStreamMessage initialMessage,
+    required String finalText,
+  }) async {
+    var currentMessage = initialMessage;
+    var accumulatedText = '';
+
+    for (final chunk in _splitIntoStreamChunks(finalText)) {
+      accumulatedText += chunk;
+      currentMessage = await _updateStreamMessage(currentMessage, accumulatedText);
+      await Future.delayed(const Duration(milliseconds: 18));
+    }
+
+    return currentMessage;
+  }
+
+  List<String> _splitIntoStreamChunks(String text) {
+    final chunks = <String>[];
+    final pattern = RegExp(r'.{1,12}(?:\s+|$)', dotAll: true);
+    for (final match in pattern.allMatches(text)) {
+      final chunk = match.group(0);
+      if (chunk != null && chunk.isNotEmpty) {
+        chunks.add(chunk);
+      }
+    }
+    if (chunks.isEmpty && text.isNotEmpty) {
+      chunks.add(text);
+    }
+    return chunks;
+  }
+
+  Future<TextStreamMessage> _updateStreamMessage(
+    TextStreamMessage currentMessage,
+    String accumulatedText,
+  ) async {
+    final updatedMessage = Message.textStream(
+      id: currentMessage.id,
+      authorId: currentMessage.authorId,
+      streamId: currentMessage.streamId,
+      createdAt: currentMessage.createdAt,
+      metadata: {_streamTextMetadataKey: accumulatedText},
+      status: MessageStatus.sending,
+    ) as TextStreamMessage;
+    await _chatController.updateMessage(currentMessage, updatedMessage);
+    return updatedMessage;
+  }
+
+  Future<void> _saveJobPosting() async {
+    final saved = await _persistCurrentDraft(showSuccessMessage: true);
+    if (!saved || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Draft lowongan berhasil disimpan.'),
+      ),
+    );
+  }
+
+  Future<bool> _persistCurrentDraft({bool showSuccessMessage = false}) async {
+    final job = _lastGenerated;
+    if (job == null || _isSaving) return false;
+
+    if (!mounted) return false;
     setState(() => _isSaving = true);
     try {
+      final draftJobId =
+          _draftJobId ?? '$_autoDraftIdPrefix${DateTime.now().millisecondsSinceEpoch}';
       final savedJob = RecruiterJob(
-        id: 'local_job_${DateTime.now().millisecondsSinceEpoch}',
+        id: draftJobId,
         title: job.title,
         unitLabel: null,
         location: job.location,
         description:
             '${job.description}\n\nTanggung jawab:\n- ${job.responsibilities.join('\n- ')}\n\nEstimasi gaji: ${job.salaryRange}\nTipe kerja: ${job.employmentType}',
         requirements: job.requirements,
-        status: 'draft',
+        status: JobPostingRepository.statusDraft,
       );
-      await _sharedJobPostRepository.create(savedJob);
-      if (!mounted) return;
-      setState(() => _isSaved = true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Lowongan berhasil disimpan ke database shared.'),
-        ),
-      );
+
+      final existing = await _sharedJobPostRepository.getByJobId(draftJobId);
+      if (existing == null) {
+        await _sharedJobPostRepository.create(savedJob);
+      } else {
+        await _sharedJobPostRepository.update(savedJob);
+      }
+
+      if (!mounted) return false;
+      setState(() {
+        _draftJobId = draftJobId;
+        _isSaved = true;
+      });
+
+      if (showSuccessMessage && mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      }
+
+      return true;
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) return false;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Gagal menyimpan lowongan: $e')));
+      return false;
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -500,10 +654,12 @@ Setelah lowongan jadi, Anda bisa:
           },
       textStreamMessageBuilder:
           (context, message, index, {isSentByMe = false, groupStatus}) {
+            final streamText =
+                message.metadata?[_streamTextMetadataKey] as String? ?? '';
             return FlyerChatTextStreamMessage(
               message: message,
               index: index,
-              streamState: const StreamStateStreaming(''),
+              streamState: StreamStateStreaming(streamText),
             );
           },
       systemMessageBuilder:
@@ -532,6 +688,7 @@ Setelah lowongan jadi, Anda bisa:
     setState(() {
       _lastGenerated = null;
       _isSaved = false;
+      _draftJobId = null;
     });
     // Recreate the controller after clearing state to avoid mutating a
     // disposed chat controller from pending async tasks.
@@ -597,6 +754,12 @@ Setelah lowongan jadi, Anda bisa:
   }
 }
 
+class _ProgressTicker {
+  final Future<void> Function() cancel;
+
+  const _ProgressTicker({required this.cancel});
+}
+
 class _GeneratedJobActionPanel extends StatelessWidget {
   const _GeneratedJobActionPanel({
     required this.job,
@@ -659,7 +822,7 @@ class _GeneratedJobActionPanel extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  isSaved ? 'Tersimpan' : 'Belum disimpan',
+                  isSaved ? 'Draft tersimpan' : 'Menyimpan draft',
                   style: TextStyle(
                     color: isSaved
                         ? const Color(0xFF166534)
@@ -672,7 +835,9 @@ class _GeneratedJobActionPanel extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Lowongan ini sudah siap untuk disimpan ke daftar lowongan atau dicopy untuk publikasi.',
+            isSaved
+                ? 'Draft ini sudah tersimpan otomatis ke daftar lowongan. Anda bisa kembali ke list kapan saja atau copy untuk publikasi.'
+                : 'Draft ini sedang disimpan ke daftar lowongan. Tunggu sebentar sebelum kembali.',
             style: Theme.of(
               context,
             ).textTheme.bodyMedium?.copyWith(height: 1.45),
@@ -694,7 +859,7 @@ class _GeneratedJobActionPanel extends StatelessWidget {
                         ),
                       )
                     : const Icon(Icons.save_outlined),
-                label: Text(isSaving ? 'Menyimpan...' : 'Simpan Lowongan'),
+                label: Text(isSaving ? 'Menyimpan...' : 'Simpan Ulang Draft'),
               ),
               OutlinedButton.icon(
                 onPressed: () {
