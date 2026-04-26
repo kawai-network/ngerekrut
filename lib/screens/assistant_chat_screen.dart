@@ -131,6 +131,12 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
       buffer.writeln(
         '- Jika informasi belum lengkap, pakai asumsi default yang wajar lalu beri label asumsi secara singkat di jawaban.',
       );
+      buffer.writeln(
+        '- Gunakan format jawaban yang rapi dan konsisten: Asumsi Awal, Draft Lowongan, lalu Yang Bisa Disesuaikan.',
+      );
+      buffer.writeln(
+        '- Untuk user non-recruiter, hindari jargon HR yang tidak perlu. Pilih bahasa yang mudah dipahami dan langsung operasional.',
+      );
     }
 
     return buffer.toString();

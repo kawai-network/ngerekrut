@@ -126,8 +126,12 @@ Contoh:
 
 Setelah lowongan jadi, Anda bisa:
 • revisi detail yang kurang pas
-• simpan ke daftar lowongan
-• salin untuk dipublikasikan''';
+• preview hasilnya
+• salin untuk dipublikasikan
+
+Catatan:
+• satu percakapan fokus untuk satu lowongan
+• jika ingin membuat lowongan lain, mulai percakapan baru''';
   }
 
   Future<void> _handleMessageSend(String text) async {
@@ -167,12 +171,16 @@ Setelah lowongan jadi, Anda bisa:
     );
     await _chatController.insertMessage(userMsg);
 
-    // Check if user wants to refine or generate new
-    if (_lastGenerated != null && _looksLikeRefinement(text)) {
-      await _handleRefine(text.trim());
-    } else {
-      await _handleGenerate(text.trim());
+    if (_lastGenerated != null) {
+      if (_looksLikeRefinement(text)) {
+        await _handleRefine(text.trim());
+      } else {
+        await _sendSingleJobScopeMessage();
+      }
+      return;
     }
+
+    await _handleGenerate(text.trim());
   }
 
   bool _looksLikeRefinement(String text) {
@@ -522,6 +530,19 @@ Setelah lowongan jadi, Anda bisa:
     await _chatController.insertMessage(errorMsg);
   }
 
+  Future<void> _sendSingleJobScopeMessage() async {
+    final infoId = _uuid.v4();
+    final infoMsg = Message.text(
+      id: infoId,
+      authorId: 'ai',
+      text:
+          'Percakapan ini sekarang fokus ke satu lowongan yang sudah aktif. Jika masih lowongan yang sama, kirim revisi seperti "ubah lokasi", "tambah requirement", atau "naikkan gaji". Jika ingin membuat lowongan lain, tekan tombol reset di kanan atas untuk mulai percakapan baru.',
+      createdAt: DateTime.now(),
+      status: MessageStatus.seen,
+    );
+    await _chatController.insertMessage(infoMsg);
+  }
+
   @override
   void dispose() {
     _chatController.dispose();
@@ -567,7 +588,7 @@ Setelah lowongan jadi, Anda bisa:
             ),
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'Mulai ulang percakapan',
+            tooltip: 'Mulai lowongan baru',
             onPressed: _resetChat,
           ),
         ],
@@ -594,7 +615,7 @@ Setelah lowongan jadi, Anda bisa:
               ),
             ),
           // Suggestion chips
-          if (!_isGenerating && !_isInitializing)
+          if (!_isGenerating && !_isInitializing && _lastGenerated == null)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Wrap(
@@ -961,8 +982,8 @@ class _GeneratedJobActionPanel extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             isSaved
-                ? 'Draft ini sudah tersimpan otomatis ke daftar lowongan. Anda bisa kembali ke list kapan saja atau copy untuk publikasi.'
-                : 'Draft ini sedang disimpan ke daftar lowongan. Tunggu sebentar sebelum kembali.',
+                ? 'Draft ini sudah tersimpan otomatis. Percakapan ini sekarang fokus untuk revisi lowongan yang sama.'
+                : 'Draft ini sedang disimpan ke daftar lowongan. Tunggu sebentar sebelum lanjut revisi.',
             style: Theme.of(
               context,
             ).textTheme.bodyMedium?.copyWith(height: 1.45),
