@@ -99,29 +99,25 @@ class GemmaLocalAIClient implements LocalAIClient {
     String? systemPrompt,
   }) async {
     return _withBackendRecovery(() async {
-      final model = _model;
-      if (model == null) {
-        throw StateError('Model not initialized. Call initialize() first.');
-      }
-
-      final session = await model.createSession();
-
+      final chat = await _createTextChat(
+        systemPrompt: systemPrompt,
+      );
       try {
-        if (systemPrompt != null && systemPrompt.isNotEmpty) {
-          await session.addQueryChunk(Message(
-            text: systemPrompt,
-            isUser: false,
-          ));
-        }
-
-        await session.addQueryChunk(Message(
+        await chat.addQuery(Message.text(
           text: prompt,
           isUser: true,
         ));
 
-        return await session.getResponse();
+        final response = await chat.generateChatResponse();
+        if (response is TextResponse) {
+          return response.token;
+        }
+
+        throw StateError(
+          'Unexpected non-text response from local chat: ${response.runtimeType}',
+        );
       } finally {
-        await session.close();
+        await chat.close();
       }
     });
   }
@@ -132,29 +128,22 @@ class GemmaLocalAIClient implements LocalAIClient {
     String? systemPrompt,
   }) async* {
     yield* _withBackendRecoveryStream(() async* {
-      final model = _model;
-      if (model == null) {
-        throw StateError('Model not initialized. Call initialize() first.');
-      }
-
-      final session = await model.createSession();
-
+      final chat = await _createTextChat(
+        systemPrompt: systemPrompt,
+      );
       try {
-        if (systemPrompt != null && systemPrompt.isNotEmpty) {
-          await session.addQueryChunk(Message(
-            text: systemPrompt,
-            isUser: false,
-          ));
-        }
-
-        await session.addQueryChunk(Message(
+        await chat.addQuery(Message.text(
           text: prompt,
           isUser: true,
         ));
 
-        yield* session.getResponseAsync();
+        await for (final response in chat.generateChatResponseAsync()) {
+          if (response is TextResponse && response.token.isNotEmpty) {
+            yield response.token;
+          }
+        }
       } finally {
-        await session.close();
+        await chat.close();
       }
     });
   }
@@ -206,6 +195,29 @@ class GemmaLocalAIClient implements LocalAIClient {
       _model = null;
       rethrow;
     }
+  }
+
+  Future<InferenceChat> _createTextChat({
+    String? systemPrompt,
+  }) async {
+    final model = _model;
+    if (model == null) {
+      throw StateError('Model not initialized. Call initialize() first.');
+    }
+
+    return model.createChat(
+      temperature: 0.7,
+      randomSeed: 1,
+      topK: 40,
+      topP: 0.95,
+      tokenBuffer: 256,
+      supportImage: false,
+      supportAudio: false,
+      supportsFunctionCalls: false,
+      isThinking: false,
+      modelType: ModelType.gemmaIt,
+      systemInstruction: systemPrompt,
+    );
   }
 
   Future<String> _withBackendRecovery(
