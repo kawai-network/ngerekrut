@@ -89,15 +89,20 @@ class _GemmaProofScreenState extends State<GemmaProofScreen> {
     });
 
     try {
-      final response = await widget.aiService.generateLocalResponse(
+      await for (final chunk in widget.aiService.generateLocalResponseStream(
         prompt: _promptController.text.trim(),
         systemPrompt:
             'Jawab singkat dan jelas. Jika kamu bisa menjawab prompt ini, berarti inferensi lokal berhasil.',
-      );
+      )) {
+        if (!mounted) return;
+        setState(() {
+          _responseText += chunk;
+        });
+      }
 
       if (!mounted) return;
       setState(() {
-        _responseText = response;
+        _statusText = 'Streaming selesai';
       });
     } catch (e) {
       if (!mounted) return;
@@ -150,7 +155,7 @@ class _GemmaProofScreenState extends State<GemmaProofScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Kalau prompt di bawah menghasilkan jawaban, berarti plugin, model, dan inference lokal sudah bekerja.',
+                    'Kalau teks muncul bertahap di bawah, berarti plugin, model, dan streaming inference lokal sudah bekerja.',
                     style: TextStyle(color: Colors.grey.shade700),
                   ),
                 ],

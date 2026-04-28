@@ -22,6 +22,8 @@ class HiringScreen extends StatefulWidget {
 }
 
 class _HiringScreenState extends State<HiringScreen> {
+  static const _streamTextMetadataKey = 'streamText';
+
   late final HiringService _hiringService;
   late InMemoryChatController _chatController;
 
@@ -125,6 +127,7 @@ Ketik kebutuhan Anda dengan singkat. Contoh:
       authorId: 'ai',
       streamId: streamId,
       createdAt: DateTime.now(),
+      metadata: const {_streamTextMetadataKey: ''},
       status: MessageStatus.sending,
     );
     await _chatController.insertMessage(streamMsg);
@@ -624,10 +627,12 @@ Ketik kebutuhan Anda dengan singkat. Contoh:
           },
       textStreamMessageBuilder:
           (context, message, index, {isSentByMe = false, groupStatus}) {
+            final streamText =
+                message.metadata?[_streamTextMetadataKey] as String? ?? '';
             return FlyerChatTextStreamMessage(
               message: message,
               index: index,
-              streamState: const StreamStateStreaming(''),
+              streamState: StreamStateStreaming(streamText),
             );
           },
     );

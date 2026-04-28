@@ -99,6 +99,8 @@ class _CandidateAnalysisRequest {
 }
 
 class _ChatRoomScreenState extends State<ChatRoomScreen> {
+  static const _streamTextMetadataKey = 'streamText';
+
   final ChatSessionRepository _sessionRepository = ChatSessionRepository();
   final Uuid _uuid = const Uuid();
   ObjectBoxChatController? _chatController;
@@ -849,10 +851,12 @@ Jawab singkat, praktis, dan relevan untuk kebutuhan recruiter. Jika user meminta
         isSentByMe = false,
         groupStatus,
       }) {
+        final streamText =
+            message.metadata?[_streamTextMetadataKey] as String? ?? '';
         return FlyerChatTextStreamMessage(
           message: message,
           index: index,
-          streamState: const StreamStateStreaming(''),
+          streamState: StreamStateStreaming(streamText),
         );
       },
       fileMessageBuilder: (

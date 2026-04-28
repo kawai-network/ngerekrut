@@ -45,6 +45,8 @@ class FullChatScreen extends StatefulWidget {
 }
 
 class _FullChatScreenState extends State<FullChatScreen> {
+  static const _streamTextMetadataKey = 'streamText';
+
   ObjectBoxChatController? _chatController;
   bool _isInitializing = true;
   String? _error;
@@ -114,10 +116,12 @@ class _FullChatScreenState extends State<FullChatScreen> {
       authorId: 'assistant',
       streamId: streamId,
       createdAt: DateTime.now(),
+      metadata: const {_streamTextMetadataKey: ''},
       status: MessageStatus.sending,
     );
 
     await _chatController?.insertMessage(streamMessage);
+    var currentStreamMessage = streamMessage;
 
     // Simulate streaming text
     final fullText = "This is a simulated AI response with **markdown** support:\n\n- Item 1\n- Item 2\n- Item 3\n\n```dart\nprint('Hello World');\n```";
@@ -127,15 +131,17 @@ class _FullChatScreenState extends State<FullChatScreen> {
       await Future.delayed(const Duration(milliseconds: 100));
 
       final partialText = words.sublist(0, i + 1).join(' ');
-      final updatedMessage = Message.text(
+      final updatedMessage = Message.textStream(
         id: streamId,
         authorId: 'assistant',
-        text: partialText,
+        streamId: streamId,
         createdAt: streamMessage.createdAt,
+        metadata: {_streamTextMetadataKey: partialText},
         status: MessageStatus.sending,
-      );
+      ) as TextStreamMessage;
 
-      await _chatController?.updateMessage(streamMessage, updatedMessage);
+      await _chatController?.updateMessage(currentStreamMessage, updatedMessage);
+      currentStreamMessage = updatedMessage;
     }
 
     // Mark as complete
@@ -147,7 +153,7 @@ class _FullChatScreenState extends State<FullChatScreen> {
       status: MessageStatus.seen,
     );
 
-    await _chatController?.updateMessage(streamMessage, finalMessage);
+    await _chatController?.updateMessage(currentStreamMessage, finalMessage);
   }
 
   void _showMessageOptions() {
@@ -368,10 +374,12 @@ class _FullChatScreenState extends State<FullChatScreen> {
       // Text stream message builder - uses FlyerChatTextStreamMessage
       // Note: For a real implementation, you need to manage the stream state externally
       textStreamMessageBuilder: (context, message, index, {isSentByMe = false, groupStatus}) {
+        final streamText =
+            message.metadata?[_streamTextMetadataKey] as String? ?? '';
         return FlyerChatTextStreamMessage(
           message: message,
           index: index,
-          streamState: const StreamStateStreaming(''),
+          streamState: StreamStateStreaming(streamText),
         );
       },
 
